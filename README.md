@@ -2,6 +2,10 @@
 
 GoSX CMS is the opinionated content layer for GoSX applications.
 
+## Agent Skill
+
+Agents helping someone use GoSX CMS should read the GoSX ecosystem skill: [using-gosx-ecosystem](https://github.com/odvcencio/m31labs-skills/blob/main/skills/using-gosx-ecosystem/SKILL.md).
+
 It is meant to feel like the batteries-included side of Django: site settings,
 pages, posts, media, SEO, and opinionated block catalogs built on top of
 `gosx-admin`.
