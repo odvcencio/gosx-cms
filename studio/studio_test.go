@@ -53,3 +53,29 @@ func TestRenderShell(t *testing.T) {
 		}
 	}
 }
+
+func TestView(t *testing.T) {
+	shell := New(Options{
+		Title:         "Studio",
+		PreviewURL:    "/",
+		SaveAction:    "/admin/editor?action=save",
+		RestoreAction: "/admin/editor?action=restoreRevision",
+		BlockCatalog:  []blockstudio.Definition{{Key: "hero"}},
+		Media:         []media.Asset{{URL: "/media/forest.jpg"}},
+		Revisions:     []lifecycle.Revision{{ID: "rev_1"}},
+		Left:          []Panel{{Key: "map", Label: "Map", Summary: "Pages"}},
+		Actions:       []Action{{Key: "preview", Label: "Preview", Href: "/", Primary: false}},
+	})
+	view := View(shell)
+	if view["title"] != "Studio" || view["saveAction"] != "/admin/editor?action=save" || view["blockCount"] != 1 || view["hasMedia"] != true || view["hasRevisions"] != true {
+		t.Fatalf("unexpected view: %#v", view)
+	}
+	actions := view["actions"].([]map[string]any)
+	if len(actions) != 2 || actions[0]["key"] != "save" || actions[0]["class"] != "button button--primary" {
+		t.Fatalf("unexpected action views: %#v", actions)
+	}
+	left := view["leftPanels"].([]map[string]any)
+	if len(left) != 1 || left[0]["key"] != "map" || left[0]["hasSummary"] != true {
+		t.Fatalf("unexpected panel views: %#v", left)
+	}
+}

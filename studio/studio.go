@@ -54,6 +54,23 @@ type Shell struct {
 	Actions       []Action
 }
 
+func View(shell Shell) map[string]any {
+	return map[string]any{
+		"title":         shell.Title,
+		"previewURL":    shell.PreviewURL,
+		"saveAction":    shell.SaveAction,
+		"restoreAction": shell.RestoreAction,
+		"blockCount":    shell.BlockCount,
+		"mediaCount":    shell.MediaCount,
+		"hasMedia":      shell.HasMedia,
+		"revisionCount": shell.RevisionCount,
+		"hasRevisions":  shell.HasRevisions,
+		"actions":       actionViews(shell.Actions),
+		"leftPanels":    panelViews(shell.Left),
+		"rightPanels":   panelViews(shell.Right),
+	}
+}
+
 func New(options Options) Shell {
 	title := strings.TrimSpace(options.Title)
 	if title == "" {
@@ -83,6 +100,37 @@ func New(options Options) Shell {
 		Right:         normalizePanels(options.Right),
 		Actions:       actions,
 	}
+}
+
+func actionViews(actions []Action) []map[string]any {
+	out := make([]map[string]any, 0, len(actions))
+	for _, action := range actions {
+		className := "button button--secondary"
+		if action.Primary {
+			className = "button button--primary"
+		}
+		out = append(out, map[string]any{
+			"key":     action.Key,
+			"label":   action.Label,
+			"href":    action.Href,
+			"primary": action.Primary,
+			"class":   className,
+		})
+	}
+	return out
+}
+
+func panelViews(panels []Panel) []map[string]any {
+	out := make([]map[string]any, 0, len(panels))
+	for _, panel := range panels {
+		out = append(out, map[string]any{
+			"key":        panel.Key,
+			"label":      panel.Label,
+			"summary":    panel.Summary,
+			"hasSummary": panel.Summary != "",
+		})
+	}
+	return out
 }
 
 func Render(shell Shell) gosx.Node {
