@@ -27,6 +27,8 @@ Current package surface:
   flow, and custom block output.
 - `flows`: reusable server-action-backed flow definitions for contact,
   scheduling, enrollment, newsletter, and app-owned handlers.
+- `studio`: reusable three-pane authoring shell model and server-rendered
+  structure for canvas, preview, panels, and actions.
 
 ```sh
 go get github.com/odvcencio/gosx-cms
