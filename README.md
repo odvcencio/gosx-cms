@@ -19,6 +19,8 @@ Current package surface:
   editors or public GoSX surfaces.
 - `content`: compatibility parsing and view-model helpers for structured body
   documents and the lightweight legacy block syntax.
+- `lifecycle`: revision, draft, publish, preview, and rollback primitives for
+  CMS stores.
 
 ```sh
 go get github.com/odvcencio/gosx-cms
