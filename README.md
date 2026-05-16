@@ -17,7 +17,9 @@ Current package surface:
 
 - `blocks`: CMS content block catalogs that can be rendered by admin block
   editors or public GoSX surfaces.
+- `content`: compatibility parsing and view-model helpers for structured body
+  documents and the lightweight legacy block syntax.
 
 ```sh
-go get github.com/odvcencio/gosx-cms/blocks
+go get github.com/odvcencio/gosx-cms
 ```
