@@ -21,6 +21,8 @@ Current package surface:
   documents and the lightweight legacy block syntax.
 - `lifecycle`: revision, draft, publish, preview, and rollback primitives for
   CMS stores.
+- `media`: reusable asset, variant, focal point, usage, picker, and media-line
+  primitives.
 
 ```sh
 go get github.com/odvcencio/gosx-cms
