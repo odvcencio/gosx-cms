@@ -25,8 +25,9 @@ Current package surface:
   primitives.
 - `render`: generic content block rendering with hooks for app-owned product,
   flow, and custom block output.
-- `flows`: reusable server-action-backed flow definitions for contact,
-  scheduling, enrollment, newsletter, and app-owned handlers.
+- `flows`: reusable server-action-backed flow definitions and Studio panels
+  for contact, scheduling, enrollment, newsletter, checkout handoff, and
+  app-owned handlers.
 - `studio`: reusable three-pane authoring shell model and server-rendered
   structure for canvas, preview, panels, and actions.
 

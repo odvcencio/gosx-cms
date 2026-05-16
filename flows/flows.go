@@ -155,6 +155,93 @@ func ScheduleRequest(handlerRef string) Definition {
 	}
 }
 
+func ScheduleTour(handlerRef string) Definition {
+	flow := ScheduleRequest(handlerRef)
+	flow.Key = "schedule-tour"
+	flow.Label = "Schedule tour"
+	flow.Description = "Request a school visit or guided tour."
+	flow.Actions[0].Label = "Request tour"
+	return flow
+}
+
+func Appointment(handlerRef string) Definition {
+	return Definition{
+		Key:         "appointment",
+		Label:       "Appointment",
+		Description: "Book or request a one-on-one appointment.",
+		Steps:       []Step{{Key: "request", Label: "Request"}},
+		Actions: []Action{{
+			Key:        "submit",
+			Label:      "Request appointment",
+			HandlerRef: handlerRef,
+			Fields: []workbench.Field{
+				{Name: "name", Label: "Name", Kind: workbench.FieldText, Required: true},
+				{Name: "email", Label: "Email", Kind: workbench.FieldText, Required: true},
+				{Name: "preferredTime", Label: "Preferred time", Kind: workbench.FieldDateTime},
+				{Name: "notes", Label: "Notes", Kind: workbench.FieldTextarea},
+			},
+		}},
+	}
+}
+
+func Newsletter(handlerRef string) Definition {
+	return Definition{
+		Key:         "newsletter",
+		Label:       "Newsletter",
+		Description: "Newsletter signup with optional interest notes.",
+		Steps:       []Step{{Key: "signup", Label: "Signup"}},
+		Actions: []Action{{
+			Key:        "submit",
+			Label:      "Subscribe",
+			HandlerRef: handlerRef,
+			Fields: []workbench.Field{
+				{Name: "email", Label: "Email", Kind: workbench.FieldText, Required: true},
+				{Name: "name", Label: "Name", Kind: workbench.FieldText},
+				{Name: "interests", Label: "Interests", Kind: workbench.FieldTextarea},
+			},
+		}},
+	}
+}
+
+func PurchaseRequest(handlerRef string) Definition {
+	return Definition{
+		Key:         "purchase-request",
+		Label:       "Purchase request",
+		Description: "Request a product, commission, quote, or invoice follow-up.",
+		Steps:       []Step{{Key: "request", Label: "Request"}},
+		Actions: []Action{{
+			Key:        "submit",
+			Label:      "Send request",
+			HandlerRef: handlerRef,
+			Fields: []workbench.Field{
+				{Name: "name", Label: "Name", Kind: workbench.FieldText, Required: true},
+				{Name: "email", Label: "Email", Kind: workbench.FieldText, Required: true},
+				{Name: "productRef", Label: "Product reference", Kind: workbench.FieldRelation},
+				{Name: "message", Label: "Message", Kind: workbench.FieldTextarea, Required: true},
+			},
+		}},
+	}
+}
+
+func CheckoutHandoff(handlerRef string) Definition {
+	return Definition{
+		Key:         "checkout-handoff",
+		Label:       "Checkout handoff",
+		Description: "Collect context before handing off to checkout or payment.",
+		Steps:       []Step{{Key: "details", Label: "Details"}, {Key: "checkout", Label: "Checkout"}},
+		Actions: []Action{{
+			Key:        "continue",
+			Label:      "Continue to checkout",
+			HandlerRef: handlerRef,
+			Fields: []workbench.Field{
+				{Name: "email", Label: "Email", Kind: workbench.FieldText, Required: true},
+				{Name: "lineItem", Label: "Line item", Kind: workbench.FieldRelation, Required: true},
+				{Name: "notes", Label: "Notes", Kind: workbench.FieldTextarea},
+			},
+		}},
+	}
+}
+
 func Enrollment(handlerRef string) Definition {
 	return Definition{
 		Key:         "enrollment",

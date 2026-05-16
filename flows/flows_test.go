@@ -1,6 +1,11 @@
 package flows
 
-import "testing"
+import (
+	"strings"
+	"testing"
+
+	"github.com/odvcencio/gosx"
+)
 
 func TestCatalogNormalizesAndDedupes(t *testing.T) {
 	catalog := Catalog(
@@ -35,6 +40,11 @@ func TestPresetFlows(t *testing.T) {
 	for _, flow := range []Definition{
 		Contact("contact.submit"),
 		ScheduleRequest("schedule.submit"),
+		ScheduleTour("tour.submit"),
+		Appointment("appointment.submit"),
+		Newsletter("newsletter.submit"),
+		PurchaseRequest("purchase.submit"),
+		CheckoutHandoff("checkout.continue"),
 		Enrollment("enrollment.submit"),
 	} {
 		if errs := Validate(flow); len(errs) != 0 {
@@ -43,5 +53,40 @@ func TestPresetFlows(t *testing.T) {
 		if len(flow.Actions) != 1 || len(flow.Actions[0].Fields) == 0 {
 			t.Fatalf("expected preset flow fields: %#v", flow)
 		}
+	}
+}
+
+func TestRenderStudioPanel(t *testing.T) {
+	html := gosx.RenderHTML(RenderStudioPanel([]Definition{
+		Contact("contact.submit"),
+		ScheduleTour("tour.submit"),
+	}, StudioOptions{
+		SelectedKey: "schedule-tour",
+		NewHref:     "/admin/flows/new",
+		EditHref: func(definition Definition) string {
+			return "/admin/flows/" + definition.Key
+		},
+	}))
+	for _, want := range []string{
+		`class="flow-studio"`,
+		`href="/admin/flows/new"`,
+		`data-flow-key="schedule-tour"`,
+		`flow-studio__flow--selected`,
+		`Request a school visit or guided tour.`,
+		`data-flow-action="submit"`,
+		`data-handler-ref="tour.submit"`,
+		`Request tour (4 fields)`,
+		`href="/admin/flows/schedule-tour"`,
+	} {
+		if !strings.Contains(html, want) {
+			t.Fatalf("expected %q in flow panel html: %s", want, html)
+		}
+	}
+}
+
+func TestRenderStudioPanelEmptyState(t *testing.T) {
+	html := gosx.RenderHTML(RenderStudioPanel(nil, StudioOptions{Class: "flows"}))
+	if !strings.Contains(html, `class="flows"`) || !strings.Contains(html, "No flows configured.") {
+		t.Fatalf("expected empty state: %s", html)
 	}
 }
