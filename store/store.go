@@ -12,6 +12,16 @@ const (
 	ResourceKindPage         = "page"
 	ResourceKindPost         = "post"
 	ResourceKindSiteSettings = "site_settings"
+
+	ActionPagePreviewSaved     = "page.preview_saved"
+	ActionPagePublished        = "page.published"
+	ActionPageRestored         = "page.restored"
+	ActionPostPreviewSaved     = "post.preview_saved"
+	ActionPostPublished        = "post.published"
+	ActionPostRestored         = "post.restored"
+	ActionSettingsPreviewSaved = "settings.preview_saved"
+	ActionSettingsPublished    = "settings.published"
+	ActionSettingsRestored     = "settings.restored"
 )
 
 type DraftState = lifecycle.DraftState
@@ -142,6 +152,30 @@ type RevisionStore interface {
 	ListRevisions(lifecycle.RevisionFilter) []lifecycle.Revision
 	RevisionByID(resourceKind, resourceID, revisionID string) (lifecycle.Revision, bool)
 	SaveRevision(lifecycle.RevisionInput) (lifecycle.Revision, error)
+}
+
+type PageLifecycleStore interface {
+	PreviewPage(id string, input PageInput) (Page, lifecycle.Revision, error)
+	PublishPage(id string) (Page, lifecycle.Revision, error)
+	RestorePageRevision(id, revisionID string) (Page, lifecycle.Revision, error)
+}
+
+type PostLifecycleStore interface {
+	PreviewPost(id string, input PostInput) (Post, lifecycle.Revision, error)
+	PublishPost(id string) (Post, lifecycle.Revision, error)
+	RestorePostRevision(id, revisionID string) (Post, lifecycle.Revision, error)
+}
+
+type SiteSettingsLifecycleStore interface {
+	PreviewSiteSettings(input SiteSettingsInput) (SiteSettings, lifecycle.Revision, error)
+	PublishSiteSettings() (SiteSettings, lifecycle.Revision, error)
+	RestoreSiteSettingsRevision(revisionID string) (SiteSettings, lifecycle.Revision, error)
+}
+
+type LifecycleStore interface {
+	PageLifecycleStore
+	PostLifecycleStore
+	SiteSettingsLifecycleStore
 }
 
 type Store interface {
