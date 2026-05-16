@@ -29,10 +29,27 @@ Current package surface:
   settings, draft/publish state, and revisions.
 - `flows`: reusable server-action-backed flow definitions and Studio panels
   for contact, scheduling, enrollment, newsletter, checkout handoff, and
-  app-owned handlers.
+  app-owned handlers. The package also includes persisted authoring primitives
+  for flow documents, drafts, publications, runtime instances, and lifecycle
+  revision snapshots without prescribing a storage backend.
 - `studio`: reusable three-pane authoring shell model and server-rendered
   structure for canvas, preview, panels, and actions.
 
 ```sh
 go get github.com/odvcencio/gosx-cms
 ```
+
+## Flow Documents
+
+`flows.Document` is the persisted author-authored counterpart to
+`flows.Definition`. It keeps flow metadata, action handler references, and each
+step's `blockstudio.Document` together so Studio can draft and publish generic
+flows such as contact, purchase request, checkout handoff, newsletter,
+appointment, schedule tour, and enrollment.
+
+Use `flows.StandardDocuments` to seed those generic flow shapes with app-owned
+handler refs, `flows.NormalizeDocument` to clean authored step block documents,
+`flows.InstanceFromDocument` to build a runtime definition, and
+`flows.PublishDraft` or `flows.NewDocumentRevision` to create lifecycle
+snapshots. The package exposes store interfaces only; applications decide where
+documents, drafts, publications, and revisions live.
