@@ -2,7 +2,7 @@ module github.com/odvcencio/gosx-cms
 
 go 1.26
 
-require github.com/odvcencio/gosx-admin v0.1.1-0.20260516061826-4f343475f50c
+require github.com/odvcencio/gosx-admin v0.1.1-0.20260516062302-78a9d1a650e9
 
 require (
 	github.com/klauspost/cpuid/v2 v2.0.9 // indirect
