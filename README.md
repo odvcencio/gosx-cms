@@ -25,6 +25,8 @@ Current package surface:
   primitives.
 - `render`: generic content block rendering with hooks for app-owned product,
   flow, and custom block output.
+- `store`: generic CMS store contracts and helpers for pages, posts, site
+  settings, draft/publish state, and revisions.
 - `flows`: reusable server-action-backed flow definitions and Studio panels
   for contact, scheduling, enrollment, newsletter, checkout handoff, and
   app-owned handlers.
