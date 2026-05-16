@@ -27,11 +27,13 @@ Current package surface:
   flow, and custom block output.
 - `store`: generic CMS store contracts and helpers for pages, posts, site
   settings, draft/publish state, and revisions.
+- `store/memory`: turnkey in-memory implementation of the generic CMS store
+  contracts for demos, tests, previews, and early site builds.
 - `flows`: reusable server-action-backed flow definitions and Studio panels
   for contact, scheduling, enrollment, newsletter, checkout handoff, and
   app-owned handlers. The package also includes persisted authoring primitives
   for flow documents, drafts, publications, runtime instances, and lifecycle
-  revision snapshots without prescribing a storage backend.
+  revision snapshots plus a memory store for demos and early Studio sites.
 - `studio`: reusable three-pane authoring shell model and server-rendered
   structure for canvas, preview, panels, and actions.
 
