@@ -23,6 +23,8 @@ Current package surface:
   CMS stores.
 - `media`: reusable asset, variant, focal point, usage, picker, and media-line
   primitives.
+- `render`: generic content block rendering with hooks for app-owned product,
+  flow, and custom block output.
 
 ```sh
 go get github.com/odvcencio/gosx-cms
