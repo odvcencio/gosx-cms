@@ -6,6 +6,8 @@ github.com/odvcencio/gosx v0.18.28 h1:P8KOnFBQVoHFeqWHV736OX/DJklz7gz0WaRZzHC/yn
 github.com/odvcencio/gosx v0.18.28/go.mod h1:ehWTRukm0Hx6e4XklFBM1SXsvSDMrvZA5Vp78ExJ4qQ=
 github.com/odvcencio/gosx-admin v0.1.1-0.20260516052801-94abe7e7fba9 h1:CL4egrjVfyym92TF+tdItZTk/3pqoCkwATAYS03/8+0=
 github.com/odvcencio/gosx-admin v0.1.1-0.20260516052801-94abe7e7fba9/go.mod h1:RMPEMS4jfZd25r9SE6yXF934ElEGir23tnjElPUJRjc=
+github.com/odvcencio/gosx-admin v0.1.1-0.20260516061826-4f343475f50c h1:nS58XeI2zxwbmLve2vQLvYxTNue/2zHL2WFoMHbFa00=
+github.com/odvcencio/gosx-admin v0.1.1-0.20260516061826-4f343475f50c/go.mod h1:RMPEMS4jfZd25r9SE6yXF934ElEGir23tnjElPUJRjc=
 github.com/odvcencio/gotreesitter v0.15.3 h1:bcSIEMyRrDaFIZw2zwM8cNR03VX6y8CbXFxVzfFSGX0=
 github.com/odvcencio/gotreesitter v0.15.3/go.mod h1:ccYZsDUmAJQAtliLsNHT33F3X4AN7f/Z6JGiPNZoEzY=
 github.com/odvcencio/manta v0.0.13 h1:PSsetEqUo89IY2KGI2ABAHU8ohBhpH5Qw7Lep+FgeXs=

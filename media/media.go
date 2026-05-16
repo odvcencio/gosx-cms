@@ -1,7 +1,9 @@
 package media
 
 import (
+	"context"
 	"encoding/json"
+	"io"
 	"path/filepath"
 	"strings"
 	"time"
@@ -72,6 +74,37 @@ type Store interface {
 	UpdateMediaAsset(string, Input) (Asset, error)
 }
 
+type Upload struct {
+	Filename    string
+	ContentType string
+	Size        int64
+	Alt         string
+	Reader      io.Reader
+}
+
+type StoredObject struct {
+	URL         string
+	Filename    string
+	ContentType string
+	Size        int64
+}
+
+type UploadPolicy struct {
+	MaxBytes        int64
+	ContentTypes    map[string]string
+	ExtensionTypes  map[string]string
+	GenerateVariant bool
+}
+
+type Storage interface {
+	Save(context.Context, Upload) (StoredObject, error)
+	Delete(context.Context, StoredObject) error
+}
+
+type VariantGenerator interface {
+	Generate(context.Context, StoredObject) (Variants, []StoredObject, error)
+}
+
 type PickerField struct {
 	Name       string
 	Label      string
@@ -94,6 +127,60 @@ func Picker(name, label string, value Item, assets []Asset, required bool) Picke
 		Assets:     assets,
 		AssetCount: len(assets),
 		HasAssets:  len(assets) > 0,
+	}
+}
+
+func DefaultUploadPolicy() UploadPolicy {
+	return UploadPolicy{
+		MaxBytes: 12 << 20,
+		ContentTypes: map[string]string{
+			"image/gif":  ".gif",
+			"image/jpeg": ".jpg",
+			"image/png":  ".png",
+			"image/webp": ".webp",
+		},
+		ExtensionTypes: map[string]string{
+			".ico":   "image/x-icon",
+			".woff":  "font/woff",
+			".woff2": "font/woff2",
+			".ttf":   "font/ttf",
+			".otf":   "font/otf",
+		},
+		GenerateVariant: true,
+	}
+}
+
+func (policy UploadPolicy) AllowedExtension(contentType, original string) (string, bool) {
+	contentType = strings.TrimSpace(strings.ToLower(contentType))
+	if ext, ok := policy.ContentTypes[contentType]; ok {
+		return ext, true
+	}
+	ext := strings.ToLower(filepath.Ext(original))
+	if ext == "" {
+		return "", false
+	}
+	if allowed, ok := policy.ExtensionTypes[ext]; ok && allowed != "" {
+		return ext, true
+	}
+	return "", false
+}
+
+func (policy UploadPolicy) Allows(contentType, original string, size int64) bool {
+	if policy.MaxBytes > 0 && size > policy.MaxBytes {
+		return false
+	}
+	_, ok := policy.AllowedExtension(contentType, original)
+	return ok
+}
+
+func InputFromStoredObject(object StoredObject, alt string, variants Variants) Input {
+	return Input{
+		URL:         strings.TrimSpace(object.URL),
+		Alt:         strings.TrimSpace(alt),
+		Filename:    strings.TrimSpace(object.Filename),
+		ContentType: strings.TrimSpace(object.ContentType),
+		Size:        object.Size,
+		Variants:    NormalizeVariants(variants),
 	}
 }
 

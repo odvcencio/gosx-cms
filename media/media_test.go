@@ -81,3 +81,31 @@ func TestNormalizeFocalPoint(t *testing.T) {
 		t.Fatalf("unexpected focal point: %#v", point)
 	}
 }
+
+func TestUploadPolicyAllowsContentAndExtensionTypes(t *testing.T) {
+	policy := DefaultUploadPolicy()
+	if ext, ok := policy.AllowedExtension("image/jpeg", "forest.jpeg"); !ok || ext != ".jpg" {
+		t.Fatalf("expected jpeg content type to be allowed, got %q %v", ext, ok)
+	}
+	if ext, ok := policy.AllowedExtension("application/octet-stream", "font.woff2"); !ok || ext != ".woff2" {
+		t.Fatalf("expected font extension to be allowed, got %q %v", ext, ok)
+	}
+	if policy.Allows("image/jpeg", "forest.jpg", policy.MaxBytes+1) {
+		t.Fatal("expected oversized upload to be rejected")
+	}
+}
+
+func TestInputFromStoredObject(t *testing.T) {
+	input := InputFromStoredObject(StoredObject{
+		URL:         " /media/uploads/forest.jpg ",
+		Filename:    " forest.jpg ",
+		ContentType: " image/jpeg ",
+		Size:        120,
+	}, " Forest ", Variants{"thumb": {URL: " /media/uploads/forest-thumb.jpg "}})
+	if input.URL != "/media/uploads/forest.jpg" || input.Alt != "Forest" || input.Filename != "forest.jpg" || input.ContentType != "image/jpeg" || input.Size != 120 {
+		t.Fatalf("unexpected input: %#v", input)
+	}
+	if input.Variants["thumb"].URL != "/media/uploads/forest-thumb.jpg" {
+		t.Fatalf("expected normalized variants, got %#v", input.Variants)
+	}
+}

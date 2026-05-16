@@ -25,6 +25,8 @@ Current package surface:
   primitives.
 - `render`: generic content block rendering with hooks for app-owned product,
   flow, and custom block output.
+- `flows`: reusable server-action-backed flow definitions for contact,
+  scheduling, enrollment, newsletter, and app-owned handlers.
 
 ```sh
 go get github.com/odvcencio/gosx-cms
