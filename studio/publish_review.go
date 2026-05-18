@@ -3,6 +3,7 @@ package studio
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/odvcencio/gosx"
 )
@@ -14,6 +15,8 @@ type PublishReview struct {
 	Title              string
 	Summary            string
 	Status             ReadinessStatus
+	Approval           PublishApproval
+	Schedule           PublishSchedule
 	Checks             []PublishCheck
 	Impacts            []PublishImpact
 	PrimaryHref        string
@@ -38,6 +41,31 @@ type PublishImpact struct {
 	Value  string
 	Detail string
 	Status ReadinessStatus
+}
+
+type PublishApproval struct {
+	Required    bool
+	Approved    bool
+	Label       string
+	Reviewer    string
+	Summary     string
+	Detail      string
+	Status      ReadinessStatus
+	Href        string
+	ActionLabel string
+}
+
+type PublishSchedule struct {
+	Enabled     bool
+	Label       string
+	PublishAt   time.Time
+	UnpublishAt time.Time
+	Timezone    string
+	Summary     string
+	Detail      string
+	Status      ReadinessStatus
+	Href        string
+	ActionLabel string
 }
 
 type PublishReviewOptions struct {
@@ -93,6 +121,8 @@ func NormalizePublishReview(review PublishReview) PublishReview {
 	review.Summary = strings.TrimSpace(review.Summary)
 	review.PrimaryHref = strings.TrimSpace(review.PrimaryHref)
 	review.PrimaryActionLabel = strings.TrimSpace(review.PrimaryActionLabel)
+	review.Approval = normalizePublishApproval(review.Approval)
+	review.Schedule = normalizePublishSchedule(review.Schedule)
 	review.Checks = normalizePublishChecks(review.Checks)
 	review.Impacts = normalizePublishImpacts(review.Impacts)
 	if review.Key == "" {
@@ -105,8 +135,8 @@ func NormalizePublishReview(review PublishReview) PublishReview {
 		review.Title = "Publish review"
 	}
 	review.Status = normalizeReadinessStatus(review.Status)
-	if review.Status == ReadinessWatch && len(review.Checks) > 0 {
-		review.Status = derivedPublishStatus(review.Checks)
+	if review.Status == ReadinessWatch && (len(review.Checks) > 0 || hasPublishApproval(review.Approval) || hasPublishSchedule(review.Schedule)) {
+		review.Status = derivedPublishStatus(review.Checks, review.Approval, review.Schedule)
 	}
 	if review.Summary == "" {
 		ready, _, _, total := publishCheckCounts(review.Checks)
@@ -156,6 +186,10 @@ func PublishReviewView(review PublishReview) map[string]any {
 		"watchCount":         watch,
 		"nextCount":          next,
 		"total":              total,
+		"approval":           publishApprovalView(review.Approval),
+		"hasApproval":        hasPublishApproval(review.Approval),
+		"schedule":           publishScheduleView(review.Schedule),
+		"hasSchedule":        hasPublishSchedule(review.Schedule),
 		"checks":             publishCheckViews(review.Checks),
 		"impacts":            publishImpactViews(review.Impacts),
 		"primaryHref":        review.PrimaryHref,
@@ -177,6 +211,9 @@ func RenderPublishReviewPanel(review PublishReview, options PublishReviewOptions
 			gosx.El("output", gosx.Attrs(gosx.Attr("class", className+"__count")), gosx.Text(review.CountSummary())),
 		),
 		gosx.El("p", gosx.Attrs(gosx.Attr("class", className+"__summary-text")), gosx.Text(review.Summary)),
+	}
+	if hasPublishApproval(review.Approval) || hasPublishSchedule(review.Schedule) {
+		children = append(children, renderPublishDecision(className, review.Approval, review.Schedule))
 	}
 	if len(review.Checks) == 0 {
 		children = append(children, gosx.El("article", gosx.Attrs(gosx.Attr("class", className+"__empty")),
@@ -272,17 +309,137 @@ func normalizePublishImpacts(impacts []PublishImpact) []PublishImpact {
 	return out
 }
 
-func derivedPublishStatus(checks []PublishCheck) ReadinessStatus {
-	status := ReadinessReady
-	for _, check := range checks {
-		switch normalizeReadinessStatus(check.Status) {
-		case ReadinessNext:
-			return ReadinessNext
-		case ReadinessWatch:
-			status = ReadinessWatch
+func normalizePublishApproval(approval PublishApproval) PublishApproval {
+	approval.Label = strings.TrimSpace(approval.Label)
+	approval.Reviewer = strings.TrimSpace(approval.Reviewer)
+	approval.Summary = strings.TrimSpace(approval.Summary)
+	approval.Detail = strings.TrimSpace(approval.Detail)
+	approval.Href = strings.TrimSpace(approval.Href)
+	approval.ActionLabel = strings.TrimSpace(approval.ActionLabel)
+	if approval.Label == "" {
+		approval.Label = "Approval"
+	}
+	approval.Status = normalizeReadinessStatus(approval.Status)
+	if hasPublishApproval(approval) {
+		switch {
+		case approval.Approved:
+			approval.Status = ReadinessReady
+		case approval.Required && approval.Status == ReadinessWatch:
+			approval.Status = ReadinessNext
+		}
+		if approval.Summary == "" {
+			if approval.Approved {
+				approval.Summary = firstNonEmpty(approval.Reviewer, "Approved")
+			} else if approval.Required {
+				approval.Summary = "Approval required"
+			} else {
+				approval.Summary = "Optional approval"
+			}
+		}
+		if approval.Detail == "" {
+			if approval.Approved {
+				approval.Detail = "Release approval is recorded."
+			} else if approval.Required {
+				approval.Detail = "Collect approval before publishing this draft."
+			}
+		}
+		if approval.ActionLabel == "" {
+			approval.ActionLabel = readinessActionLabel(approval.Status)
 		}
 	}
+	return approval
+}
+
+func normalizePublishSchedule(schedule PublishSchedule) PublishSchedule {
+	schedule.Label = strings.TrimSpace(schedule.Label)
+	schedule.Timezone = strings.TrimSpace(schedule.Timezone)
+	schedule.Summary = strings.TrimSpace(schedule.Summary)
+	schedule.Detail = strings.TrimSpace(schedule.Detail)
+	schedule.Href = strings.TrimSpace(schedule.Href)
+	schedule.ActionLabel = strings.TrimSpace(schedule.ActionLabel)
+	if schedule.Label == "" {
+		schedule.Label = "Schedule"
+	}
+	schedule.Status = normalizeReadinessStatus(schedule.Status)
+	if hasPublishSchedule(schedule) {
+		if schedule.Enabled {
+			if schedule.PublishAt.IsZero() && schedule.Status == ReadinessWatch {
+				schedule.Status = ReadinessNext
+			} else if !schedule.PublishAt.IsZero() {
+				schedule.Status = ReadinessReady
+			}
+		}
+		if schedule.Summary == "" {
+			if schedule.Enabled && !schedule.PublishAt.IsZero() {
+				schedule.Summary = publishTimeLabel(schedule.PublishAt, schedule.Timezone)
+			} else if schedule.Enabled {
+				schedule.Summary = "Publish time required"
+			} else {
+				schedule.Summary = "Manual publish"
+			}
+		}
+		if schedule.Detail == "" {
+			if schedule.Enabled {
+				schedule.Detail = "This draft is prepared for scheduled publishing."
+			} else {
+				schedule.Detail = "Publishing runs only after an explicit publish action."
+			}
+		}
+		if schedule.ActionLabel == "" {
+			schedule.ActionLabel = readinessActionLabel(schedule.Status)
+		}
+	}
+	return schedule
+}
+
+func hasPublishApproval(approval PublishApproval) bool {
+	return approval.Required ||
+		approval.Approved ||
+		strings.TrimSpace(approval.Reviewer) != "" ||
+		strings.TrimSpace(approval.Summary) != "" ||
+		strings.TrimSpace(approval.Detail) != "" ||
+		strings.TrimSpace(approval.Href) != ""
+}
+
+func hasPublishSchedule(schedule PublishSchedule) bool {
+	return schedule.Enabled ||
+		!schedule.PublishAt.IsZero() ||
+		!schedule.UnpublishAt.IsZero() ||
+		strings.TrimSpace(schedule.Summary) != "" ||
+		strings.TrimSpace(schedule.Detail) != "" ||
+		strings.TrimSpace(schedule.Href) != ""
+}
+
+func derivedPublishStatus(checks []PublishCheck, approval PublishApproval, schedule PublishSchedule) ReadinessStatus {
+	status := ReadinessReady
+	for _, check := range checks {
+		status = highestReadinessStatus(status, normalizeReadinessStatus(check.Status))
+		if status == ReadinessNext {
+			return status
+		}
+	}
+	if hasPublishApproval(approval) {
+		status = highestReadinessStatus(status, normalizeReadinessStatus(approval.Status))
+	}
+	if status == ReadinessNext {
+		return status
+	}
+	if hasPublishSchedule(schedule) {
+		status = highestReadinessStatus(status, normalizeReadinessStatus(schedule.Status))
+	}
 	return status
+}
+
+func highestReadinessStatus(current, candidate ReadinessStatus) ReadinessStatus {
+	current = normalizeReadinessStatus(current)
+	candidate = normalizeReadinessStatus(candidate)
+	if current == ReadinessNext || candidate == ReadinessNext {
+		return ReadinessNext
+	}
+	if current == ReadinessWatch || candidate == ReadinessWatch {
+		return ReadinessWatch
+	}
+	return ReadinessReady
 }
 
 func publishCheckViews(checks []PublishCheck) []map[string]any {
@@ -304,6 +461,53 @@ func publishCheckViews(checks []PublishCheck) []map[string]any {
 		})
 	}
 	return out
+}
+
+func publishApprovalView(approval PublishApproval) map[string]any {
+	approval = normalizePublishApproval(approval)
+	status := normalizeReadinessStatus(approval.Status)
+	return map[string]any{
+		"required":    approval.Required,
+		"approved":    approval.Approved,
+		"label":       approval.Label,
+		"reviewer":    approval.Reviewer,
+		"summary":     approval.Summary,
+		"detail":      approval.Detail,
+		"status":      string(status),
+		"statusLabel": readinessStatusLabel(status),
+		"class":       "studio-publish-review__decision-card studio-publish-review__decision-card--" + string(status),
+		"href":        approval.Href,
+		"hasHref":     approval.Href != "",
+		"actionLabel": firstNonEmpty(approval.ActionLabel, readinessActionLabel(status)),
+	}
+}
+
+func publishScheduleView(schedule PublishSchedule) map[string]any {
+	schedule = normalizePublishSchedule(schedule)
+	status := normalizeReadinessStatus(schedule.Status)
+	publishAt := ""
+	unpublishAt := ""
+	if !schedule.PublishAt.IsZero() {
+		publishAt = schedule.PublishAt.Format(time.RFC3339)
+	}
+	if !schedule.UnpublishAt.IsZero() {
+		unpublishAt = schedule.UnpublishAt.Format(time.RFC3339)
+	}
+	return map[string]any{
+		"enabled":     schedule.Enabled,
+		"label":       schedule.Label,
+		"publishAt":   publishAt,
+		"unpublishAt": unpublishAt,
+		"timezone":    schedule.Timezone,
+		"summary":     schedule.Summary,
+		"detail":      schedule.Detail,
+		"status":      string(status),
+		"statusLabel": readinessStatusLabel(status),
+		"class":       "studio-publish-review__decision-card studio-publish-review__decision-card--" + string(status),
+		"href":        schedule.Href,
+		"hasHref":     schedule.Href != "",
+		"actionLabel": firstNonEmpty(schedule.ActionLabel, readinessActionLabel(status)),
+	}
 }
 
 func publishImpactViews(impacts []PublishImpact) []map[string]any {
@@ -350,6 +554,43 @@ func renderPublishCheck(className string, check PublishCheck) gosx.Node {
 	), gosx.Fragment(children...))
 }
 
+func renderPublishDecision(className string, approval PublishApproval, schedule PublishSchedule) gosx.Node {
+	items := []gosx.Node{}
+	if hasPublishApproval(approval) {
+		items = append(items, renderPublishDecisionCard(className, "approval", approval.Label, approval.Summary, approval.Detail, approval.Status, approval.Href, approval.ActionLabel))
+	}
+	if hasPublishSchedule(schedule) {
+		items = append(items, renderPublishDecisionCard(className, "schedule", schedule.Label, schedule.Summary, schedule.Detail, schedule.Status, schedule.Href, schedule.ActionLabel))
+	}
+	return gosx.El("div", gosx.Attrs(
+		gosx.Attr("class", className+"__decision"),
+		gosx.Attr("aria-label", "Publish decision"),
+	), gosx.Fragment(items...))
+}
+
+func renderPublishDecisionCard(className, key, label, summary, detail string, status ReadinessStatus, href, actionLabel string) gosx.Node {
+	children := []gosx.Node{
+		gosx.El("div", gosx.Attrs(gosx.Attr("class", className+"__decision-head")),
+			gosx.El("strong", nil, gosx.Text(label)),
+			gosx.El("output", nil, gosx.Text(readinessStatusLabel(status))),
+		),
+		gosx.El("p", gosx.Attrs(gosx.Attr("class", className+"__decision-summary")), gosx.Text(summary)),
+	}
+	if detail != "" {
+		children = append(children, gosx.El("p", gosx.Attrs(gosx.Attr("class", className+"__detail")), gosx.Text(detail)))
+	}
+	if href != "" {
+		children = append(children, gosx.El("a", gosx.Attrs(
+			gosx.Attr("href", href),
+			gosx.Attr("data-gosx-link", "true"),
+		), gosx.Text(actionLabel)))
+	}
+	return gosx.El("article", gosx.Attrs(
+		gosx.Attr("class", className+"__decision-card "+className+"__decision-card--"+string(status)),
+		gosx.Attr("data-studio-publish-"+key, "true"),
+	), gosx.Fragment(children...))
+}
+
 func renderPublishImpacts(className, title string, impacts []PublishImpact) gosx.Node {
 	items := make([]gosx.Node, 0, len(impacts))
 	for _, impact := range impacts {
@@ -372,4 +613,16 @@ func renderPublishImpacts(className, title string, impacts []PublishImpact) gosx
 		gosx.El("h3", nil, gosx.Text(title)),
 		gosx.El("div", gosx.Attrs(gosx.Attr("class", className+"__impact-list")), gosx.Fragment(items...)),
 	)
+}
+
+func publishTimeLabel(value time.Time, timezone string) string {
+	if value.IsZero() {
+		return ""
+	}
+	if timezone != "" {
+		if location, err := time.LoadLocation(timezone); err == nil {
+			value = value.In(location)
+		}
+	}
+	return value.Format("Jan 2, 2006 3:04 PM MST")
 }

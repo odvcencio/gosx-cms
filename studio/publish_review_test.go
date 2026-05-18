@@ -3,6 +3,7 @@ package studio
 import (
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/odvcencio/gosx"
 )
@@ -13,6 +14,16 @@ func TestPublishReviewView(t *testing.T) {
 		ResourceKind: "Page",
 		ResourceID:   "home",
 		Title:        "Homepage publish",
+		Approval: PublishApproval{
+			Required: true,
+			Approved: true,
+			Reviewer: "Owner",
+		},
+		Schedule: PublishSchedule{
+			Enabled:   true,
+			PublishAt: time.Date(2026, 7, 1, 16, 30, 0, 0, time.UTC),
+			Timezone:  "America/Los_Angeles",
+		},
 		Checks: []PublishCheck{
 			NewPublishCheck("approval", "Owner approval", "Governance", ReadinessReady, "Approved", "The owner approved the release."),
 			NewPublishCheck("forms", "Flow handlers", "Forms", ReadinessWatch, "1 flow needs review", "Confirm lead capture before release.").WithHref("/admin/flows"),
@@ -30,6 +41,17 @@ func TestPublishReviewView(t *testing.T) {
 	if view["status"] != "watch" || view["primaryActionLabel"] != "Open" || view["hasPrimaryHref"] != true {
 		t.Fatalf("unexpected review view: %#v", view)
 	}
+	if view["hasApproval"] != true || view["hasSchedule"] != true {
+		t.Fatalf("expected approval and schedule views: %#v", view)
+	}
+	approval := view["approval"].(map[string]any)
+	if approval["approved"] != true || approval["summary"] != "Owner" {
+		t.Fatalf("unexpected approval view: %#v", approval)
+	}
+	schedule := view["schedule"].(map[string]any)
+	if schedule["summary"] != "Jul 1, 2026 9:30 AM PDT" || schedule["publishAt"] != "2026-07-01T16:30:00Z" {
+		t.Fatalf("unexpected schedule view: %#v", schedule)
+	}
 	checks := view["checks"].([]map[string]any)
 	if checks[1]["key"] != "forms" || checks[1]["statusLabel"] != "Watch" || checks[1]["hasHref"] != true {
 		t.Fatalf("unexpected check view: %#v", checks[1])
@@ -45,6 +67,15 @@ func TestRenderPublishReviewPanel(t *testing.T) {
 		Key:          "homepage",
 		ResourceKind: "Page",
 		Title:        "Homepage publish",
+		Approval: PublishApproval{
+			Required: true,
+			Summary:  "Needs approval",
+			Href:     "/admin/review",
+		},
+		Schedule: PublishSchedule{
+			Enabled: true,
+			Summary: "Publish time required",
+		},
 		Checks: []PublishCheck{
 			NewPublishCheck("copy", "Required copy", "Content", ReadinessReady, "Ready to publish", "Title, tagline, and hero fields are filled."),
 			NewPublishCheck("approval", "Owner approval", "Governance", ReadinessNext, "Needs approval", "Collect approval before the public release."),
@@ -61,6 +92,8 @@ func TestRenderPublishReviewPanel(t *testing.T) {
 		`data-studio-publish-status="next"`,
 		`class="studio-publish-review"`,
 		`1/2 clear`,
+		`data-studio-publish-approval="true"`,
+		`data-studio-publish-schedule="true"`,
 		`data-studio-publish-check="copy"`,
 		`Required copy`,
 		`Owner approval`,
@@ -89,6 +122,8 @@ func TestRenderPublishReviewPanelEmpty(t *testing.T) {
 
 func TestNormalizePublishReviewDefaults(t *testing.T) {
 	review := NormalizePublishReview(PublishReview{
+		Approval: PublishApproval{Required: true},
+		Schedule: PublishSchedule{Enabled: true},
 		Checks: []PublishCheck{
 			{Label: "  Approval  ", Scope: " ", Summary: " ", Status: "unknown"},
 			{Key: "skip"},
@@ -106,5 +141,11 @@ func TestNormalizePublishReviewDefaults(t *testing.T) {
 	}
 	if len(review.Impacts) != 1 || review.Impacts[0].Key != "routes" || review.Impacts[0].Value != "Tracked" {
 		t.Fatalf("unexpected impacts: %#v", review.Impacts)
+	}
+	if review.Approval.Status != ReadinessNext || review.Approval.Summary != "Approval required" {
+		t.Fatalf("unexpected approval defaults: %#v", review.Approval)
+	}
+	if review.Schedule.Status != ReadinessNext || review.Schedule.Summary != "Publish time required" {
+		t.Fatalf("unexpected schedule defaults: %#v", review.Schedule)
 	}
 }
