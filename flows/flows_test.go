@@ -90,3 +90,33 @@ func TestRenderStudioPanelEmptyState(t *testing.T) {
 		t.Fatalf("expected empty state: %s", html)
 	}
 }
+
+func TestStudioLibraryDescribesExecutionAndEmbedTargets(t *testing.T) {
+	library := StudioLibrary([]Definition{
+		Contact("contact.submit"),
+		Newsletter("newsletter.submit"),
+		Definition{Key: "orphan", Label: "Orphan", Steps: []Step{{Key: "start"}}, Actions: []Action{{Key: "submit"}}},
+	}, StudioLibraryOptions{
+		Routes:       map[string]string{FlowKeyContact: "/contact"},
+		EmbedTargets: map[string]string{FlowKeyContact: "contact"},
+	})
+	if len(library) != 3 {
+		t.Fatalf("expected three flow views, got %#v", library)
+	}
+	contact := library[0]
+	if contact.Key != FlowKeyContact || !contact.CanExecute || contact.Status != "ready" || !contact.HasRoute || contact.Route != "/contact" || !contact.HasEmbedTarget {
+		t.Fatalf("unexpected contact flow view: %#v", contact)
+	}
+	if !contact.HasPrimaryAction || contact.PrimaryAction.HandlerRef != "contact.submit" || contact.RequiredFieldCount != 3 {
+		t.Fatalf("unexpected primary action: %#v", contact)
+	}
+	if len(contact.Actions[0].Fields) != 3 || contact.Actions[0].Fields[1].Name != "email" {
+		t.Fatalf("unexpected fields: %#v", contact.Actions[0].Fields)
+	}
+	if library[1].Status != "watch" || library[1].StatusLabel != "Registered" {
+		t.Fatalf("expected executable flow without route to be watch: %#v", library[1])
+	}
+	if library[2].CanExecute || library[2].Status != "next" {
+		t.Fatalf("expected missing handler to need work: %#v", library[2])
+	}
+}

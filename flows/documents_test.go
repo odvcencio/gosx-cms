@@ -124,6 +124,54 @@ func TestDraftPublishAndRevisionRoundTrip(t *testing.T) {
 	}
 }
 
+func TestSaveConfiguredDraftUpdatesHandlerRefs(t *testing.T) {
+	now := time.Date(2026, 5, 16, 12, 0, 0, 0, time.UTC)
+	store := NewMemoryStore()
+	doc := DocumentFromDefinition(Contact("contact.submit"), DocumentOptions{ID: "contact-flow"})
+	draft, err := SaveConfiguredDraft(store, doc, DraftConfig{
+		AuthorID:       "author_1",
+		BaseRevisionID: "rev_base",
+		HandlerRefs:    map[string]string{"submit": "contact.custom_submit"},
+		StepLabels:     map[string]string{"message": "Studio message"},
+		Now:            now,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if draft.AuthorID != "author_1" || draft.BaseRevisionID != "rev_base" || draft.Updated != now {
+		t.Fatalf("unexpected configured draft metadata: %#v", draft)
+	}
+	loaded, ok := store.GetFlowDraft("contact-flow")
+	if !ok || loaded.Document.Actions[0].HandlerRef != "contact.custom_submit" || loaded.Document.Steps[0].Label != "Studio message" {
+		t.Fatalf("expected configured draft, got %#v %v", loaded, ok)
+	}
+	doc.Actions[0].HandlerRef = "mutated.after.save"
+	again, _ := store.GetFlowDraft(FlowKeyContact)
+	if again.Document.Actions[0].HandlerRef != "contact.custom_submit" {
+		t.Fatalf("expected stored draft to be isolated from caller mutation: %#v", again)
+	}
+}
+
+func TestPublishStoredDraftStoresPublication(t *testing.T) {
+	now := time.Date(2026, 5, 16, 12, 0, 0, 0, time.UTC)
+	store := NewMemoryStore()
+	doc := DocumentFromDefinition(Newsletter("newsletter.submit"), DocumentOptions{ID: "newsletter-flow"})
+	if _, err := SaveConfiguredDraft(store, doc, DraftConfig{AuthorID: "author_1", Now: now}); err != nil {
+		t.Fatal(err)
+	}
+	result, err := PublishStoredDraft(store, FlowKeyNewsletter, "publisher_1", now.Add(time.Hour))
+	if err != nil {
+		t.Fatal(err)
+	}
+	loaded, ok := store.GetFlowPublication("newsletter-flow")
+	if !ok || loaded.RevisionID != result.Revision.ID || loaded.Document.State != lifecycle.PublishStatePublished || loaded.AuthorID != "publisher_1" {
+		t.Fatalf("expected stored publication, got %#v %v", loaded, ok)
+	}
+	if result.Revision.ResourceID != "newsletter-flow" || result.Revision.Action != ActionPublished {
+		t.Fatalf("unexpected publish revision: %#v", result.Revision)
+	}
+}
+
 func TestInstanceFromDocumentBuildsRuntimeDefinition(t *testing.T) {
 	doc := DocumentFromDefinition(ScheduleTour("tour.submit"), DocumentOptions{ID: "tour-flow", State: lifecycle.PublishStatePublished})
 	instance := InstanceFromDocument(doc, InstanceOptions{ID: "slot_1", RevisionID: "rev_1"})

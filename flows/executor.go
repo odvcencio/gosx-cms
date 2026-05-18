@@ -203,14 +203,24 @@ func ValidateActionPayload(action DocumentAction, values map[string]string) Vali
 	errs := ValidationErrors{}
 	for _, field := range action.Fields {
 		name := strings.TrimSpace(field.Name)
-		if name == "" || !field.Required {
+		if name == "" {
 			continue
 		}
-		if strings.TrimSpace(values[name]) == "" {
+		value := strings.TrimSpace(values[name])
+		if field.Required && value == "" {
 			errs[name] = "This field is required."
+			continue
+		}
+		if value != "" && emailFieldName(name) && !strings.Contains(value, "@") {
+			errs[name] = "Enter a valid email address."
 		}
 	}
 	return errs
+}
+
+func emailFieldName(name string) bool {
+	name = strings.TrimSpace(strings.ToLower(name))
+	return name == "email" || strings.HasSuffix(name, "email")
 }
 
 func cloneSubmissionValues(values map[string]string) map[string]string {

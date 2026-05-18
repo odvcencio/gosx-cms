@@ -103,6 +103,19 @@ type PublishResult struct {
 	Revision    lifecycle.Revision `json:"revision"`
 }
 
+type DocumentConfig struct {
+	HandlerRefs map[string]string
+	StepLabels  map[string]string
+}
+
+type DraftConfig struct {
+	AuthorID       string
+	BaseRevisionID string
+	HandlerRefs    map[string]string
+	StepLabels     map[string]string
+	Now            time.Time
+}
+
 type HandlerRefs map[string]string
 
 type DocumentStore interface {
@@ -118,6 +131,11 @@ type DraftStore interface {
 type PublicationStore interface {
 	GetFlowPublication(documentID string) (Publication, bool)
 	SaveFlowPublication(Publication) error
+}
+
+type DraftPublicationStore interface {
+	DraftStore
+	PublicationStore
 }
 
 type NormalizeDocumentOption func(*normalizeDocumentOptions)
@@ -308,6 +326,59 @@ func PublishDraft(draft Draft, authorID string, now time.Time) (PublishResult, e
 	}
 	publication.RevisionID = revision.ID
 	return PublishResult{Publication: publication, Revision: revision}, nil
+}
+
+func ConfigureDocument(document Document, config DocumentConfig) Document {
+	document = NormalizeDocument(document, WithUnknownStepBlocks())
+	if len(config.HandlerRefs) == 0 && len(config.StepLabels) == 0 {
+		return document
+	}
+	for index := range document.Steps {
+		key := normalizeKey(document.Steps[index].Key)
+		if label, ok := config.StepLabels[key]; ok {
+			document.Steps[index].Label = strings.TrimSpace(label)
+		}
+	}
+	for index := range document.Actions {
+		key := normalizeKey(document.Actions[index].Key)
+		if handlerRef, ok := config.HandlerRefs[key]; ok {
+			document.Actions[index].HandlerRef = strings.TrimSpace(handlerRef)
+		}
+	}
+	return NormalizeDocument(document, WithUnknownStepBlocks())
+}
+
+func SaveConfiguredDraft(store DraftStore, document Document, config DraftConfig) (Draft, error) {
+	if store == nil {
+		return Draft{}, fmt.Errorf("%w: %s", ErrFlowNotFound, normalizeKey(document.Key))
+	}
+	document = ConfigureDocument(document, DocumentConfig{
+		HandlerRefs: config.HandlerRefs,
+		StepLabels:  config.StepLabels,
+	})
+	draft := NewDraft(document, config.AuthorID, config.BaseRevisionID, config.Now)
+	if err := store.SaveFlowDraft(draft); err != nil {
+		return Draft{}, err
+	}
+	return draft, nil
+}
+
+func PublishStoredDraft(store DraftPublicationStore, documentID, authorID string, now time.Time) (PublishResult, error) {
+	if store == nil {
+		return PublishResult{}, fmt.Errorf("%w: %s", ErrFlowNotFound, normalizeKey(documentID))
+	}
+	draft, ok := store.GetFlowDraft(documentID)
+	if !ok {
+		return PublishResult{}, fmt.Errorf("%w: %s", ErrFlowNotFound, normalizeKey(documentID))
+	}
+	result, err := PublishDraft(draft, authorID, now)
+	if err != nil {
+		return PublishResult{}, err
+	}
+	if err := store.SaveFlowPublication(result.Publication); err != nil {
+		return PublishResult{}, err
+	}
+	return result, nil
 }
 
 func NewDocumentRevision(document Document, action, summary string, now time.Time) (lifecycle.Revision, error) {

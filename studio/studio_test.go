@@ -1,6 +1,7 @@
 package studio
 
 import (
+	"encoding/json"
 	"strings"
 	"testing"
 	"time"
@@ -41,6 +42,15 @@ func TestNewDefaults(t *testing.T) {
 	}
 	if shell.BlockCount != 0 || shell.MediaCount != 0 || shell.RevisionCount != 0 || shell.HasMedia || shell.HasRevisions {
 		t.Fatalf("unexpected empty counts: %#v", shell)
+	}
+	if len(shell.Modes) != 4 || shell.Modes[0].Key != "structure" || !shell.Modes[0].Active {
+		t.Fatalf("unexpected default modes: %#v", shell.Modes)
+	}
+	if len(shell.Viewports) != 3 || shell.Viewports[2].Key != "mobile" || shell.Viewports[2].Width != "24rem" {
+		t.Fatalf("unexpected default viewports: %#v", shell.Viewports)
+	}
+	if shell.Canvas.RouteLabel != "GoSX Studio" || shell.Canvas.SelectionLabel != "No selection" || shell.Canvas.Zoom != "fit" {
+		t.Fatalf("unexpected default canvas: %#v", shell.Canvas)
 	}
 }
 
@@ -130,6 +140,41 @@ func TestPanelAndCatalogSummaries(t *testing.T) {
 	}
 }
 
+func TestRevisionSummariesIncludeDiffs(t *testing.T) {
+	created := time.Date(2026, 5, 2, 10, 30, 0, 0, time.UTC)
+	shell := New(Options{
+		Revisions: []lifecycle.Revision{
+			{
+				ID:           "new",
+				ResourceKind: "page",
+				ResourceID:   "home",
+				Action:       "publish",
+				Snapshot:     json.RawMessage(`{"title":"Home","hero":{"headline":"Welcome families"}}`),
+				Created:      created.Add(time.Hour),
+			},
+			{
+				ID:           "old",
+				ResourceKind: "page",
+				ResourceID:   "home",
+				Action:       "preview",
+				Snapshot:     json.RawMessage(`{"title":"Home","hero":{"headline":"Welcome"}}`),
+				Created:      created,
+			},
+		},
+	})
+	if len(shell.RevisionLog) != 2 || !shell.RevisionLog[0].HasDiff || shell.RevisionLog[0].ChangeCount != 1 {
+		t.Fatalf("expected newest revision to include diff summary: %#v", shell.RevisionLog)
+	}
+	if shell.RevisionLog[0].ChangeSummary != "1 changed field." || shell.RevisionLog[1].HasDiff {
+		t.Fatalf("unexpected revision diff summaries: %#v", shell.RevisionLog)
+	}
+	view := View(shell)
+	revisions := view["revisions"].([]map[string]any)
+	if revisions[0]["changeSummary"] != "1 changed field." || revisions[0]["changeCount"] != 1 || revisions[0]["hasDiff"] != true {
+		t.Fatalf("unexpected revision diff view: %#v", revisions)
+	}
+}
+
 func TestMetricsAndExtras(t *testing.T) {
 	extras := map[string]any{
 		"workflow": "draft",
@@ -162,6 +207,67 @@ func TestMetricsAndExtras(t *testing.T) {
 	}
 }
 
+func TestShellModesViewportsAndCanvasView(t *testing.T) {
+	shell := New(Options{
+		Title: "Studio",
+		Modes: []Mode{
+			NewMode("Structure", "Structure", false),
+			NewMode("Style", "Style", true),
+			NewMode("Preview", "Preview", true),
+		},
+		Viewports: []Viewport{
+			NewViewport("Desktop", "Desktop", "100%", false),
+			NewViewport("Mobile", "Mobile", "24rem", true),
+		},
+		Canvas: CanvasSurface{RouteLabel: "Home", SelectionLabel: "Hero", Zoom: "100"},
+	})
+	if len(shell.Modes) != 3 || shell.Modes[1].Key != "style" || !shell.Modes[1].Active || shell.Modes[2].Active {
+		t.Fatalf("unexpected normalized modes: %#v", shell.Modes)
+	}
+	if len(shell.Viewports) != 2 || !shell.Viewports[1].Active || shell.Viewports[1].Width != "24rem" {
+		t.Fatalf("unexpected normalized viewports: %#v", shell.Viewports)
+	}
+	view := View(shell)
+	modes := view["modes"].([]map[string]any)
+	viewports := view["viewports"].([]map[string]any)
+	canvas := view["canvas"].(map[string]any)
+	if modes[1]["key"] != "style" || modes[1]["active"] != true || viewports[1]["key"] != "mobile" || canvas["selectionLabel"] != "Hero" {
+		t.Fatalf("unexpected shell surface view: %#v %#v %#v", modes, viewports, canvas)
+	}
+	if modes[1]["pressed"] != "true" || modes[2]["pressed"] != "false" || viewports[1]["pressed"] != "true" {
+		t.Fatalf("expected aria pressed helpers in shell view: %#v %#v", modes, viewports)
+	}
+}
+
+func TestReadinessView(t *testing.T) {
+	readiness := NewReadiness(
+		NewReadinessItem("Studio shell", "Studio shell", ReadinessReady, "Mounted", "Canvas and rails are ready."),
+		NewReadinessItem("media", "Media", ReadinessWatch, "Alt text", "One asset needs alt text.").WithHref("/admin/media"),
+		NewReadinessItem("calendar", "Calendar", ReadinessNext, "Needed for Pajaritos", "Register calendar recipes."),
+		ReadinessItem{Key: "skip"},
+	)
+	if readiness.Summary() != "1/3 ready" {
+		t.Fatalf("unexpected summary: %s", readiness.Summary())
+	}
+	view := ReadinessView(readiness)
+	if view["summary"] != "1/3 ready" || view["readyCount"] != 1 || view["watchCount"] != 1 || view["nextCount"] != 1 || view["total"] != 3 {
+		t.Fatalf("unexpected readiness view: %#v", view)
+	}
+	items := view["items"].([]map[string]any)
+	if len(items) != 3 {
+		t.Fatalf("expected 3 readiness items, got %#v", items)
+	}
+	if items[0]["key"] != "studio-shell" || items[0]["statusLabel"] != "Ready" || items[0]["actionLabel"] != "Review" {
+		t.Fatalf("unexpected ready item: %#v", items[0])
+	}
+	if items[1]["hasHref"] != true || items[1]["actionLabel"] != "Open" {
+		t.Fatalf("unexpected watch item: %#v", items[1])
+	}
+	if items[2]["class"] != "studio-readiness-card studio-readiness-card--next" {
+		t.Fatalf("unexpected next item class: %#v", items[2])
+	}
+}
+
 func TestRenderShell(t *testing.T) {
 	shell := New(Options{
 		Title:      "Nature School Studio",
@@ -175,6 +281,9 @@ func TestRenderShell(t *testing.T) {
 		`class="gosx-studio"`,
 		"Nature School Studio",
 		`src="/programs"`,
+		`data-studio-mode-control="structure"`,
+		`data-studio-viewport="desktop"`,
+		`data-studio-selection-label="true"`,
 		`data-panel-key="calendar"`,
 		`data-panel-key="inspector"`,
 		`data-action-key="preview"`,
@@ -197,12 +306,13 @@ func TestView(t *testing.T) {
 		Revisions:     []lifecycle.Revision{{ID: "rev_1"}},
 		Left:          []Panel{{Key: "map", Label: "Map", Summary: "Pages"}},
 		Actions:       []Action{{Key: "preview", Label: "Preview", Href: "/", Primary: false}},
+		Readiness:     NewReadiness(NewReadinessItem("shell", "Shell", ReadinessReady, "Mounted", "Ready.")),
 	})
 	view := View(shell)
 	if view["title"] != "Studio" || view["saveAction"] != "/admin/editor?action=save" || view["blockCount"] != 1 || view["hasMedia"] != true || view["hasRevisions"] != true {
 		t.Fatalf("unexpected view: %#v", view)
 	}
-	for _, key := range []string{"previewURL", "restoreAction", "mediaCount", "revisionCount", "actions", "leftPanels", "rightPanels"} {
+	for _, key := range []string{"previewURL", "restoreAction", "mediaCount", "revisionCount", "actions", "leftPanels", "rightPanels", "modes", "viewports", "canvas"} {
 		if _, ok := view[key]; !ok {
 			t.Fatalf("expected compatibility key %q in view: %#v", key, view)
 		}
@@ -220,5 +330,9 @@ func TestView(t *testing.T) {
 	revisions := view["revisions"].([]map[string]any)
 	if len(blocks) != 1 || blocks[0]["key"] != "hero" || len(media) != 1 || media[0]["url"] != "/media/forest.jpg" || len(revisions) != 1 || revisions[0]["id"] != "rev_1" {
 		t.Fatalf("unexpected catalog views: %#v %#v %#v", blocks, media, revisions)
+	}
+	readiness := view["readiness"].(map[string]any)
+	if readiness["summary"] != "1/1 ready" {
+		t.Fatalf("unexpected readiness view: %#v", readiness)
 	}
 }

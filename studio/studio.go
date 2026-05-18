@@ -1,6 +1,7 @@
 package studio
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/odvcencio/gosx"
@@ -21,7 +22,11 @@ type Options struct {
 	Metrics       []Metric
 	Left          []Panel
 	Right         []Panel
+	Modes         []Mode
+	Viewports     []Viewport
+	Canvas        CanvasSurface
 	Actions       []Action
+	Readiness     Readiness
 	Extras        map[string]any
 }
 
@@ -50,6 +55,26 @@ type Metric struct {
 	Key   string
 	Label string
 	Value any
+}
+
+type Mode struct {
+	Key    string
+	Label  string
+	Active bool
+}
+
+type Viewport struct {
+	Key    string
+	Label  string
+	Width  string
+	Active bool
+}
+
+type CanvasSurface struct {
+	RouteLabel     string
+	SelectionLabel string
+	Zoom           string
+	Focus          bool
 }
 
 type BlockSummary struct {
@@ -82,6 +107,9 @@ type RevisionSummary struct {
 	ResourceTitle string
 	Action        string
 	Summary       string
+	ChangeSummary string
+	ChangeCount   int
+	HasDiff       bool
 	Created       string
 }
 
@@ -105,7 +133,11 @@ type Shell struct {
 	Metrics       []Metric
 	Left          []Panel
 	Right         []Panel
+	Modes         []Mode
+	Viewports     []Viewport
+	Canvas        CanvasSurface
 	Actions       []Action
+	Readiness     Readiness
 	Extras        map[string]any
 }
 
@@ -125,9 +157,13 @@ func View(shell Shell) map[string]any {
 		"hasRevisions":  shell.HasRevisions,
 		"navigation":    sectionViews(shell.Navigation),
 		"metrics":       metricViews(shell.Metrics),
+		"modes":         modeViews(shell.Modes),
+		"viewports":     viewportViews(shell.Viewports),
+		"canvas":        canvasView(shell.Canvas),
 		"actions":       actionViews(shell.Actions),
 		"leftPanels":    panelViews(shell.Left),
 		"rightPanels":   panelViews(shell.Right),
+		"readiness":     ReadinessView(shell.Readiness),
 	}
 	for key, value := range shell.Extras {
 		if _, exists := view[key]; !exists {
@@ -152,6 +188,9 @@ func New(options Options) Shell {
 	actions := normalizeActions(options.Actions, options.SaveAction)
 	navigation := normalizeSections(options.Navigation)
 	metrics := normalizeMetrics(options.Metrics)
+	modes := normalizeModes(options.Modes)
+	viewports := normalizeViewports(options.Viewports)
+	canvas := normalizeCanvas(options.Canvas, title)
 	blockCatalog := append([]blockstudio.Definition(nil), options.BlockCatalog...)
 	mediaAssets := media.CloneAssets(options.Media)
 	revisions := lifecycle.CloneRevisions(options.Revisions)
@@ -175,7 +214,11 @@ func New(options Options) Shell {
 		Metrics:       metrics,
 		Left:          normalizePanels(options.Left),
 		Right:         normalizePanels(options.Right),
+		Modes:         modes,
+		Viewports:     viewports,
+		Canvas:        canvas,
 		Actions:       actions,
+		Readiness:     NormalizeReadiness(options.Readiness),
 		Extras:        cloneExtras(options.Extras),
 	}
 }
@@ -198,6 +241,14 @@ func NewSection(key, label string, actions ...Action) Section {
 
 func NewMetric(key, label string, value any) Metric {
 	return Metric{Key: key, Label: label, Value: value}
+}
+
+func NewMode(key, label string, active bool) Mode {
+	return Mode{Key: key, Label: label, Active: active}
+}
+
+func NewViewport(key, label, width string, active bool) Viewport {
+	return Viewport{Key: key, Label: label, Width: width, Active: active}
 }
 
 func actionViews(actions []Action) []map[string]any {
@@ -242,6 +293,42 @@ func metricViews(metrics []Metric) []map[string]any {
 		})
 	}
 	return out
+}
+
+func modeViews(modes []Mode) []map[string]any {
+	out := make([]map[string]any, 0, len(modes))
+	for _, mode := range modes {
+		out = append(out, map[string]any{
+			"key":     mode.Key,
+			"label":   mode.Label,
+			"active":  mode.Active,
+			"pressed": boolAttr(mode.Active),
+		})
+	}
+	return out
+}
+
+func viewportViews(viewports []Viewport) []map[string]any {
+	out := make([]map[string]any, 0, len(viewports))
+	for _, viewport := range viewports {
+		out = append(out, map[string]any{
+			"key":     viewport.Key,
+			"label":   viewport.Label,
+			"width":   viewport.Width,
+			"active":  viewport.Active,
+			"pressed": boolAttr(viewport.Active),
+		})
+	}
+	return out
+}
+
+func canvasView(canvas CanvasSurface) map[string]any {
+	return map[string]any{
+		"routeLabel":     canvas.RouteLabel,
+		"selectionLabel": canvas.SelectionLabel,
+		"zoom":           canvas.Zoom,
+		"focus":          canvas.Focus,
+	}
 }
 
 func panelViews(panels []Panel) []map[string]any {
@@ -302,6 +389,9 @@ func revisionViews(revisions []RevisionSummary) []map[string]any {
 			"resourceTitle": revision.ResourceTitle,
 			"action":        revision.Action,
 			"summary":       revision.Summary,
+			"changeSummary": revision.ChangeSummary,
+			"changeCount":   revision.ChangeCount,
+			"hasDiff":       revision.HasDiff,
 			"created":       revision.Created,
 		})
 	}
@@ -311,21 +401,114 @@ func revisionViews(revisions []RevisionSummary) []map[string]any {
 func Render(shell Shell) gosx.Node {
 	return gosx.El("div", gosx.Attrs(gosx.Attr("class", "gosx-studio")),
 		gosx.El("header", gosx.Attrs(gosx.Attr("class", "gosx-studio__toolbar")),
-			gosx.El("h1", nil, gosx.Text(shell.Title)),
+			gosx.El("div", gosx.Attrs(gosx.Attr("class", "gosx-studio__identity")),
+				gosx.El("p", gosx.Attrs(gosx.Attr("class", "gosx-studio__kicker")), gosx.Text("Studio")),
+				gosx.El("h1", nil, gosx.Text(shell.Title)),
+			),
+			renderModebar(shell.Modes),
+			renderMetricStrip(shell.Metrics),
 			renderActions(shell.Actions),
 		),
 		gosx.El("div", gosx.Attrs(gosx.Attr("class", "gosx-studio__layout")),
 			renderPanelColumn("gosx-studio__left", shell.Left),
 			gosx.El("main", gosx.Attrs(gosx.Attr("class", "gosx-studio__canvas")),
-				gosx.El("iframe", gosx.Attrs(
-					gosx.Attr("src", shell.PreviewURL),
-					gosx.Attr("title", shell.Title+" preview"),
-					gosx.Attr("data-studio-preview", "true"),
-				)),
+				renderCanvasBar(shell),
+				gosx.El("div", gosx.Attrs(gosx.Attr("class", "gosx-studio__frame")),
+					gosx.El("iframe", gosx.Attrs(
+						gosx.Attr("src", shell.PreviewURL),
+						gosx.Attr("title", shell.Title+" preview"),
+						gosx.Attr("data-studio-preview", "true"),
+					)),
+				),
+				renderReadiness(shell.Readiness),
 			),
 			renderPanelColumn("gosx-studio__right", shell.Right),
 		),
 	)
+}
+
+func renderModebar(modes []Mode) gosx.Node {
+	nodes := make([]gosx.Node, 0, len(modes))
+	for _, mode := range modes {
+		nodes = append(nodes, gosx.El("button", gosx.Attrs(
+			gosx.Attr("type", "button"),
+			gosx.Attr("data-studio-mode-control", mode.Key),
+			gosx.Attr("aria-pressed", boolAttr(mode.Active)),
+		), gosx.Text(mode.Label)))
+	}
+	return gosx.El("div", gosx.Attrs(
+		gosx.Attr("class", "gosx-studio__modebar"),
+		gosx.Attr("role", "toolbar"),
+		gosx.Attr("aria-label", "Editor mode"),
+	), gosx.Fragment(nodes...))
+}
+
+func renderMetricStrip(metrics []Metric) gosx.Node {
+	nodes := make([]gosx.Node, 0, len(metrics))
+	for _, metric := range metrics {
+		nodes = append(nodes, gosx.El("span", gosx.Attrs(
+			gosx.Attr("data-studio-metric", metric.Key),
+		), gosx.Text(metric.Label+": "+strings.TrimSpace(strings.ReplaceAll(fmtAny(metric.Value), "\n", " ")))))
+	}
+	return gosx.El("div", gosx.Attrs(
+		gosx.Attr("class", "gosx-studio__metrics"),
+		gosx.Attr("aria-label", "Workspace metrics"),
+	), gosx.Fragment(nodes...))
+}
+
+func renderCanvasBar(shell Shell) gosx.Node {
+	return gosx.El("div", gosx.Attrs(gosx.Attr("class", "gosx-studio__canvas-bar")),
+		gosx.El("div", nil,
+			gosx.El("p", gosx.Attrs(gosx.Attr("class", "gosx-studio__kicker")), gosx.Text("Canvas")),
+			gosx.El("strong", nil, gosx.Text(shell.Canvas.RouteLabel)),
+		),
+		gosx.El("output", gosx.Attrs(
+			gosx.Attr("data-studio-selection-label", "true"),
+			gosx.Attr("aria-live", "polite"),
+		), gosx.Text(shell.Canvas.SelectionLabel)),
+		renderViewports(shell.Viewports),
+	)
+}
+
+func renderViewports(viewports []Viewport) gosx.Node {
+	nodes := make([]gosx.Node, 0, len(viewports))
+	for _, viewport := range viewports {
+		nodes = append(nodes, gosx.El("button", gosx.Attrs(
+			gosx.Attr("type", "button"),
+			gosx.Attr("data-studio-viewport", viewport.Key),
+			gosx.Attr("aria-pressed", boolAttr(viewport.Active)),
+		), gosx.Text(viewport.Label)))
+	}
+	return gosx.El("div", gosx.Attrs(
+		gosx.Attr("class", "gosx-studio__viewports"),
+		gosx.Attr("role", "toolbar"),
+		gosx.Attr("aria-label", "Preview viewport"),
+	), gosx.Fragment(nodes...))
+}
+
+func renderReadiness(readiness Readiness) gosx.Node {
+	readiness = NormalizeReadiness(readiness)
+	if len(readiness.Items) == 0 {
+		return gosx.Fragment()
+	}
+	items := make([]gosx.Node, 0, len(readiness.Items))
+	for _, item := range readiness.Items {
+		children := []gosx.Node{
+			gosx.El("strong", nil, gosx.Text(item.Label)),
+			gosx.El("span", nil, gosx.Text(readinessStatusLabel(item.Status))),
+		}
+		if item.Summary != "" {
+			children = append(children, gosx.El("p", nil, gosx.Text(item.Summary)))
+		}
+		items = append(items, gosx.El("article", gosx.Attrs(
+			gosx.Attr("class", "gosx-studio__readiness-item gosx-studio__readiness-item--"+string(item.Status)),
+			gosx.Attr("data-readiness-key", item.Key),
+		), gosx.Fragment(children...)))
+	}
+	return gosx.El("section", gosx.Attrs(
+		gosx.Attr("class", "gosx-studio__activity"),
+		gosx.Attr("aria-label", "Readiness"),
+	), gosx.Fragment(items...))
 }
 
 func renderActions(actions []Action) gosx.Node {
@@ -405,6 +588,86 @@ func normalizeMetrics(metrics []Metric) []Metric {
 	return out
 }
 
+func normalizeModes(modes []Mode) []Mode {
+	if len(modes) == 0 {
+		modes = []Mode{
+			{Key: "structure", Label: "Structure", Active: true},
+			{Key: "content", Label: "Content"},
+			{Key: "style", Label: "Style"},
+			{Key: "preview", Label: "Preview"},
+		}
+	}
+	out := make([]Mode, 0, len(modes))
+	hasActive := false
+	for _, mode := range modes {
+		mode.Key = normalizeKey(mode.Key)
+		mode.Label = strings.TrimSpace(mode.Label)
+		if mode.Key == "" || mode.Label == "" {
+			continue
+		}
+		if mode.Active {
+			if hasActive {
+				mode.Active = false
+			} else {
+				hasActive = true
+			}
+		}
+		out = append(out, mode)
+	}
+	if len(out) > 0 && !hasActive {
+		out[0].Active = true
+	}
+	return out
+}
+
+func normalizeViewports(viewports []Viewport) []Viewport {
+	if len(viewports) == 0 {
+		viewports = []Viewport{
+			{Key: "desktop", Label: "Desktop", Width: "100%", Active: true},
+			{Key: "tablet", Label: "Tablet", Width: "48rem"},
+			{Key: "mobile", Label: "Mobile", Width: "24rem"},
+		}
+	}
+	out := make([]Viewport, 0, len(viewports))
+	hasActive := false
+	for _, viewport := range viewports {
+		viewport.Key = normalizeKey(viewport.Key)
+		viewport.Label = strings.TrimSpace(viewport.Label)
+		viewport.Width = strings.TrimSpace(viewport.Width)
+		if viewport.Key == "" || viewport.Label == "" {
+			continue
+		}
+		if viewport.Active {
+			if hasActive {
+				viewport.Active = false
+			} else {
+				hasActive = true
+			}
+		}
+		out = append(out, viewport)
+	}
+	if len(out) > 0 && !hasActive {
+		out[0].Active = true
+	}
+	return out
+}
+
+func normalizeCanvas(canvas CanvasSurface, fallbackTitle string) CanvasSurface {
+	canvas.RouteLabel = strings.TrimSpace(canvas.RouteLabel)
+	canvas.SelectionLabel = strings.TrimSpace(canvas.SelectionLabel)
+	canvas.Zoom = normalizeKey(canvas.Zoom)
+	if canvas.RouteLabel == "" {
+		canvas.RouteLabel = firstNonEmpty(fallbackTitle, "Preview")
+	}
+	if canvas.SelectionLabel == "" {
+		canvas.SelectionLabel = "No selection"
+	}
+	if canvas.Zoom == "" {
+		canvas.Zoom = "fit"
+	}
+	return canvas
+}
+
 func normalizePanels(panels []Panel) []Panel {
 	out := make([]Panel, 0, len(panels))
 	for _, panel := range panels {
@@ -456,12 +719,12 @@ func mediaSummaries(assets []media.Asset) []MediaSummary {
 
 func revisionSummaries(revisions []lifecycle.Revision) []RevisionSummary {
 	out := make([]RevisionSummary, 0, len(revisions))
-	for _, revision := range revisions {
+	for index, revision := range revisions {
 		created := ""
 		if !revision.Created.IsZero() {
 			created = revision.Created.Format("2006-01-02T15:04:05Z07:00")
 		}
-		out = append(out, RevisionSummary{
+		summary := RevisionSummary{
 			ID:            revision.ID,
 			ResourceKind:  revision.ResourceKind,
 			ResourceID:    revision.ResourceID,
@@ -469,7 +732,15 @@ func revisionSummaries(revisions []lifecycle.Revision) []RevisionSummary {
 			Action:        revision.Action,
 			Summary:       revision.Summary,
 			Created:       created,
-		})
+		}
+		if index+1 < len(revisions) {
+			if diff, err := lifecycle.DiffRevisions(revisions[index+1], revision); err == nil {
+				summary.ChangeSummary = diff.Summary
+				summary.ChangeCount = len(diff.Changes)
+				summary.HasDiff = true
+			}
+		}
+		out = append(out, summary)
 	}
 	return out
 }
@@ -500,4 +771,15 @@ func normalizeKey(value string) string {
 	value = strings.ReplaceAll(value, "_", "-")
 	value = strings.ReplaceAll(value, " ", "-")
 	return value
+}
+
+func boolAttr(value bool) string {
+	if value {
+		return "true"
+	}
+	return "false"
+}
+
+func fmtAny(value any) string {
+	return strings.TrimSpace(fmt.Sprint(value))
 }

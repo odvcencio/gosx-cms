@@ -88,6 +88,26 @@ func TestValidateActionPayloadReturnsRequiredFieldErrors(t *testing.T) {
 	}
 }
 
+func TestValidateActionPayloadChecksEmailFieldShape(t *testing.T) {
+	action := DocumentAction{
+		Key:        "submit",
+		Label:      "Submit",
+		HandlerRef: "contact.submit",
+		Fields: []workbench.Field{
+			{Name: "email", Label: "Email", Required: true},
+			{Name: "guardianEmail", Label: "Guardian email"},
+		},
+	}
+	errs := ValidateActionPayload(action, map[string]string{"email": "ada", "guardianEmail": "family"})
+	if errs["email"] == "" || errs["guardianEmail"] == "" {
+		t.Fatalf("expected email validation errors, got %#v", errs)
+	}
+	errs = ValidateActionPayload(action, map[string]string{"email": "ada@example.com", "guardianEmail": "family@example.com"})
+	if len(errs) != 0 {
+		t.Fatalf("expected valid email fields, got %#v", errs)
+	}
+}
+
 func TestFindDocumentActionNormalizesLookup(t *testing.T) {
 	document := DocumentFromDefinition(CheckoutHandoff("checkout.continue"), DocumentOptions{ID: "checkout-flow"})
 	action, ok := FindDocumentAction(document, " Continue ")
