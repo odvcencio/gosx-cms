@@ -2,14 +2,13 @@ package sqlstore_test
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
+	"path/filepath"
 	"testing"
 	"time"
 
 	"github.com/odvcencio/gosx-cms/lifecycle"
 	"github.com/odvcencio/gosx-cms/lifecycle/sqlstore"
-	_ "modernc.org/sqlite"
 )
 
 func TestStoreMigratesAndRoundTripsRevisions(t *testing.T) {
@@ -262,25 +261,37 @@ func TestStoreRejectsIncompleteLedgerInputs(t *testing.T) {
 	}
 }
 
-func openStore(t *testing.T, clock func() time.Time) *sqlstore.Store {
-	t.Helper()
-	db, err := sql.Open("sqlite", ":memory:")
+func TestOpenCreatesParentDirectoryAndMigrates(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "nested", "lifecycle.db")
+	store, closeStore, err := sqlstore.Open(path)
 	if err != nil {
-		t.Fatalf("open sqlite: %v", err)
+		t.Fatalf("open store: %v", err)
 	}
-	db.SetMaxOpenConns(1)
 	t.Cleanup(func() {
-		if err := db.Close(); err != nil {
-			t.Fatalf("close sqlite: %v", err)
+		if err := closeStore(); err != nil {
+			t.Fatalf("close store: %v", err)
 		}
 	})
-	store, err := sqlstore.New(db, sqlstore.WithClock(clock))
+	if _, err := store.SavePublishDecision(context.Background(), lifecycle.PublishDecisionInput{
+		ResourceKind: "page",
+		ResourceID:   "home",
+		Status:       lifecycle.DecisionApproved,
+	}); err != nil {
+		t.Fatalf("save decision after open: %v", err)
+	}
+}
+
+func openStore(t *testing.T, clock func() time.Time) *sqlstore.Store {
+	t.Helper()
+	store, closeStore, err := sqlstore.Open(":memory:", sqlstore.WithClock(clock))
 	if err != nil {
-		t.Fatalf("new store: %v", err)
+		t.Fatalf("open store: %v", err)
 	}
-	if err := store.Migrate(context.Background()); err != nil {
-		t.Fatalf("migrate: %v", err)
-	}
+	t.Cleanup(func() {
+		if err := closeStore(); err != nil {
+			t.Fatalf("close store: %v", err)
+		}
+	})
 	if err := store.Migrate(context.Background()); err != nil {
 		t.Fatalf("second migrate: %v", err)
 	}
