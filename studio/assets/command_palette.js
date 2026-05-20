@@ -236,8 +236,12 @@
     function submitTo(action) {
       var form = node.closest("form");
       if (!form) return;
-      if (action) form.setAttribute("action", action);
+      if (action) form.dataset.gosxStudioPendingAction = action;
       if (form.requestSubmit) form.requestSubmit();
+      else if (typeof Event === "function") {
+        var event = new Event("submit", { bubbles: true, cancelable: true });
+        if (form.dispatchEvent(event)) form.submit();
+      }
       else form.submit();
     }
 

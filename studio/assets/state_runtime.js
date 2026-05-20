@@ -211,6 +211,80 @@
     return String(form.getAttribute("method") || "post").toUpperCase();
   }
 
+  function clientActionsEnabled(form) {
+    return form.getAttribute("data-gosx-studio-client") === "true";
+  }
+
+  function submitterField(submitter) {
+    if (!submitter || !submitter.name || submitter.disabled) return null;
+    var type = String(submitter.type || "").toLowerCase();
+    if (type === "button" || type === "reset") return null;
+    return {
+      name: submitter.name,
+      value: submitter.value || ""
+    };
+  }
+
+  function actionFormData(form, submitter) {
+    try {
+      if (submitter) return new FormData(form, submitter);
+    } catch (error) {
+      // Older browsers ignore the submitter argument; append it below.
+    }
+    var data = new FormData(form);
+    var field = submitterField(submitter);
+    if (field) data.append(field.name, field.value);
+    return data;
+  }
+
+  function submitActionURL(form, submitter, pendingAction) {
+    if (pendingAction) return pendingAction;
+    if (submitter) {
+      var attr = submitter.getAttribute("formaction");
+      if (attr) return attr;
+      if (submitter.formAction) return submitter.formAction;
+    }
+    return form.getAttribute("action") || window.location.href;
+  }
+
+  function submitMethod(form, submitter) {
+    if (submitter) {
+      var attr = submitter.getAttribute("formmethod");
+      if (attr) return String(attr).toUpperCase();
+      if (submitter.formMethod) return String(submitter.formMethod).toUpperCase();
+    }
+    return String(form.getAttribute("method") || "post").toUpperCase();
+  }
+
+  function methodHasBody(method) {
+    return method !== "GET" && method !== "HEAD";
+  }
+
+  function actionURLWithData(action, data) {
+    var url = new URL(action, window.location.href);
+    data.forEach(function (value, key) {
+      url.searchParams.append(key, value);
+    });
+    return url.toString();
+  }
+
+  function submitterDetail(submitter) {
+    if (!submitter) return null;
+    return {
+      name: submitter.getAttribute("name") || "",
+      value: submitter.getAttribute("value") || "",
+      action: submitter.getAttribute("formaction") || "",
+      method: submitter.getAttribute("formmethod") || ""
+    };
+  }
+
+  function dispatchActionResult(form, detail) {
+    form.dispatchEvent(new CustomEvent("gosxstudio:action-result", {
+      bubbles: true,
+      detail: detail
+    }));
+  }
+
   function initForm(form) {
     if (!form || form.dataset.gosxStudioStateBound === "true") return;
     form.dataset.gosxStudioStateBound = "true";
@@ -308,7 +382,65 @@
       updateFrame();
       scheduleAutosave();
     });
-    form.addEventListener("submit", function () {
+    function runClientAction(pendingAction, submitter) {
+      if (submitting) return;
+      var action = submitActionURL(form, submitter, pendingAction);
+      var method = submitMethod(form, submitter);
+      var data = actionFormData(form, submitter);
+      var requestURL = methodHasBody(method) ? action : actionURLWithData(action, data);
+      var request = {
+        method: method,
+        credentials: "same-origin",
+        headers: {
+          "X-GoSX-Studio-Action": "true",
+          "X-GoSX-Studio-Client-Action": "true"
+        }
+      };
+      if (methodHasBody(method)) request.body = data;
+      var signature = formSignature(form);
+      submitting = true;
+      window.clearTimeout(autosaveTimer);
+      setState(form, "saving", "action", stateOptions());
+      window.fetch(requestURL, request).then(function (response) {
+        if (!response.ok) throw new Error("Studio action failed");
+        saved = signature;
+        lastSavedAt = new Date().toISOString();
+        form.setAttribute("data-gosx-studio-last-saved-at", lastSavedAt);
+        submitting = false;
+        setState(form, "saved", "action", stateOptions({ dirtyCount: 0 }));
+        dispatchActionResult(form, {
+          ok: true,
+          action: action,
+          method: method,
+          status: response.status,
+          redirected: response.redirected,
+          url: response.url || "",
+          submitter: submitterDetail(submitter)
+        });
+      }, function (error) {
+        submitting = false;
+        setState(form, "error", "action", stateOptions());
+        dispatchActionResult(form, {
+          ok: false,
+          action: action,
+          method: method,
+          status: 0,
+          redirected: false,
+          url: "",
+          error: error && error.message ? error.message : "Studio action failed",
+          submitter: submitterDetail(submitter)
+        });
+      });
+    }
+
+    form.addEventListener("submit", function (event) {
+      var pendingAction = form.dataset.gosxStudioPendingAction || "";
+      if (pendingAction) delete form.dataset.gosxStudioPendingAction;
+      if (clientActionsEnabled(form)) {
+        event.preventDefault();
+        runClientAction(pendingAction, event.submitter || null);
+        return;
+      }
       submitting = true;
       window.clearTimeout(autosaveTimer);
       setState(form, "saving", "submit", stateOptions());
@@ -319,6 +451,7 @@
       if (!(event.metaKey || event.ctrlKey) || event.key.toLowerCase() !== "s") return;
       event.preventDefault();
       if (form.requestSubmit) form.requestSubmit();
+      else if (clientActionsEnabled(form)) runClientAction("", null);
       else form.submit();
     });
 
