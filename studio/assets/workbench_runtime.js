@@ -423,18 +423,21 @@
       var rail = event.target.closest("[data-studio-rail-toggle]");
       if (rail && form.contains(rail)) {
         event.preventDefault();
+        event.stopImmediatePropagation();
         toggleRail(rail.getAttribute("data-studio-rail-toggle"));
         return;
       }
       var focus = event.target.closest("[data-studio-focus-toggle]");
       if (focus && form.contains(focus)) {
         event.preventDefault();
+        event.stopImmediatePropagation();
         setFocus(form.getAttribute("data-studio-focus") !== "true", "toggle");
         return;
       }
       var activity = event.target.closest("[data-studio-activity-toggle]");
       if (activity && form.contains(activity)) {
         event.preventDefault();
+        event.stopImmediatePropagation();
         setActivity(activityState() === "open" ? "collapsed" : "open", "toggle");
         return;
       }
