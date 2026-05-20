@@ -38,6 +38,44 @@
     return 500 - gaps;
   }
 
+  function isEditableTarget(target) {
+    if (!target || !target.closest) return false;
+    var editable = target.closest("input, textarea, select, [contenteditable]");
+    return !!(editable && editable.getAttribute("contenteditable") !== "false");
+  }
+
+  function shortcutParts(shortcut) {
+    return normalize(shortcut).split(/[+\s]+/).filter(Boolean);
+  }
+
+  function shortcutMatches(shortcut, event) {
+    var parts = shortcutParts(shortcut);
+    if (!parts.length) return false;
+    var key = String(event.key || "").toLowerCase();
+    var wantsCtrl = false;
+    var wantsMeta = false;
+    var wantsShift = false;
+    var wantsAlt = false;
+    var wantsMod = false;
+    var keyPart = "";
+    parts.forEach(function (part) {
+      if (part === "ctrl" || part === "control") wantsCtrl = true;
+      else if (part === "cmd" || part === "meta" || part === "command") wantsMeta = true;
+      else if (part === "mod") wantsMod = true;
+      else if (part === "shift") wantsShift = true;
+      else if (part === "alt" || part === "option") wantsAlt = true;
+      else keyPart = part;
+    });
+    if (!keyPart || keyPart !== key) return false;
+    if (wantsMod && !event.ctrlKey && !event.metaKey) return false;
+    if (wantsCtrl && !event.ctrlKey && !event.metaKey) return false;
+    if (wantsMeta && !event.metaKey) return false;
+    if (wantsShift !== !!event.shiftKey) return false;
+    if (wantsAlt !== !!event.altKey) return false;
+    if (!wantsCtrl && !wantsMeta && !wantsMod && (event.ctrlKey || event.metaKey)) return false;
+    return true;
+  }
+
   function initPalette(node) {
     if (!node || node.dataset.gosxStudioCommandRuntime === "true") return;
     node.dataset.gosxStudioCommandRuntime = "true";
@@ -177,6 +215,17 @@
       if (detail.href) window.location.href = detail.href;
     }
 
+    function shortcutCommand(event) {
+      var match = null;
+      buttons().some(function (button) {
+        var shortcut = button.getAttribute("data-studio-command-shortcut") || "";
+        if (!shortcut || !shortcutMatches(shortcut, event)) return false;
+        match = button;
+        return true;
+      });
+      return match;
+    }
+
     function move(delta) {
       var visible = visibleButtons();
       if (!visible.length) {
@@ -238,6 +287,12 @@
         event.preventDefault();
         if (isOpen()) close();
         else open();
+        return;
+      }
+      var command = shortcutCommand(event);
+      if (command && !isEditableTarget(event.target)) {
+        event.preventDefault();
+        run(command);
       }
     });
     syncFilter();

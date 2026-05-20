@@ -26,6 +26,9 @@ func TestRenderCommandPalette(t *testing.T) {
 	if !strings.Contains(html, `data-studio-command-kind="mode"`) || !strings.Contains(html, `data-studio-command-target="structure"`) {
 		t.Fatalf("expected mode command hooks, got: %s", html)
 	}
+	if !strings.Contains(html, `data-studio-command-shortcut="1"`) {
+		t.Fatalf("expected shortcut hook, got: %s", html)
+	}
 	if !strings.Contains(html, `studio-command-item--primary`) || !strings.Contains(html, `data-studio-command-kind="insert"`) {
 		t.Fatalf("expected primary insert command, got: %s", html)
 	}

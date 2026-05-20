@@ -141,6 +141,9 @@ func renderCommand(command Command) gosx.Node {
 	if command.Href != "" {
 		attrs = append(attrs, gosx.Attr("data-studio-command-href", command.Href))
 	}
+	if command.Shortcut != "" {
+		attrs = append(attrs, gosx.Attr("data-studio-command-shortcut", command.Shortcut))
+	}
 	children := []gosx.Node{
 		gosx.El("span", gosx.Attrs(gosx.Attr("class", "studio-command-item__group")), gosx.Text(command.Group)),
 		gosx.El("span", gosx.Attrs(gosx.Attr("class", "studio-command-item__label")), gosx.Text(command.Label)),
