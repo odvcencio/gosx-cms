@@ -141,8 +141,11 @@
       return options.dirtyCount === 1 ? "1 change waiting" : String(options.dirtyCount || 0) + " changes waiting";
     }
     if (state === "autosaving") return "Syncing changes";
+    if (state === "saving" && options.actionLabel) return options.actionLabel + " in progress";
     if (state === "saving") return "Sending checkpoint";
+    if (state === "error" && options.actionLabel) return options.actionLabel + " failed";
     if (state === "error") return "Autosave could not reach the server";
+    if (state === "saved" && options.actionLabel) return options.actionLabel + " complete";
     if (options.savedAtLabel) return "Saved at " + options.savedAtLabel;
     return "Ready";
   }
@@ -278,6 +281,16 @@
     };
   }
 
+  function compactText(text) {
+    return String(text || "").replace(/\s+/g, " ").trim();
+  }
+
+  function actionLabel(submitter, pendingLabel) {
+    if (pendingLabel) return pendingLabel;
+    if (!submitter) return "Action";
+    return compactText(submitter.getAttribute("data-gosx-studio-action-label") || submitter.getAttribute("aria-label") || submitter.textContent) || "Action";
+  }
+
   function dispatchActionResult(form, detail) {
     form.dispatchEvent(new CustomEvent("gosxstudio:action-result", {
       bubbles: true,
@@ -382,10 +395,11 @@
       updateFrame();
       scheduleAutosave();
     });
-    function runClientAction(pendingAction, submitter) {
+    function runClientAction(pendingAction, submitter, pendingLabel) {
       if (submitting) return;
       var action = submitActionURL(form, submitter, pendingAction);
       var method = submitMethod(form, submitter);
+      var label = actionLabel(submitter, pendingLabel);
       var data = actionFormData(form, submitter);
       var requestURL = methodHasBody(method) ? action : actionURLWithData(action, data);
       var request = {
@@ -400,17 +414,18 @@
       var signature = formSignature(form);
       submitting = true;
       window.clearTimeout(autosaveTimer);
-      setState(form, "saving", "action", stateOptions());
+      setState(form, "saving", "action", stateOptions({ actionLabel: label }));
       window.fetch(requestURL, request).then(function (response) {
         if (!response.ok) throw new Error("Studio action failed");
         saved = signature;
         lastSavedAt = new Date().toISOString();
         form.setAttribute("data-gosx-studio-last-saved-at", lastSavedAt);
         submitting = false;
-        setState(form, "saved", "action", stateOptions({ dirtyCount: 0 }));
+        setState(form, "saved", "action", stateOptions({ dirtyCount: 0, actionLabel: label }));
         dispatchActionResult(form, {
           ok: true,
           action: action,
+          label: label,
           method: method,
           status: response.status,
           redirected: response.redirected,
@@ -419,10 +434,11 @@
         });
       }, function (error) {
         submitting = false;
-        setState(form, "error", "action", stateOptions());
+        setState(form, "error", "action", stateOptions({ actionLabel: label }));
         dispatchActionResult(form, {
           ok: false,
           action: action,
+          label: label,
           method: method,
           status: 0,
           redirected: false,
@@ -435,10 +451,12 @@
 
     form.addEventListener("submit", function (event) {
       var pendingAction = form.dataset.gosxStudioPendingAction || "";
+      var pendingLabel = form.dataset.gosxStudioPendingActionLabel || "";
       if (pendingAction) delete form.dataset.gosxStudioPendingAction;
+      if (pendingLabel) delete form.dataset.gosxStudioPendingActionLabel;
       if (clientActionsEnabled(form)) {
         event.preventDefault();
-        runClientAction(pendingAction, event.submitter || null);
+        runClientAction(pendingAction, event.submitter || null, pendingLabel);
         return;
       }
       submitting = true;
@@ -451,7 +469,7 @@
       if (!(event.metaKey || event.ctrlKey) || event.key.toLowerCase() !== "s") return;
       event.preventDefault();
       if (form.requestSubmit) form.requestSubmit();
-      else if (clientActionsEnabled(form)) runClientAction("", null);
+      else if (clientActionsEnabled(form)) runClientAction("", null, "");
       else form.submit();
     });
 

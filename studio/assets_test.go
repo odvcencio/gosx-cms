@@ -15,7 +15,7 @@ func TestRenderCommandPaletteScriptIncludesRuntime(t *testing.T) {
 	if !strings.Contains(html, `data-studio-command-shortcut`) || !strings.Contains(html, `shortcutMatches`) {
 		t.Fatalf("expected embedded command shortcuts, got: %s", html)
 	}
-	if !strings.Contains(html, `trapFocus`) || !strings.Contains(html, `restoreFocus`) || !strings.Contains(html, `shortcutHasModifier`) || !strings.Contains(html, `gosxStudioPendingAction`) {
+	if !strings.Contains(html, `trapFocus`) || !strings.Contains(html, `restoreFocus`) || !strings.Contains(html, `shortcutHasModifier`) || !strings.Contains(html, `gosxStudioPendingAction`) || !strings.Contains(html, `gosxStudioPendingActionLabel`) {
 		t.Fatalf("expected focus-managed command palette runtime, got: %s", html)
 	}
 }
@@ -25,7 +25,7 @@ func TestRenderStudioStateScriptIncludesAutosaveRuntime(t *testing.T) {
 	if !strings.Contains(html, `data-gosx-studio-state-runtime="true"`) || !strings.Contains(html, `data-gosx-studio-state`) {
 		t.Fatalf("expected embedded state runtime, got: %s", html)
 	}
-	for _, want := range []string{`gosxstudio:save-state`, `gosxstudio:action-result`, `data-gosx-studio-client`, `data-gosx-studio-autosave`, `X-GoSX-Studio-Autosave`, `X-GoSX-Studio-Client-Action`, `data-gosx-studio-save-button`, `data-gosx-studio-last-saved`, `data-gosx-studio-dirty-count`, `requestSubmit`} {
+	for _, want := range []string{`gosxstudio:save-state`, `gosxstudio:action-result`, `data-gosx-studio-client`, `data-gosx-studio-autosave`, `X-GoSX-Studio-Autosave`, `X-GoSX-Studio-Client-Action`, `data-gosx-studio-save-button`, `data-gosx-studio-last-saved`, `data-gosx-studio-dirty-count`, `actionLabel`, `requestSubmit`} {
 		if !strings.Contains(html, want) {
 			t.Fatalf("expected %q in studio state runtime, got: %s", want, html)
 		}

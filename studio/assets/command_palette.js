@@ -233,10 +233,11 @@
       return node.getAttribute("data-studio-command-state") === "open";
     }
 
-    function submitTo(action) {
+    function submitTo(action, label) {
       var form = node.closest("form");
       if (!form) return;
       if (action) form.dataset.gosxStudioPendingAction = action;
+      if (label) form.dataset.gosxStudioPendingActionLabel = label;
       if (form.requestSubmit) form.requestSubmit();
       else if (typeof Event === "function") {
         var event = new Event("submit", { bubbles: true, cancelable: true });
@@ -256,7 +257,7 @@
       node.dispatchEvent(new CustomEvent("gosxstudio:command", { bubbles: true, detail: detail }));
       if (detail.kind === "submit") {
         close({ restoreFocus: false });
-        submitTo(detail.href);
+        submitTo(detail.href, button.textContent);
         return;
       }
       if (detail.kind === "insert" && detail.target) {
