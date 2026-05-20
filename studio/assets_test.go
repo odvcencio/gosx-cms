@@ -32,6 +32,59 @@ func TestRenderStudioStateScriptIncludesAutosaveRuntime(t *testing.T) {
 	}
 }
 
+func TestRenderWorkbenchScriptIncludesClientWorkbenchRuntime(t *testing.T) {
+	html := gosx.RenderHTML(RenderWorkbenchScript())
+	if !strings.Contains(html, `data-gosx-studio-workbench-runtime="true"`) || !strings.Contains(html, `data-studio-workbench`) {
+		t.Fatalf("expected embedded workbench runtime, got: %s", html)
+	}
+	for _, want := range []string{
+		`gosxstudio:mode-change`,
+		`gosxstudio:viewport-change`,
+		`gosxstudio:zoom-change`,
+		`gosxstudio:rail-change`,
+		`gosxstudio:workbench-rail-resize`,
+		`gosxstudio:workbench-rail-resized`,
+		`gosxstudio:insert-block`,
+		`gosxstudio:selection-action`,
+		`data-studio-rail-toggle`,
+		`data-studio-resizer`,
+		`--gosx-studio-left-rail-width`,
+		`localStorage`,
+		`setPointerCapture`,
+		`data-studio-viewport`,
+		`data-studio-zoom`,
+		`gosxstudio:workbench-zoom`,
+	} {
+		if !strings.Contains(html, want) {
+			t.Fatalf("expected %q in workbench runtime, got: %s", want, html)
+		}
+	}
+}
+
+func TestRenderFlowEditorScriptIncludesClientFlowRuntime(t *testing.T) {
+	html := gosx.RenderHTML(RenderFlowEditorScript())
+	if !strings.Contains(html, `data-gosx-studio-flow-editor-runtime="true"`) || !strings.Contains(html, `data-studio-flow-card`) {
+		t.Fatalf("expected embedded flow editor runtime, got: %s", html)
+	}
+	for _, want := range []string{
+		`gosxstudio:flow-select`,
+		`gosxstudio:flow-dirty`,
+		`gosxstudio:flow-preview`,
+		`data-studio-flow-editor`,
+		`data-studio-preview-frame`,
+		`data-studio-open-preview`,
+		`data-studio-initial-value`,
+		`sessionStorage`,
+		`#flow=`,
+		`gosxstudio:command`,
+		`gosxstudio:save-state`,
+	} {
+		if !strings.Contains(html, want) {
+			t.Fatalf("expected %q in flow editor runtime, got: %s", want, html)
+		}
+	}
+}
+
 func TestRenderSiteCanvasScriptIncludesRuntime(t *testing.T) {
 	html := gosx.RenderHTML(RenderSiteCanvasScript())
 	if !strings.Contains(html, `data-gosx-studio-site-canvas-runtime="true"`) || !strings.Contains(html, `data-gosx-studio-site-canvas`) {
@@ -50,6 +103,7 @@ func TestRenderSiteCanvasScriptIncludesRuntime(t *testing.T) {
 		`open-node`,
 		`move-node`,
 		`data-gosx-studio-canvas-node`,
+		`gosxstudio:workbench-zoom`,
 	} {
 		if !strings.Contains(html, want) {
 			t.Fatalf("expected %q in site canvas runtime, got: %s", want, html)

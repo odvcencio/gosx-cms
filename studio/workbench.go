@@ -8,54 +8,56 @@ import (
 )
 
 type WorkbenchOptions struct {
-	Class                 string
-	FormClass             string
-	ToolbarClass          string
-	ToolbarActionsClass   string
-	StageClass            string
-	LeftRailClass         string
-	MainClass             string
-	CanvasShellClass      string
-	CanvasBarClass        string
-	BoardClass            string
-	FrameWrapClass        string
-	RightRailClass        string
-	ScriptsClass          string
-	Action                string
-	Method                string
-	CSRFName              string
-	CSRFToken             string
-	Autosave              bool
-	AutosaveURL           string
-	AutosaveDelay         int
-	FormAttrs             []FieldAttribute
-	DisableClientActions  bool
-	DisableCanvasStatus   bool
-	DisableSelectionTools bool
-	ResizableRails        bool
-	SaveButtonLabel       string
-	ToolbarKicker         string
-	ToolbarTitle          string
-	ToolbarSummary        string
-	Commands              []Command
-	Insertions            []InsertOption
-	SelectionCommands     []SelectionCommand
-	Toolbar               []gosx.Node
-	ToolbarControls       []gosx.Node
-	ToolbarActions        []gosx.Node
-	Statuses              []gosx.Node
-	Left                  []gosx.Node
-	Main                  []gosx.Node
-	CanvasBar             []gosx.Node
-	Board                 []gosx.Node
-	CanvasFooter          []gosx.Node
-	Right                 []gosx.Node
-	AfterForm             []gosx.Node
-	Scripts               []gosx.Node
-	IncludeScripts        bool
-	IncludeCommandRuntime bool
-	IncludeStateRuntime   bool
-	IncludeCanvasRuntime  bool
+	Class                   string
+	FormClass               string
+	ToolbarClass            string
+	ToolbarActionsClass     string
+	StageClass              string
+	LeftRailClass           string
+	MainClass               string
+	CanvasShellClass        string
+	CanvasBarClass          string
+	BoardClass              string
+	FrameWrapClass          string
+	RightRailClass          string
+	ScriptsClass            string
+	Action                  string
+	Method                  string
+	CSRFName                string
+	CSRFToken               string
+	Autosave                bool
+	AutosaveURL             string
+	AutosaveDelay           int
+	FormAttrs               []FieldAttribute
+	DisableClientActions    bool
+	DisableCanvasStatus     bool
+	DisableSelectionTools   bool
+	ResizableRails          bool
+	SaveButtonLabel         string
+	ToolbarKicker           string
+	ToolbarTitle            string
+	ToolbarSummary          string
+	Commands                []Command
+	Insertions              []InsertOption
+	SelectionCommands       []SelectionCommand
+	Toolbar                 []gosx.Node
+	ToolbarControls         []gosx.Node
+	ToolbarActions          []gosx.Node
+	Statuses                []gosx.Node
+	Left                    []gosx.Node
+	Main                    []gosx.Node
+	CanvasBar               []gosx.Node
+	Board                   []gosx.Node
+	CanvasFooter            []gosx.Node
+	Right                   []gosx.Node
+	AfterForm               []gosx.Node
+	Scripts                 []gosx.Node
+	IncludeScripts          bool
+	IncludeWorkbenchRuntime bool
+	IncludeCommandRuntime   bool
+	IncludeStateRuntime     bool
+	IncludeCanvasRuntime    bool
+	IncludeFlowRuntime      bool
 }
 
 func RenderWorkbench(shell Shell, options WorkbenchOptions) gosx.Node {
@@ -203,21 +205,46 @@ func renderWorkbenchActionLinks(actions []Action) []gosx.Node {
 func renderWorkbenchStage(shell Shell, options WorkbenchOptions) gosx.Node {
 	children := []gosx.Node{
 		renderWorkbenchRail("aside", firstNonEmpty(options.LeftRailClass, "studio-left-rail"), "left", options.Left, shell.Left),
-		renderWorkbenchMain(shell, options),
 	}
 	if options.ResizableRails {
-		children = append(children, gosx.El("button", gosx.Attrs(
-			gosx.Attr("class", "studio-rail-resizer studio-rail-resizer--left"),
-			gosx.Attr("type", "button"),
-			gosx.Attr("data-studio-resizer", "left"),
-			gosx.Attr("aria-label", "Resize layers rail"),
-		)))
+		children = append(children, renderWorkbenchRailResizer("left"))
+	}
+	children = append(children, renderWorkbenchMain(shell, options))
+	if options.ResizableRails {
+		children = append(children, renderWorkbenchRailResizer("right"))
 	}
 	children = append(children, renderWorkbenchRail("aside", firstNonEmpty(options.RightRailClass, "editor-sidebar"), "right", options.Right, shell.Right))
 	return gosx.El("div", gosx.Attrs(
 		gosx.Attr("class", firstNonEmpty(options.StageClass, "editor-stage")),
 		gosx.Attr("data-studio-layout", "true"),
 	), gosx.Fragment(children...))
+}
+
+func renderWorkbenchRailResizer(side string) gosx.Node {
+	min := "256"
+	max := "448"
+	value := "320"
+	label := "Resize layers rail"
+	if side == "right" {
+		min = "320"
+		max = "544"
+		value = "416"
+		label = "Resize inspector rail"
+	}
+	return gosx.El("button", gosx.Attrs(
+		gosx.Attr("class", "studio-rail-resizer studio-rail-resizer--"+side),
+		gosx.Attr("type", "button"),
+		gosx.Attr("role", "separator"),
+		gosx.Attr("aria-orientation", "vertical"),
+		gosx.Attr("aria-label", label),
+		gosx.Attr("aria-valuemin", min),
+		gosx.Attr("aria-valuemax", max),
+		gosx.Attr("aria-valuenow", value),
+		gosx.Attr("data-studio-resizer", side),
+		gosx.Attr("data-studio-rail-min", min),
+		gosx.Attr("data-studio-rail-max", max),
+		gosx.Attr("data-studio-rail-default", value),
+	))
 }
 
 func renderWorkbenchRail(tag, className, side string, nodes []gosx.Node, panels []Panel) gosx.Node {
@@ -339,7 +366,10 @@ func renderWorkbenchBoard(shell Shell, options WorkbenchOptions) gosx.Node {
 }
 
 func renderWorkbenchScripts(options WorkbenchOptions) []gosx.Node {
-	scripts := make([]gosx.Node, 0, 4+len(options.Scripts))
+	scripts := make([]gosx.Node, 0, 5+len(options.Scripts))
+	if options.IncludeScripts || options.IncludeWorkbenchRuntime {
+		scripts = append(scripts, RenderWorkbenchScript())
+	}
 	if options.IncludeScripts || options.IncludeCommandRuntime {
 		scripts = append(scripts, RenderCommandPaletteScript())
 	}
@@ -348,6 +378,9 @@ func renderWorkbenchScripts(options WorkbenchOptions) []gosx.Node {
 	}
 	if options.IncludeScripts || options.IncludeCanvasRuntime {
 		scripts = append(scripts, RenderSiteCanvasScript())
+	}
+	if options.IncludeScripts || options.IncludeFlowRuntime {
+		scripts = append(scripts, RenderFlowEditorScript())
 	}
 	scripts = append(scripts, options.Scripts...)
 	return scripts

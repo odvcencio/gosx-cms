@@ -1,0 +1,491 @@
+(function () {
+  "use strict";
+
+  function ready(fn) {
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", fn, { once: true });
+      return;
+    }
+    fn();
+  }
+
+  function frameTask(fn) {
+    var pending = false;
+    return function () {
+      if (pending) return;
+      pending = true;
+      window.requestAnimationFrame(function () {
+        pending = false;
+        fn();
+      });
+    };
+  }
+
+  function compactText(value) {
+    return String(value || "").replace(/\s+/g, " ").trim();
+  }
+
+  function attrValue(value) {
+    return String(value || "").replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+  }
+
+  function number(value, fallback) {
+    var parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : fallback;
+  }
+
+  function clamp(value, min, max) {
+    return Math.min(max, Math.max(min, value));
+  }
+
+  function labelFromButton(button, fallback) {
+    return compactText(button && (button.getAttribute("aria-label") || button.textContent)) || fallback || "";
+  }
+
+  function emit(form, name, detail) {
+    form.dispatchEvent(new CustomEvent(name, { bubbles: true, detail: detail || {} }));
+  }
+
+  function queryAll(root, selector) {
+    return Array.prototype.slice.call(root.querySelectorAll(selector));
+  }
+
+  function storageKey(form) {
+    return "gosx-studio-workbench:" + compactText(form.getAttribute("data-studio-shell") || form.getAttribute("action") || window.location.pathname || "studio");
+  }
+
+  function railVar(side) {
+    return side === "left" ? "--gosx-studio-left-rail-width" : "--gosx-studio-right-rail-width";
+  }
+
+  function legacyRailVar(side) {
+    return side === "left" ? "--studio-left-width" : "--studio-right-width";
+  }
+
+  function railStyleValue(form, side) {
+    return form.style.getPropertyValue(railVar(side)) || form.style.getPropertyValue(legacyRailVar(side));
+  }
+
+  function applyRailWidth(form, side, width) {
+    var value = Math.round(width) + "px";
+    form.style.setProperty(railVar(side), value);
+    form.style.setProperty(legacyRailVar(side), value);
+  }
+
+  function readLayout(form) {
+    try {
+      return JSON.parse(window.localStorage.getItem(storageKey(form)) || "{}") || {};
+    } catch (error) {
+      return {};
+    }
+  }
+
+  function writeLayout(form) {
+    try {
+      window.localStorage.setItem(storageKey(form), JSON.stringify({
+        left: railStyleValue(form, "left"),
+        right: railStyleValue(form, "right"),
+        focus: form.getAttribute("data-studio-focus") || "false",
+        leftState: form.getAttribute("data-studio-left") || "open",
+        rightState: form.getAttribute("data-studio-right") || "open",
+        activity: form.getAttribute("data-studio-activity-state") || "open",
+        viewport: form.getAttribute("data-studio-breakpoint") || "",
+        zoom: form.getAttribute("data-studio-zoom") || ""
+      }));
+    } catch (error) {
+      return;
+    }
+  }
+
+  function restoreLayout(form) {
+    var layout = readLayout(form);
+    if (layout.left) {
+      form.style.setProperty(railVar("left"), layout.left);
+      form.style.setProperty(legacyRailVar("left"), layout.left);
+    }
+    if (layout.right) {
+      form.style.setProperty(railVar("right"), layout.right);
+      form.style.setProperty(legacyRailVar("right"), layout.right);
+    }
+    if (layout.leftState) form.setAttribute("data-studio-left", layout.leftState);
+    if (layout.rightState) form.setAttribute("data-studio-right", layout.rightState);
+    if (layout.activity) form.setAttribute("data-studio-activity-state", layout.activity);
+    if (layout.focus) form.setAttribute("data-studio-focus", layout.focus === "true" ? "true" : "false");
+    if (layout.viewport) form.setAttribute("data-studio-breakpoint", layout.viewport);
+    if (layout.zoom) form.setAttribute("data-studio-zoom", layout.zoom);
+  }
+
+  function zoomScale(value) {
+    value = String(value || "fit").toLowerCase();
+    if (value === "fit") return 0;
+    if (value.indexOf("%") > 0) return number(value.replace("%", ""), 100) / 100;
+    var parsed = number(value, 0);
+    if (parsed > 10) return parsed / 100;
+    return parsed > 0 ? parsed : 1;
+  }
+
+  function initWorkbench(form) {
+    if (!form || form.dataset.gosxStudioWorkbenchBound === "true") return;
+    form.dataset.gosxStudioWorkbenchBound = "true";
+    var stage = form.querySelector("[data-studio-layout]");
+    var saveLayout = frameTask(function () { writeLayout(form); });
+    var refresh = frameTask(function () {
+      emit(form, "gosxstudio:workbench-layout", {
+        left: form.getAttribute("data-studio-left") || "open",
+        right: form.getAttribute("data-studio-right") || "open",
+        focus: form.getAttribute("data-studio-focus") === "true",
+        activity: form.getAttribute("data-studio-activity-state") || "open",
+        viewport: form.getAttribute("data-studio-breakpoint") || "",
+        zoom: form.getAttribute("data-studio-zoom") || ""
+      });
+      window.dispatchEvent(new Event("resize"));
+    });
+
+    function setReadout(selector, value) {
+      queryAll(form, selector).forEach(function (node) {
+        node.textContent = value;
+      });
+    }
+
+    function modeLabel(mode) {
+      var button = form.querySelector('[data-studio-mode-control="' + attrValue(mode) + '"]');
+      return labelFromButton(button, mode ? mode.charAt(0).toUpperCase() + mode.slice(1) : "Structure");
+    }
+
+    function viewportButton(viewport) {
+      return form.querySelector('[data-studio-viewport="' + attrValue(viewport) + '"]');
+    }
+
+    function viewportLabel(viewport) {
+      return labelFromButton(viewportButton(viewport), viewport ? viewport.charAt(0).toUpperCase() + viewport.slice(1) : "Desktop");
+    }
+
+    function setMode(mode, options) {
+      options = options || {};
+      mode = mode || "structure";
+      form.setAttribute("data-studio-mode", mode);
+      queryAll(form, "[data-studio-mode-control]").forEach(function (button) {
+        button.setAttribute("aria-pressed", button.getAttribute("data-studio-mode-control") === mode ? "true" : "false");
+      });
+      queryAll(form, "[data-studio-mode-panel]").forEach(function (panel) {
+        panel.classList.toggle("is-mode-active", panel.getAttribute("data-studio-mode-panel") === mode);
+      });
+      setReadout("[data-studio-mode-label]", modeLabel(mode));
+      if (options.scroll) {
+        var panel = form.querySelector('[data-studio-mode-panel="' + attrValue(mode) + '"]');
+        if (panel && panel.scrollIntoView) panel.scrollIntoView({ block: "nearest", behavior: "smooth" });
+      }
+      emit(form, "gosxstudio:mode-change", { mode: mode, label: modeLabel(mode), reason: options.reason || "" });
+      saveLayout();
+    }
+
+    function setViewport(viewport, options) {
+      options = options || {};
+      viewport = viewport || "desktop";
+      var button = viewportButton(viewport);
+      var width = button ? button.getAttribute("data-studio-viewport-width") || "" : "";
+      form.setAttribute("data-studio-breakpoint", viewport);
+      queryAll(form, "[data-studio-viewport]").forEach(function (candidate) {
+        candidate.setAttribute("aria-pressed", candidate.getAttribute("data-studio-viewport") === viewport ? "true" : "false");
+      });
+      setReadout("[data-studio-viewport-label]", viewportLabel(viewport));
+      queryAll(form, "[data-gosx-studio-preview], [data-studio-preview-frame]").forEach(function (node) {
+        node.setAttribute("data-studio-preview-viewport", viewport);
+        if (node.matches("[data-studio-preview-frame]") && width) {
+          node.style.width = width;
+          node.style.maxWidth = "100%";
+        }
+      });
+      emit(form, "gosxstudio:viewport-change", {
+        viewport: viewport,
+        label: viewportLabel(viewport),
+        width: width,
+        reason: options.reason || ""
+      });
+      saveLayout();
+      refresh();
+    }
+
+    function setZoom(zoom, options) {
+      options = options || {};
+      zoom = zoom || "fit";
+      var scale = zoomScale(zoom);
+      form.setAttribute("data-studio-zoom", zoom);
+      queryAll(form, "[data-studio-zoom]").forEach(function (button) {
+        button.setAttribute("aria-pressed", button.getAttribute("data-studio-zoom") === zoom ? "true" : "false");
+      });
+      queryAll(form, "[data-studio-canvas], [data-gosx-studio-preview]").forEach(function (node) {
+        node.setAttribute("data-studio-canvas-zoom", zoom);
+        node.style.setProperty("--gosx-studio-preview-zoom", scale ? String(scale) : "1");
+      });
+      document.dispatchEvent(new CustomEvent("gosxstudio:workbench-zoom", {
+        bubbles: true,
+        detail: { zoom: zoom, scale: scale, reason: options.reason || "", form: form }
+      }));
+      emit(form, "gosxstudio:zoom-change", { zoom: zoom, scale: scale, reason: options.reason || "" });
+      saveLayout();
+      refresh();
+    }
+
+    function railState(side) {
+      return form.getAttribute("data-studio-" + side) || "open";
+    }
+
+    function syncRailButtons() {
+      queryAll(form, "[data-studio-rail-toggle]").forEach(function (button) {
+        var side = button.getAttribute("data-studio-rail-toggle");
+        button.setAttribute("aria-pressed", railState(side) === "open" ? "true" : "false");
+      });
+      queryAll(form, "[data-studio-focus-toggle]").forEach(function (button) {
+        button.setAttribute("aria-pressed", form.getAttribute("data-studio-focus") === "true" ? "true" : "false");
+      });
+    }
+
+    function setRail(side, state, options) {
+      options = options || {};
+      if (side !== "left" && side !== "right") return;
+      form.setAttribute("data-studio-focus", "false");
+      form.setAttribute("data-studio-" + side, state === "collapsed" ? "collapsed" : "open");
+      syncRailButtons();
+      emit(form, "gosxstudio:rail-change", { side: side, state: railState(side), reason: options.reason || "" });
+      saveLayout();
+      refresh();
+    }
+
+    function toggleRail(side) {
+      setRail(side, railState(side) === "open" ? "collapsed" : "open", { reason: "toggle" });
+    }
+
+    function setFocus(enabled, reason) {
+      form.setAttribute("data-studio-focus", enabled ? "true" : "false");
+      syncRailButtons();
+      emit(form, "gosxstudio:focus-change", { focus: enabled, reason: reason || "" });
+      saveLayout();
+      refresh();
+    }
+
+    function activityState() {
+      return form.getAttribute("data-studio-activity-state") || "open";
+    }
+
+    function syncActivityButtons() {
+      var open = activityState() === "open";
+      queryAll(form, "[data-studio-activity-toggle]").forEach(function (button) {
+        button.setAttribute("aria-pressed", open ? "true" : "false");
+      });
+    }
+
+    function setActivity(state, reason) {
+      form.setAttribute("data-studio-activity-state", state === "collapsed" ? "collapsed" : "open");
+      syncActivityButtons();
+      emit(form, "gosxstudio:activity-change", { state: activityState(), reason: reason || "" });
+      saveLayout();
+      refresh();
+    }
+
+    function currentRailWidth(side) {
+      var custom = railStyleValue(form, side);
+      var parsed = parseInt(custom, 10);
+      if (Number.isFinite(parsed)) return parsed;
+      var node = form.querySelector(side === "left" ? "[data-studio-sidebar='left']" : "[data-studio-sidebar='right']");
+      return node ? Math.round(node.getBoundingClientRect().width) : (side === "left" ? 320 : 416);
+    }
+
+    function resizerHandle(side) {
+      return form.querySelector('[data-studio-resizer="' + attrValue(side) + '"]');
+    }
+
+    function railLimit(side, name, fallback) {
+      var handle = resizerHandle(side);
+      return number(handle && handle.getAttribute(name), fallback);
+    }
+
+    function updateResizerValue(side, width) {
+      var handle = resizerHandle(side);
+      if (handle) handle.setAttribute("aria-valuenow", String(Math.round(width)));
+    }
+
+    function emitRailResize(name, side, width, reason) {
+      emit(form, name, { side: side, width: Math.round(width), reason: reason || "" });
+      if (name === "gosxstudio:workbench-rail-resize") {
+        emit(form, "gosxstudio:rail-resize", { side: side, width: Math.round(width), reason: reason || "" });
+      }
+    }
+
+    function setRailWidth(side, width, reason) {
+      if (side !== "left" && side !== "right") return;
+      var min = railLimit(side, "data-studio-rail-min", side === "left" ? 256 : 320);
+      var max = railLimit(side, "data-studio-rail-max", side === "left" ? 448 : 544);
+      var next = clamp(Math.round(width), min, max);
+      applyRailWidth(form, side, next);
+      updateResizerValue(side, next);
+      emitRailResize("gosxstudio:workbench-rail-resize", side, next, reason);
+      saveLayout();
+      refresh();
+    }
+
+    function finishRailResize(side, reason) {
+      var width = currentRailWidth(side);
+      updateResizerValue(side, width);
+      emitRailResize("gosxstudio:workbench-rail-resized", side, width, reason);
+    }
+
+    function bindResizers() {
+      if (!stage) return;
+      queryAll(form, "[data-studio-resizer]").forEach(function (handle) {
+        if (handle.dataset.gosxStudioResizerBound === "true") return;
+        handle.dataset.gosxStudioResizerBound = "true";
+        handle.addEventListener("pointerdown", function (event) {
+          if (event.button !== 0) return;
+          event.preventDefault();
+          var side = handle.getAttribute("data-studio-resizer");
+          var rect = stage.getBoundingClientRect();
+          handle.classList.add("is-resizing");
+          if (handle.setPointerCapture) handle.setPointerCapture(event.pointerId);
+          function move(pointerEvent) {
+            setRailWidth(side, side === "left" ? pointerEvent.clientX - rect.left : rect.right - pointerEvent.clientX, "drag");
+          }
+          function finish() {
+            handle.classList.remove("is-resizing");
+            finishRailResize(handle.getAttribute("data-studio-resizer"), "drag");
+            writeLayout(form);
+            document.removeEventListener("pointermove", move);
+            document.removeEventListener("pointerup", finish);
+            document.removeEventListener("pointercancel", finish);
+          }
+          move(event);
+          document.addEventListener("pointermove", move);
+          document.addEventListener("pointerup", finish);
+          document.addEventListener("pointercancel", finish);
+        });
+        handle.addEventListener("keydown", function (event) {
+          if (event.key !== "ArrowLeft" && event.key !== "ArrowRight" && event.key !== "Home" && event.key !== "End") return;
+          event.preventDefault();
+          var side = handle.getAttribute("data-studio-resizer");
+          if (event.key === "Home") {
+            setRailWidth(side, railLimit(side, "data-studio-rail-min", side === "left" ? 256 : 320), "keyboard");
+            finishRailResize(side, "keyboard");
+            return;
+          }
+          if (event.key === "End") {
+            setRailWidth(side, railLimit(side, "data-studio-rail-max", side === "left" ? 448 : 544), "keyboard");
+            finishRailResize(side, "keyboard");
+            return;
+          }
+          var step = event.shiftKey ? 48 : 24;
+          var delta = event.key === "ArrowRight" ? step : -step;
+          setRailWidth(side, currentRailWidth(side) + (side === "left" ? delta : -delta), "keyboard");
+          finishRailResize(side, "keyboard");
+        });
+      });
+    }
+
+    function runInsert(button) {
+      var target = button.getAttribute("data-studio-insert-block") || button.getAttribute("data-editor-add-block") || "";
+      var detail = { target: target, label: labelFromButton(button, target), button: button };
+      emit(form, "gosxstudio:insert-block", detail);
+      emit(form, "gosxstudio:workbench-action", { action: "insert-block", target: target, label: detail.label });
+      var add = target ? form.querySelector('[data-editor-add-block="' + attrValue(target) + '"]') : null;
+      if (add && add !== button && add.click) add.click();
+    }
+
+    function runSelectionAction(button) {
+      var action = button.getAttribute("data-studio-selection-action") || "";
+      var detail = {
+        action: action,
+        label: labelFromButton(button, action),
+        selection: form.getAttribute("data-studio-selection") || form.getAttribute("data-gosx-studio-canvas-selected") || "",
+        kind: form.getAttribute("data-studio-selection-kind") || ""
+      };
+      emit(form, "gosxstudio:selection-action", detail);
+      emit(form, "gosxstudio:workbench-action", detail);
+    }
+
+    form.addEventListener("click", function (event) {
+      var mode = event.target.closest("[data-studio-mode-control]");
+      if (mode && form.contains(mode)) {
+        event.preventDefault();
+        setMode(mode.getAttribute("data-studio-mode-control"), { scroll: true, reason: "click" });
+        return;
+      }
+      var viewport = event.target.closest("[data-studio-viewport]");
+      if (viewport && form.contains(viewport)) {
+        event.preventDefault();
+        setViewport(viewport.getAttribute("data-studio-viewport"), { reason: "click" });
+        return;
+      }
+      var zoom = event.target.closest("[data-studio-zoom]");
+      if (zoom && form.contains(zoom)) {
+        event.preventDefault();
+        setZoom(zoom.getAttribute("data-studio-zoom"), { reason: "click" });
+        return;
+      }
+      var rail = event.target.closest("[data-studio-rail-toggle]");
+      if (rail && form.contains(rail)) {
+        event.preventDefault();
+        toggleRail(rail.getAttribute("data-studio-rail-toggle"));
+        return;
+      }
+      var focus = event.target.closest("[data-studio-focus-toggle]");
+      if (focus && form.contains(focus)) {
+        event.preventDefault();
+        setFocus(form.getAttribute("data-studio-focus") !== "true", "toggle");
+        return;
+      }
+      var activity = event.target.closest("[data-studio-activity-toggle]");
+      if (activity && form.contains(activity)) {
+        event.preventDefault();
+        setActivity(activityState() === "open" ? "collapsed" : "open", "toggle");
+        return;
+      }
+      var insert = event.target.closest("[data-studio-insert-block]");
+      if (insert && form.contains(insert)) {
+        runInsert(insert);
+        return;
+      }
+      var selectionAction = event.target.closest("[data-studio-selection-action]");
+      if (selectionAction && form.contains(selectionAction)) {
+        event.preventDefault();
+        runSelectionAction(selectionAction);
+      }
+    });
+
+    form.addEventListener("gosxstudio:canvas-select", function (event) {
+      var detail = event.detail || {};
+      if (detail.key) form.setAttribute("data-studio-selection", detail.key);
+      else form.removeAttribute("data-studio-selection");
+      form.setAttribute("data-studio-selection-kind", detail.kind || "");
+      setReadout("[data-studio-selection-label]", detail.label || "No selection");
+      setReadout("[data-studio-selection-status]", detail.key ? (detail.kind || "Selected") : "No selection");
+    });
+
+    document.addEventListener("keydown", function (event) {
+      if (!document.contains(form) || event.defaultPrevented) return;
+      if ((event.metaKey || event.ctrlKey) && event.key === "\\") {
+        event.preventDefault();
+        setFocus(form.getAttribute("data-studio-focus") !== "true", "keyboard");
+      } else if (event.key === "Escape" && form.getAttribute("data-studio-focus") === "true") {
+        setFocus(false, "keyboard");
+      }
+    });
+
+    restoreLayout(form);
+    bindResizers();
+    updateResizerValue("left", currentRailWidth("left"));
+    updateResizerValue("right", currentRailWidth("right"));
+    setMode(form.getAttribute("data-studio-mode") || "", { reason: "init" });
+    setViewport(form.getAttribute("data-studio-breakpoint") || "", { reason: "init" });
+    setZoom(form.getAttribute("data-studio-zoom") || "", { reason: "init" });
+    syncRailButtons();
+    syncActivityButtons();
+  }
+
+  function initAll(root) {
+    var scope = root && root.querySelectorAll ? root : document;
+    queryAll(scope, "form[data-studio-workbench], form[data-editor-workbench]").forEach(initWorkbench);
+  }
+
+  ready(function () { initAll(document); });
+  document.addEventListener("gosx:navigate", function () { initAll(document); });
+  document.addEventListener("gosx:render", function () { initAll(document); });
+})();

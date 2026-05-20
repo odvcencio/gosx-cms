@@ -15,6 +15,12 @@ var stateRuntime string
 //go:embed assets/site_canvas_runtime.js
 var siteCanvasRuntime string
 
+//go:embed assets/workbench_runtime.js
+var workbenchRuntime string
+
+//go:embed assets/flow_editor_runtime.js
+var flowEditorRuntime string
+
 func CommandPaletteScript() string {
 	return commandPaletteRuntime
 }
@@ -37,4 +43,20 @@ func SiteCanvasScript() string {
 
 func RenderSiteCanvasScript() gosx.Node {
 	return gosx.RawHTML(`<script data-gosx-studio-site-canvas-runtime="true">` + siteCanvasRuntime + `</script>`)
+}
+
+func WorkbenchScript() string {
+	return workbenchRuntime
+}
+
+func RenderWorkbenchScript() gosx.Node {
+	return gosx.RawHTML(`<script data-gosx-studio-workbench-runtime="true">` + workbenchRuntime + `</script>`)
+}
+
+func FlowEditorScript() string {
+	return flowEditorRuntime
+}
+
+func RenderFlowEditorScript() gosx.Node {
+	return gosx.RawHTML(`<script data-gosx-studio-flow-editor-runtime="true">` + flowEditorRuntime + `</script>`)
 }

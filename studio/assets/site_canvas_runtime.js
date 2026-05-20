@@ -193,6 +193,20 @@
       apply(reason || "zoom");
     }
 
+    function setZoom(value, reason) {
+      var text = String(value || "").toLowerCase();
+      if (text === "fit") {
+        fit(reason || "workbench-zoom");
+        return;
+      }
+      if (text.indexOf("%") > 0) text = text.replace("%", "");
+      var scale = number(text, 0);
+      if (scale > 10) scale = scale / 100;
+      if (scale <= 0) return;
+      state.zoom = clamp(scale, 0.25, 2.8);
+      apply(reason || "workbench-zoom");
+    }
+
     function moveNode(node, x, y, reason) {
       node.style.setProperty("--gosx-studio-node-x", x + "px");
       node.style.setProperty("--gosx-studio-node-y", y + "px");
@@ -340,6 +354,11 @@
       } else if (event.key === "Escape") {
         clearSelection("clear");
       }
+    });
+    document.addEventListener("gosxstudio:workbench-zoom", function (event) {
+      var detail = event.detail || {};
+      if (detail.form && detail.form.contains && !detail.form.contains(canvas)) return;
+      setZoom(detail.zoom || detail.scale, detail.reason || "workbench");
     });
     updateEdges();
     if (state.selected) {

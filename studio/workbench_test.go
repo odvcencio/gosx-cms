@@ -39,6 +39,7 @@ func TestRenderWorkbenchComposesBrowserEditorShell(t *testing.T) {
 		ResizableRails:       true,
 		IncludeScripts:       true,
 		IncludeCanvasRuntime: true,
+		IncludeFlowRuntime:   true,
 		Commands: []Command{
 			{Kind: CommandSubmit, Key: "save", Label: "Save checkpoint", Target: "save", Primary: true},
 		},
@@ -78,9 +79,16 @@ func TestRenderWorkbenchComposesBrowserEditorShell(t *testing.T) {
 		`data-gosx-studio-preview="true"`,
 		`data-extra-canvas-panel="true"`,
 		`data-studio-resizer="left"`,
+		`data-studio-resizer="right"`,
+		`role="separator"`,
+		`aria-valuemin="256"`,
+		`aria-valuemax="544"`,
+		`data-studio-rail-default="416"`,
+		`data-gosx-studio-workbench-runtime="true"`,
 		`data-gosx-studio-command-runtime="true"`,
 		`data-gosx-studio-state-runtime="true"`,
 		`data-gosx-studio-site-canvas-runtime="true"`,
+		`data-gosx-studio-flow-editor-runtime="true"`,
 	} {
 		if !strings.Contains(html, want) {
 			t.Fatalf("expected %q in workbench markup: %s", want, html)
