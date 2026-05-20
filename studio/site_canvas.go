@@ -35,6 +35,7 @@ type SiteCanvasEdge struct {
 type SiteCanvasOptions struct {
 	Class         string
 	ToolbarClass  string
+	ControlsClass string
 	ViewportClass string
 	SurfaceClass  string
 	EdgesClass    string
@@ -62,6 +63,7 @@ func RenderSiteCanvas(options SiteCanvasOptions) gosx.Node {
 	width, height := siteCanvasBounds(nodes)
 	className := firstNonEmpty(options.Class, "gosx-studio-site-canvas")
 	toolbarClass := firstNonEmpty(options.ToolbarClass, "gosx-studio-site-canvas__toolbar")
+	controlsClass := firstNonEmpty(options.ControlsClass, "gosx-studio-site-canvas__controls")
 	viewportClass := firstNonEmpty(options.ViewportClass, "gosx-studio-site-canvas__viewport")
 	surfaceClass := firstNonEmpty(options.SurfaceClass, "gosx-studio-site-canvas__surface")
 	edgesClass := firstNonEmpty(options.EdgesClass, "gosx-studio-site-canvas__edges")
@@ -77,7 +79,7 @@ func RenderSiteCanvas(options SiteCanvasOptions) gosx.Node {
 		gosx.Attr("tabindex", "0"),
 		gosx.Attr("aria-label", label),
 	),
-		renderSiteCanvasToolbar(toolbarClass, options),
+		renderSiteCanvasToolbar(toolbarClass, controlsClass, options),
 		gosx.El("div", gosx.Attrs(
 			gosx.Attr("class", viewportClass),
 			gosx.Attr("data-gosx-studio-canvas-viewport", "true"),
@@ -94,7 +96,7 @@ func RenderSiteCanvas(options SiteCanvasOptions) gosx.Node {
 	)
 }
 
-func renderSiteCanvasToolbar(className string, options SiteCanvasOptions) gosx.Node {
+func renderSiteCanvasToolbar(className, controlsClass string, options SiteCanvasOptions) gosx.Node {
 	children := []gosx.Node{
 		gosx.El("div", nil,
 			optionalText("p", "kicker", options.Kicker),
@@ -102,7 +104,7 @@ func renderSiteCanvasToolbar(className string, options SiteCanvasOptions) gosx.N
 			optionalText("span", "", options.Summary),
 		),
 		gosx.El("div", gosx.Attrs(
-			gosx.Attr("class", "gosx-studio-site-canvas__controls"),
+			gosx.Attr("class", controlsClass),
 			gosx.Attr("role", "toolbar"),
 			gosx.Attr("aria-label", "Site canvas controls"),
 		),
@@ -159,15 +161,17 @@ func renderSiteCanvasNodes(className, nodeClass string, nodes []SiteCanvasNode) 
 
 func renderSiteCanvasNode(className string, node SiteCanvasNode) gosx.Node {
 	kind := firstNonEmpty(node.Kind, "surface")
-	classes := strings.TrimSpace(firstNonEmpty(className, "gosx-studio-site-canvas__node") + " gosx-studio-site-canvas__node--" + normalizeKey(kind))
+	baseClass := firstNonEmpty(className, "gosx-studio-site-canvas__node")
+	baseToken := firstClass(baseClass)
+	classes := strings.TrimSpace(baseClass + " " + baseToken + "--" + normalizeKey(kind))
 	if node.Selected {
 		classes += " is-selected"
 	}
 	children := []gosx.Node{
-		gosx.El("span", gosx.Attrs(gosx.Attr("class", "gosx-studio-site-canvas__node-kind")), gosx.Text(kind)),
+		gosx.El("span", gosx.Attrs(gosx.Attr("class", baseToken+"-kind")), gosx.Text(kind)),
 		gosx.El("strong", nil, gosx.Text(node.Label)),
-		optionalText("span", "gosx-studio-site-canvas__node-summary", node.Summary),
-		optionalText("output", "gosx-studio-site-canvas__node-status", node.Status),
+		optionalText("span", baseToken+"-summary", node.Summary),
+		optionalText("output", baseToken+"-status", node.Status),
 	}
 	if len(node.Metrics) > 0 {
 		metrics := make([]gosx.Node, 0, len(node.Metrics))
@@ -177,7 +181,7 @@ func renderSiteCanvasNode(className string, node SiteCanvasNode) gosx.Node {
 				gosx.Text(" "+metric.Label),
 			))
 		}
-		children = append(children, gosx.El("span", gosx.Attrs(gosx.Attr("class", "gosx-studio-site-canvas__node-metrics")), gosx.Fragment(metrics...)))
+		children = append(children, gosx.El("span", gosx.Attrs(gosx.Attr("class", baseToken+"-metrics")), gosx.Fragment(metrics...)))
 	}
 	return gosx.El("button", gosx.Attrs(
 		gosx.Attr("class", classes),
@@ -189,6 +193,14 @@ func renderSiteCanvasNode(className string, node SiteCanvasNode) gosx.Node {
 		gosx.Attr("aria-pressed", boolAttr(node.Selected)),
 		gosx.Attr("style", canvasNodeStyle(node)),
 	), gosx.Fragment(children...))
+}
+
+func firstClass(className string) string {
+	fields := strings.Fields(className)
+	if len(fields) == 0 {
+		return "gosx-studio-site-canvas__node"
+	}
+	return fields[0]
 }
 
 func normalizeSiteCanvasNodes(nodes []SiteCanvasNode) []SiteCanvasNode {

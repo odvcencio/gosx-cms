@@ -9,10 +9,12 @@ import (
 
 func TestRenderSiteCanvasMapsWebsiteObjects(t *testing.T) {
 	html := gosx.RenderHTML(RenderSiteCanvas(SiteCanvasOptions{
-		Class:   "studio-site-map",
-		Kicker:  "Spatial authoring",
-		Title:   "Website map",
-		Summary: "Pages, flows, content, and style",
+		Class:         "studio-site-map",
+		ControlsClass: "studio-site-map__controls",
+		NodeClass:     "studio-site-map__node",
+		Kicker:        "Spatial authoring",
+		Title:         "Website map",
+		Summary:       "Pages, flows, content, and style",
 		Nodes: []SiteCanvasNode{
 			{Key: "home", Kind: "page", Label: "Home", Summary: "Landing page", Href: "/", X: 120, Y: 120, Selected: true, Metrics: []Metric{NewMetric("sections", "sections", 6)}},
 			{Key: "checkout", Kind: "flow", Label: "Checkout", Summary: "Purchase path", Href: "/shop", X: 480, Y: 180},
@@ -32,6 +34,10 @@ func TestRenderSiteCanvasMapsWebsiteObjects(t *testing.T) {
 		`data-gosx-studio-canvas-node-kind="style"`,
 		`data-gosx-studio-canvas-edge-from="home"`,
 		`data-gosx-studio-canvas-edge-to="checkout"`,
+		`class="studio-site-map__controls"`,
+		`studio-site-map__node--page`,
+		`studio-site-map__node-kind`,
+		`studio-site-map__node-metrics`,
 		`aria-pressed="true"`,
 		`Website map`,
 	} {
