@@ -37,7 +37,20 @@ func TestRenderSiteCanvasScriptIncludesRuntime(t *testing.T) {
 	if !strings.Contains(html, `data-gosx-studio-site-canvas-runtime="true"`) || !strings.Contains(html, `data-gosx-studio-site-canvas`) {
 		t.Fatalf("expected embedded site canvas runtime, got: %s", html)
 	}
-	for _, want := range []string{`gosxstudio:canvas-select`, `gosxstudio:canvas-viewport`, `gosxstudio:canvas-cursor`, `data-gosx-studio-canvas-node`} {
+	for _, want := range []string{
+		`gosxstudio:canvas-select`,
+		`gosxstudio:canvas-viewport`,
+		`gosxstudio:canvas-cursor`,
+		`gosxstudio:canvas-node-move`,
+		`gosxstudio:canvas-node-moved`,
+		`gosxstudio:canvas-action`,
+		`data-gosx-studio-canvas-selection-detail`,
+		`data-gosx-studio-canvas-node-dragging`,
+		`data-gosx-studio-canvas-fit-padding`,
+		`open-node`,
+		`move-node`,
+		`data-gosx-studio-canvas-node`,
+	} {
 		if !strings.Contains(html, want) {
 			t.Fatalf("expected %q in site canvas runtime, got: %s", want, html)
 		}
