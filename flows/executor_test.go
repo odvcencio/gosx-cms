@@ -119,6 +119,25 @@ func TestFindDocumentActionNormalizesLookup(t *testing.T) {
 	}
 }
 
+func TestDocumentCanExecuteRequiresValidDocumentAndHandlerRefs(t *testing.T) {
+	ready := DocumentFromDefinition(ScheduleTour("tour.submit"), DocumentOptions{ID: "tour-flow"})
+	missingHandler := DocumentFromDefinition(ScheduleTour(""), DocumentOptions{ID: "tour-flow"})
+	noActions := DocumentFromDefinition(ScheduleTour("tour.submit"), DocumentOptions{ID: "tour-flow"})
+	noActions.Actions = nil
+	if !DocumentCanExecute(ready) {
+		t.Fatalf("expected ready document to execute: %#v", ready)
+	}
+	if DocumentCanExecute(missingHandler) {
+		t.Fatalf("expected missing handler to be non-executable")
+	}
+	if DocumentCanExecute(noActions) {
+		t.Fatalf("expected document with no actions to be non-executable")
+	}
+	if got := ExecutableDocumentCount([]Document{ready, missingHandler, noActions}); got != 1 {
+		t.Fatalf("expected one executable document, got %d", got)
+	}
+}
+
 func TestExecuteFlowReturnsUnknownHandler(t *testing.T) {
 	store := NewMemoryStore(DocumentFromDefinition(ScheduleTour("tour.submit"), DocumentOptions{ID: "tour-flow"}))
 	result, err := ExecuteFlow(context.Background(), Executor{Documents: store, Publications: store, Registry: NewRegistry()}, Submission{

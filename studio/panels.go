@@ -165,6 +165,7 @@ type FlowCard struct {
 	EmbedTarget        string
 	PrimaryHandlerRef  string
 	RequiredFieldCount int
+	CanExecute         bool
 	HasRoute           bool
 	HasEmbedTarget     bool
 	HasPrimaryAction   bool
@@ -1238,6 +1239,7 @@ func renderFlowCard(flow FlowCard) gosx.Node {
 	return gosx.El("article", gosx.Attrs(
 		gosx.Attr("class", flow.CardClass),
 		gosx.Attr("data-editor-flow", flow.Key),
+		gosx.Attr("data-studio-flow-executable", boolAttr(flow.CanExecute)),
 	),
 		gosx.El("div", gosx.Attrs(gosx.Attr("class", "studio-flow-card__head")),
 			gosx.El("div", nil,
@@ -1844,6 +1846,9 @@ func normalizeFlowCards(flows []FlowCard) []FlowCard {
 		flow.Route = strings.TrimSpace(flow.Route)
 		flow.EmbedTarget = normalizeKey(flow.EmbedTarget)
 		flow.PrimaryHandlerRef = strings.TrimSpace(flow.PrimaryHandlerRef)
+		if !flow.CanExecute && flow.PrimaryHandlerRef != "" {
+			flow.CanExecute = true
+		}
 		out = append(out, flow)
 	}
 	return out

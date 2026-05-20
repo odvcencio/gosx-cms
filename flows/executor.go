@@ -194,6 +194,32 @@ func FindDocumentAction(document Document, actionKey string) (DocumentAction, bo
 	return DocumentAction{}, false
 }
 
+func DocumentCanExecute(document Document) bool {
+	document = NormalizeDocument(document, WithUnknownStepBlocks())
+	if len(document.Actions) == 0 {
+		return false
+	}
+	if len(ValidateDocument(document)) != 0 {
+		return false
+	}
+	for _, action := range document.Actions {
+		if strings.TrimSpace(action.HandlerRef) == "" {
+			return false
+		}
+	}
+	return true
+}
+
+func ExecutableDocumentCount(documents []Document) int {
+	count := 0
+	for _, document := range documents {
+		if DocumentCanExecute(document) {
+			count++
+		}
+	}
+	return count
+}
+
 func ValidateActionPayload(action DocumentAction, values map[string]string) ValidationErrors {
 	actions := normalizeDocumentActions([]DocumentAction{action})
 	if len(actions) == 0 {

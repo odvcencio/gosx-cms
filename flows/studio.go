@@ -154,17 +154,5 @@ func studioFieldView(field workbench.Field) StudioField {
 }
 
 func canExecuteDefinition(definition Definition) bool {
-	if len(Validate(definition)) != 0 {
-		return false
-	}
-	definition = Normalize(definition)
-	if len(definition.Actions) == 0 {
-		return false
-	}
-	for _, action := range definition.Actions {
-		if strings.TrimSpace(action.HandlerRef) == "" {
-			return false
-		}
-	}
-	return true
+	return DocumentCanExecute(DocumentFromDefinition(definition, DocumentOptions{}))
 }

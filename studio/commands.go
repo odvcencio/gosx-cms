@@ -49,6 +49,7 @@ func RenderCommandPalette(options CommandPaletteOptions) gosx.Node {
 	searchHint := firstNonEmpty(options.SearchHint, "Search actions, blocks, routes, and modes")
 	emptyTitle := firstNonEmpty(options.EmptyTitle, "No commands")
 	emptyDetail := firstNonEmpty(options.EmptyDetail, "Try a different search.")
+	listID := "studio-command-list"
 	commands := normalizeCommands(options.Commands)
 	commandNodes := make([]gosx.Node, 0, len(commands))
 	for _, command := range commands {
@@ -95,12 +96,17 @@ func RenderCommandPalette(options CommandPaletteOptions) gosx.Node {
 					gosx.El("span", nil, gosx.Text("Search")),
 					gosx.El("input", gosx.Attrs(
 						gosx.Attr("type", "search"),
+						gosx.Attr("role", "combobox"),
+						gosx.Attr("aria-autocomplete", "list"),
+						gosx.Attr("aria-expanded", "false"),
+						gosx.Attr("aria-controls", listID),
 						gosx.Attr("data-studio-command-search", "true"),
 						gosx.Attr("placeholder", searchHint),
 						gosx.Attr("autocomplete", "off"),
 					)),
 				),
 				gosx.El("div", gosx.Attrs(
+					gosx.Attr("id", listID),
 					gosx.Attr("class", "studio-command-list"),
 					gosx.Attr("role", "listbox"),
 					gosx.Attr("data-studio-command-list", "true"),

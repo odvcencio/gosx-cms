@@ -20,6 +20,9 @@ func TestRenderCommandPalette(t *testing.T) {
 	if !strings.Contains(html, `data-studio-command-palette="true"`) || !strings.Contains(html, `data-studio-command-open="true"`) || !strings.Contains(html, `data-studio-command-search="true"`) {
 		t.Fatalf("expected command palette shell hooks, got: %s", html)
 	}
+	if !strings.Contains(html, `role="combobox"`) || !strings.Contains(html, `aria-controls="studio-command-list"`) || !strings.Contains(html, `role="listbox"`) {
+		t.Fatalf("expected accessible command palette hooks, got: %s", html)
+	}
 	if !strings.Contains(html, `data-studio-command-kind="mode"`) || !strings.Contains(html, `data-studio-command-target="structure"`) {
 		t.Fatalf("expected mode command hooks, got: %s", html)
 	}
@@ -48,5 +51,38 @@ func TestNormalizeCommandsDedupeAndDefaults(t *testing.T) {
 	}
 	if commands[1].Kind != CommandLink || commands[1].Group != "Open" {
 		t.Fatalf("unexpected unknown command normalization: %#v", commands[1])
+	}
+}
+
+func TestStudioCommandsBuildsDefaultBlocksAndFlows(t *testing.T) {
+	commands := StudioCommands(StudioCommandOptions{
+		Shell: Shell{
+			Modes:     []Mode{NewMode("structure", "Structure", true)},
+			Viewports: []Viewport{NewViewport("desktop", "Desktop", "100%", true)},
+			Canvas:    CanvasSurface{Zoom: "fit"},
+		},
+		Blocks: []CommandBlock{{Key: "hero", Label: "Hero", Summary: "Homepage hero"}},
+		Flows: []CommandFlow{{
+			Key:            "schedule-tour",
+			Label:          "Schedule tour",
+			Description:    "Request a visit",
+			Route:          "/contact?flow=schedule-tour",
+			HasRoute:       true,
+			EmbedTarget:    "tour-form",
+			HasEmbedTarget: true,
+		}},
+		Extra: []Command{{Kind: CommandLink, Key: "media", Label: "Media", Href: "/admin/media"}},
+	})
+	byKey := map[string]Command{}
+	for _, command := range commands {
+		byKey[command.Key] = command
+	}
+	for _, key := range []string{"save", "toggle-layers", "mode-structure", "viewport-desktop", "zoom-fit", "selection-reveal", "insert-hero", "media", "open-flow-schedule-tour", "insert-flow-schedule-tour"} {
+		if byKey[key].Key == "" {
+			t.Fatalf("expected command %q in %#v", key, commands)
+		}
+	}
+	if byKey["insert-hero"].Kind != CommandInsert || byKey["open-flow-schedule-tour"].Href == "" || byKey["insert-flow-schedule-tour"].Target != "tour-form" {
+		t.Fatalf("unexpected generated commands: %#v", byKey)
 	}
 }
