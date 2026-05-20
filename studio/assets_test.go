@@ -19,3 +19,15 @@ func TestRenderCommandPaletteScriptIncludesRuntime(t *testing.T) {
 		t.Fatalf("expected focus-managed command palette runtime, got: %s", html)
 	}
 }
+
+func TestRenderStudioStateScriptIncludesAutosaveRuntime(t *testing.T) {
+	html := gosx.RenderHTML(RenderStudioStateScript())
+	if !strings.Contains(html, `data-gosx-studio-state-runtime="true"`) || !strings.Contains(html, `data-gosx-studio-state`) {
+		t.Fatalf("expected embedded state runtime, got: %s", html)
+	}
+	for _, want := range []string{`gosxstudio:save-state`, `data-gosx-studio-autosave`, `X-GoSX-Studio-Autosave`, `data-gosx-studio-save-button`} {
+		if !strings.Contains(html, want) {
+			t.Fatalf("expected %q in studio state runtime, got: %s", want, html)
+		}
+	}
+}
