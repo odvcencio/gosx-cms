@@ -72,6 +72,84 @@
     form.style.setProperty(legacyRailVar(side), value);
   }
 
+  function workbenchFormFor(control) {
+    return control && control.closest ? control.closest("form[data-studio-workbench], form[data-editor-workbench]") : null;
+  }
+
+  function shellRailState(form, side) {
+    return form.getAttribute("data-studio-" + side) || "open";
+  }
+
+  function shellActivityState(form) {
+    return form.getAttribute("data-studio-activity-state") || "open";
+  }
+
+  function syncShellButtons(form) {
+    queryAll(form, "[data-studio-rail-toggle]").forEach(function (button) {
+      var side = button.getAttribute("data-studio-rail-toggle");
+      button.setAttribute("aria-pressed", shellRailState(form, side) === "open" ? "true" : "false");
+    });
+    queryAll(form, "[data-studio-focus-toggle]").forEach(function (button) {
+      button.setAttribute("aria-pressed", form.getAttribute("data-studio-focus") === "true" ? "true" : "false");
+    });
+    var activityOpen = shellActivityState(form) === "open";
+    queryAll(form, "[data-studio-activity-toggle]").forEach(function (button) {
+      button.setAttribute("aria-pressed", activityOpen ? "true" : "false");
+    });
+  }
+
+  function emitShellLayout(form, reason) {
+    emit(form, "gosxstudio:workbench-layout", {
+      left: shellRailState(form, "left"),
+      right: shellRailState(form, "right"),
+      focus: form.getAttribute("data-studio-focus") === "true",
+      activity: shellActivityState(form),
+      viewport: form.getAttribute("data-studio-breakpoint") || "",
+      zoom: form.getAttribute("data-studio-zoom") || "",
+      reason: reason || ""
+    });
+    writeLayout(form);
+    window.requestAnimationFrame(function () {
+      window.dispatchEvent(new Event("resize"));
+    });
+  }
+
+  function claimShellControl(event) {
+    if (!event.target || !event.target.closest) return false;
+    var rail = event.target.closest("[data-studio-rail-toggle]");
+    var focus = event.target.closest("[data-studio-focus-toggle]");
+    var activity = event.target.closest("[data-studio-activity-toggle]");
+    var control = rail || focus || activity;
+    var form = workbenchFormFor(control);
+    if (!form) return false;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    if (rail) {
+      var side = rail.getAttribute("data-studio-rail-toggle");
+      if (side === "left" || side === "right") {
+        form.setAttribute("data-studio-focus", "false");
+        form.setAttribute("data-studio-" + side, shellRailState(form, side) === "open" ? "collapsed" : "open");
+        syncShellButtons(form);
+        emit(form, "gosxstudio:rail-change", { side: side, state: shellRailState(form, side), reason: "toggle" });
+        emitShellLayout(form, "rail-toggle");
+      }
+      return true;
+    }
+    if (focus) {
+      var enabled = form.getAttribute("data-studio-focus") !== "true";
+      form.setAttribute("data-studio-focus", enabled ? "true" : "false");
+      syncShellButtons(form);
+      emit(form, "gosxstudio:focus-change", { focus: enabled, reason: "toggle" });
+      emitShellLayout(form, "focus-toggle");
+      return true;
+    }
+    form.setAttribute("data-studio-activity-state", shellActivityState(form) === "open" ? "collapsed" : "open");
+    syncShellButtons(form);
+    emit(form, "gosxstudio:activity-change", { state: shellActivityState(form), reason: "toggle" });
+    emitShellLayout(form, "activity-toggle");
+    return true;
+  }
+
   function readLayout(form) {
     try {
       return JSON.parse(window.localStorage.getItem(storageKey(form)) || "{}") || {};
@@ -489,6 +567,7 @@
     queryAll(scope, "form[data-studio-workbench], form[data-editor-workbench]").forEach(initWorkbench);
   }
 
+  document.addEventListener("click", claimShellControl, true);
   ready(function () { initAll(document); });
   document.addEventListener("gosx:navigate", function () { initAll(document); });
   document.addEventListener("gosx:render", function () { initAll(document); });
