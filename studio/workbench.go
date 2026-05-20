@@ -28,6 +28,7 @@ type WorkbenchOptions struct {
 	Autosave              bool
 	AutosaveURL           string
 	AutosaveDelay         int
+	FormAttrs             []FieldAttribute
 	DisableClientActions  bool
 	DisableCanvasStatus   bool
 	DisableSelectionTools bool
@@ -92,6 +93,7 @@ func workbenchFormAttrs(shell Shell, options WorkbenchOptions) []any {
 		gosx.Attr("class", firstNonEmpty(options.FormClass, "gosx-studio-workbench__form gosx-studio")),
 		gosx.Attr("method", method),
 		gosx.Attr("data-studio-workbench", "true"),
+		gosx.Attr("data-editor-workbench", "true"),
 		gosx.Attr("data-gosx-studio-state", "true"),
 		gosx.Attr("data-studio-shell", normalizeKey(shell.Title)),
 		gosx.Attr("data-studio-block-count", strconv.Itoa(shell.BlockCount)),
@@ -115,7 +117,7 @@ func workbenchFormAttrs(shell Shell, options WorkbenchOptions) []any {
 			gosx.Attr("data-gosx-studio-autosave-url", firstNonEmpty(options.AutosaveURL, action)),
 		)
 	}
-	return attrs
+	return appendFieldAttributes(attrs, options.FormAttrs)
 }
 
 func workbenchCSRFInput(options WorkbenchOptions) gosx.Node {

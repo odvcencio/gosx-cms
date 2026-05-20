@@ -26,9 +26,13 @@ func TestRenderWorkbenchComposesBrowserEditorShell(t *testing.T) {
 	})
 
 	html := gosx.RenderHTML(RenderWorkbench(shell, WorkbenchOptions{
-		CSRFToken:            "token-123",
-		Autosave:             true,
-		AutosaveDelay:        900,
+		CSRFToken:     "token-123",
+		Autosave:      true,
+		AutosaveDelay: 900,
+		FormAttrs: []FieldAttribute{
+			{Name: "data-studio-style-system", Value: "theme-1"},
+			{Name: "data-studio-style-valid", Value: "true"},
+		},
 		ToolbarTitle:         "Canvas",
 		ToolbarSummary:       "4 reusable blocks",
 		SaveButtonLabel:      "Save checkpoint",
@@ -49,6 +53,7 @@ func TestRenderWorkbenchComposesBrowserEditorShell(t *testing.T) {
 	for _, want := range []string{
 		`data-gosx-studio-workbench="true"`,
 		`data-studio-workbench="true"`,
+		`data-editor-workbench="true"`,
 		`data-gosx-studio-state="true"`,
 		`data-gosx-studio-client="true"`,
 		`data-gosx-studio-autosave="true"`,
@@ -56,6 +61,8 @@ func TestRenderWorkbenchComposesBrowserEditorShell(t *testing.T) {
 		`data-gosx-studio-autosave-url="/admin/editor/__actions/save"`,
 		`name="csrf_token"`,
 		`value="token-123"`,
+		`data-studio-style-system="theme-1"`,
+		`data-studio-style-valid="true"`,
 		`data-gosx-studio-toolbar="true"`,
 		`data-studio-command-palette="true"`,
 		`data-gosx-studio-save-status="true"`,
