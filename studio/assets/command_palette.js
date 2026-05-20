@@ -48,6 +48,12 @@
     return normalize(shortcut).split(/[+\s]+/).filter(Boolean);
   }
 
+  function shortcutHasModifier(shortcut) {
+    return shortcutParts(shortcut).some(function (part) {
+      return part === "ctrl" || part === "control" || part === "cmd" || part === "meta" || part === "command" || part === "mod" || part === "shift" || part === "alt" || part === "option";
+    });
+  }
+
   function shortcutMatches(shortcut, event) {
     var parts = shortcutParts(shortcut);
     if (!parts.length) return false;
@@ -84,6 +90,7 @@
     var list = node.querySelector("[data-studio-command-list]");
     var empty = node.querySelector("[data-studio-command-empty]");
     if (!overlay || !list) return;
+    var lastFocused = null;
 
     function buttons() {
       return Array.prototype.slice.call(node.querySelectorAll("[data-studio-command]"));
@@ -150,7 +157,49 @@
       if (empty) empty.hidden = visible !== 0;
     }
 
+    function focusableElements() {
+      return Array.prototype.slice.call(overlay.querySelectorAll([
+        "a[href]",
+        "button:not([disabled])",
+        "input:not([disabled])",
+        "select:not([disabled])",
+        "textarea:not([disabled])",
+        "[tabindex]:not([tabindex='-1'])"
+      ].join(","))).filter(function (element) {
+        return !element.hidden && element.getClientRects().length > 0;
+      });
+    }
+
+    function restoreFocus() {
+      var target = lastFocused;
+      lastFocused = null;
+      if (!target || !target.focus || !document.contains(target)) return;
+      window.setTimeout(function () {
+        target.focus({ preventScroll: true });
+      }, 0);
+    }
+
+    function trapFocus(event) {
+      if (!isOpen()) return false;
+      var focusable = focusableElements();
+      if (!focusable.length) return false;
+      var first = focusable[0];
+      var last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus({ preventScroll: true });
+        return true;
+      }
+      if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus({ preventScroll: true });
+        return true;
+      }
+      return false;
+    }
+
     function open() {
+      lastFocused = document.activeElement;
       node.setAttribute("data-studio-command-state", "open");
       overlay.hidden = false;
       node.querySelectorAll("[data-studio-command-open]").forEach(function (button) {
@@ -166,7 +215,8 @@
       }, 0);
     }
 
-    function close() {
+    function close(options) {
+      options = options || {};
       node.setAttribute("data-studio-command-state", "closed");
       overlay.hidden = true;
       node.querySelectorAll("[data-studio-command-open]").forEach(function (button) {
@@ -176,6 +226,7 @@
         search.setAttribute("aria-expanded", "false");
         search.removeAttribute("aria-activedescendant");
       }
+      if (options.restoreFocus !== false) restoreFocus();
     }
 
     function isOpen() {
@@ -199,8 +250,8 @@
         href: button.getAttribute("data-studio-command-href") || ""
       };
       node.dispatchEvent(new CustomEvent("gosxstudio:command", { bubbles: true, detail: detail }));
-      close();
       if (detail.kind === "submit") {
+        close({ restoreFocus: false });
         submitTo(detail.href);
         return;
       }
@@ -208,11 +259,17 @@
         var form = node.closest("form") || document;
         var add = form.querySelector('[data-editor-add-block="' + selectorValue(detail.target) + '"]');
         if (add) {
+          close();
           add.click();
           return;
         }
       }
-      if (detail.href) window.location.href = detail.href;
+      if (detail.href) {
+        close({ restoreFocus: false });
+        window.location.href = detail.href;
+        return;
+      }
+      close();
     }
 
     function shortcutCommand(event) {
@@ -220,6 +277,7 @@
       buttons().some(function (button) {
         var shortcut = button.getAttribute("data-studio-command-shortcut") || "";
         if (!shortcut || !shortcutMatches(shortcut, event)) return false;
+        if (isEditableTarget(event.target) && !shortcutHasModifier(shortcut)) return false;
         match = button;
         return true;
       });
@@ -269,6 +327,8 @@
       if (event.key === "Escape") {
         event.preventDefault();
         close();
+      } else if (event.key === "Tab") {
+        trapFocus(event);
       } else if (event.key === "ArrowDown" || event.key === "ArrowUp") {
         event.preventDefault();
         move(event.key === "ArrowDown" ? 1 : -1);
@@ -290,7 +350,7 @@
         return;
       }
       var command = shortcutCommand(event);
-      if (command && !isEditableTarget(event.target)) {
+      if (command) {
         event.preventDefault();
         run(command);
       }

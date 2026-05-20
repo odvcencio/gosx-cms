@@ -15,4 +15,7 @@ func TestRenderCommandPaletteScriptIncludesRuntime(t *testing.T) {
 	if !strings.Contains(html, `data-studio-command-shortcut`) || !strings.Contains(html, `shortcutMatches`) {
 		t.Fatalf("expected embedded command shortcuts, got: %s", html)
 	}
+	if !strings.Contains(html, `trapFocus`) || !strings.Contains(html, `restoreFocus`) || !strings.Contains(html, `shortcutHasModifier`) {
+		t.Fatalf("expected focus-managed command palette runtime, got: %s", html)
+	}
 }
