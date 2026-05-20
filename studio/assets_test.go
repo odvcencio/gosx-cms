@@ -31,3 +31,15 @@ func TestRenderStudioStateScriptIncludesAutosaveRuntime(t *testing.T) {
 		}
 	}
 }
+
+func TestRenderSiteCanvasScriptIncludesRuntime(t *testing.T) {
+	html := gosx.RenderHTML(RenderSiteCanvasScript())
+	if !strings.Contains(html, `data-gosx-studio-site-canvas-runtime="true"`) || !strings.Contains(html, `data-gosx-studio-site-canvas`) {
+		t.Fatalf("expected embedded site canvas runtime, got: %s", html)
+	}
+	for _, want := range []string{`gosxstudio:canvas-select`, `gosxstudio:canvas-viewport`, `gosxstudio:canvas-cursor`, `data-gosx-studio-canvas-node`} {
+		if !strings.Contains(html, want) {
+			t.Fatalf("expected %q in site canvas runtime, got: %s", want, html)
+		}
+	}
+}
