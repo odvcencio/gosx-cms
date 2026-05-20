@@ -61,8 +61,32 @@
     return parts.join("&");
   }
 
+  function dirtyCount(savedSignature, currentSignature) {
+    if (savedSignature === currentSignature) return 0;
+    var saved = savedSignature ? savedSignature.split("&") : [];
+    var current = currentSignature ? currentSignature.split("&") : [];
+    var total = Math.max(saved.length, current.length);
+    var count = 0;
+    for (var index = 0; index < total; index += 1) {
+      if (saved[index] !== current[index]) count += 1;
+    }
+    return Math.max(count, 1);
+  }
+
   function statusNodes(form) {
     return Array.prototype.slice.call(form.querySelectorAll("[data-gosx-studio-save-state], [data-editor-save-state]"));
+  }
+
+  function detailNodes(form) {
+    return Array.prototype.slice.call(form.querySelectorAll("[data-gosx-studio-save-detail]"));
+  }
+
+  function lastSavedNodes(form) {
+    return Array.prototype.slice.call(form.querySelectorAll("[data-gosx-studio-last-saved]"));
+  }
+
+  function dirtyCountNodes(form) {
+    return Array.prototype.slice.call(form.querySelectorAll("[data-gosx-studio-dirty-count]"));
   }
 
   function saveButtons(form) {
@@ -89,19 +113,66 @@
     node.className = classes;
   }
 
-  function dispatchState(form, state, dirty, reason) {
+  function dispatchState(form, state, dirty, reason, options) {
+    options = options || {};
     form.dispatchEvent(new CustomEvent("gosxstudio:save-state", {
       bubbles: true,
       detail: {
         state: state,
         dirty: dirty,
-        reason: reason || ""
+        reason: reason || "",
+        dirtyCount: options.dirtyCount || 0,
+        savedAt: options.savedAt || ""
       }
     }));
   }
 
-  function setState(form, state, reason) {
+  function timeLabel(date) {
+    try {
+      return date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+    } catch (error) {
+      return "";
+    }
+  }
+
+  function saveDetail(state, options) {
+    options = options || {};
+    if (state === "dirty") {
+      return options.dirtyCount === 1 ? "1 change waiting" : String(options.dirtyCount || 0) + " changes waiting";
+    }
+    if (state === "autosaving") return "Syncing changes";
+    if (state === "saving") return "Sending checkpoint";
+    if (state === "error") return "Autosave could not reach the server";
+    if (options.savedAtLabel) return "Saved at " + options.savedAtLabel;
+    return "Ready";
+  }
+
+  function updateLastSaved(form, savedAt) {
+    lastSavedNodes(form).forEach(function (node) {
+      if (!savedAt) {
+        node.textContent = node.getAttribute("data-gosx-studio-last-saved-empty") || "Not saved this session";
+        node.removeAttribute("datetime");
+        return;
+      }
+      var date = new Date(savedAt);
+      var label = timeLabel(date);
+      node.textContent = label ? "Last saved " + label : "Last saved";
+      if (node.tagName === "TIME") node.setAttribute("datetime", savedAt);
+    });
+  }
+
+  function updateDirtyCount(form, count) {
+    form.setAttribute("data-gosx-studio-dirty-count", String(count || 0));
+    dirtyCountNodes(form).forEach(function (node) {
+      node.hidden = !count;
+      node.textContent = count === 1 ? "1 change" : String(count || 0) + " changes";
+    });
+  }
+
+  function setState(form, state, reason, options) {
+    options = options || {};
     var dirty = state === "dirty" || state === "autosaving" || state === "error";
+    var count = options.dirtyCount || 0;
     form.setAttribute("data-gosx-studio-save-state", state);
     form.setAttribute("data-studio-dirty-state", dirty ? "dirty" : "clean");
     statusNodes(form).forEach(function (node) {
@@ -109,11 +180,17 @@
       node.setAttribute("data-gosx-studio-save-state-value", state);
       setStatusClass(node, state);
     });
+    detailNodes(form).forEach(function (node) {
+      node.textContent = saveDetail(state, options);
+    });
+    updateDirtyCount(form, count);
+    updateLastSaved(form, options.savedAt || form.getAttribute("data-gosx-studio-last-saved-at") || "");
     saveButtons(form).forEach(function (button) {
       button.classList.toggle("button--attention", state === "dirty" || state === "error");
       button.setAttribute("data-gosx-studio-save-button-state", state);
+      button.setAttribute("aria-busy", state === "saving" || state === "autosaving" ? "true" : "false");
     });
-    dispatchState(form, state, dirty, reason);
+    dispatchState(form, state, dirty, reason, options);
   }
 
   function autosaveEnabled(form) {
@@ -141,14 +218,30 @@
     var submitting = false;
     var autosaving = false;
     var autosaveTimer = 0;
+    var lastSavedAt = "";
 
     function isDirty() {
       return formSignature(form) !== saved;
     }
 
+    function stateOptions(extra) {
+      var current = formSignature(form);
+      var options = {
+        dirtyCount: dirtyCount(saved, current),
+        savedAt: lastSavedAt,
+        savedAtLabel: lastSavedAt ? timeLabel(new Date(lastSavedAt)) : ""
+      };
+      if (extra) {
+        Object.keys(extra).forEach(function (key) {
+          options[key] = extra[key];
+        });
+      }
+      return options;
+    }
+
     function update(reason) {
       if (submitting || autosaving) return;
-      setState(form, isDirty() ? "dirty" : "saved", reason);
+      setState(form, isDirty() ? "dirty" : "saved", reason, stateOptions());
     }
 
     var updateFrame = frameTask(function () {
@@ -167,7 +260,7 @@
       var target = autosaveURL(form);
       if (!target) return;
       autosaving = true;
-      setState(form, "autosaving", "autosave");
+      setState(form, "autosaving", "autosave", stateOptions());
       window.fetch(target, {
         method: autosaveMethod(form),
         body: new FormData(form),
@@ -178,16 +271,18 @@
       }).then(function (response) {
         if (!response.ok) throw new Error("Autosave failed");
         saved = signature;
+        lastSavedAt = new Date().toISOString();
+        form.setAttribute("data-gosx-studio-last-saved-at", lastSavedAt);
         autosaving = false;
         if (isDirty()) {
-          setState(form, "dirty", "autosave-stale");
+          setState(form, "dirty", "autosave-stale", stateOptions());
           scheduleAutosave();
           return;
         }
-        setState(form, "saved", "autosave");
+        setState(form, "saved", "autosave", stateOptions({ dirtyCount: 0 }));
       }, function () {
         autosaving = false;
-        setState(form, "error", "autosave");
+        setState(form, "error", "autosave", stateOptions());
       });
     }
 
@@ -216,7 +311,15 @@
     form.addEventListener("submit", function () {
       submitting = true;
       window.clearTimeout(autosaveTimer);
-      setState(form, "saving", "submit");
+      setState(form, "saving", "submit", stateOptions());
+    });
+
+    document.addEventListener("keydown", function (event) {
+      if (event.defaultPrevented || !document.contains(form)) return;
+      if (!(event.metaKey || event.ctrlKey) || event.key.toLowerCase() !== "s") return;
+      event.preventDefault();
+      if (form.requestSubmit) form.requestSubmit();
+      else form.submit();
     });
 
     document.addEventListener("click", function (event) {

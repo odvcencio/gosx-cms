@@ -25,7 +25,7 @@ func TestRenderStudioStateScriptIncludesAutosaveRuntime(t *testing.T) {
 	if !strings.Contains(html, `data-gosx-studio-state-runtime="true"`) || !strings.Contains(html, `data-gosx-studio-state`) {
 		t.Fatalf("expected embedded state runtime, got: %s", html)
 	}
-	for _, want := range []string{`gosxstudio:save-state`, `data-gosx-studio-autosave`, `X-GoSX-Studio-Autosave`, `data-gosx-studio-save-button`} {
+	for _, want := range []string{`gosxstudio:save-state`, `data-gosx-studio-autosave`, `X-GoSX-Studio-Autosave`, `data-gosx-studio-save-button`, `data-gosx-studio-last-saved`, `data-gosx-studio-dirty-count`, `requestSubmit`} {
 		if !strings.Contains(html, want) {
 			t.Fatalf("expected %q in studio state runtime, got: %s", want, html)
 		}
