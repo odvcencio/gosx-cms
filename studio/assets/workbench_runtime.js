@@ -125,8 +125,9 @@
   }
 
   function initWorkbench(form) {
-    if (!form || form.dataset.gosxStudioWorkbenchBound === "true") return;
+    if (!form || (form.dataset.gosxStudioWorkbenchBound === "true" && form.__gosxStudioWorkbenchRuntime)) return;
     form.dataset.gosxStudioWorkbenchBound = "true";
+    form.__gosxStudioWorkbenchRuntime = { version: 1 };
     var stage = form.querySelector("[data-studio-layout]");
     var saveLayout = frameTask(function () { writeLayout(form); });
     var refresh = frameTask(function () {
