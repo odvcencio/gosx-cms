@@ -215,6 +215,28 @@
       emit(canvas, "gosxstudio:canvas-select", { key: "", reason: reason || "clear" });
     }
 
+    function centerNode(node, reason) {
+      if (!node) return false;
+      var viewportRect = viewport.getBoundingClientRect();
+      var rect = nodeRect(node);
+      state.panX = Math.round(viewportRect.width / 2 - (rect.x + rect.width / 2) * state.zoom);
+      state.panY = Math.round(viewportRect.height / 2 - (rect.y + rect.height / 2) * state.zoom);
+      apply(reason || "center-node");
+      return true;
+    }
+
+    function selectAdjacent(delta, reason) {
+      var all = nodes();
+      if (!all.length) return false;
+      var current = selectedNode();
+      var index = current ? all.indexOf(current) : delta > 0 ? -1 : 0;
+      var next = all[(index + delta + all.length) % all.length];
+      select(next, reason || "command");
+      centerNode(next, "select-node");
+      emitAction(delta > 0 ? "select-next-node" : "select-previous-node", nodeDetail(next));
+      return true;
+    }
+
     function fit(reason) {
       var rect = viewport.getBoundingClientRect();
       var bounds = contentBounds();
@@ -276,17 +298,10 @@
       return detail;
     }
 
-    function keyboardNudge(event) {
-      var node = selectedNode();
-      if (!node) return false;
+    function nudgeNode(node, dx, dy, reason, action) {
+      if (!node || (!dx && !dy)) return false;
       var rect = nodeRect(node);
-      var step = number(canvas.getAttribute("data-gosx-studio-canvas-keyboard-nudge"), 8);
-      if (event.altKey) step = 1;
-      if (event.shiftKey) step *= 10;
-      var dx = event.key === "ArrowLeft" ? -step : event.key === "ArrowRight" ? step : 0;
-      var dy = event.key === "ArrowUp" ? -step : event.key === "ArrowDown" ? step : 0;
-      if (!dx && !dy) return false;
-      var detail = moveNode(node, rect.x + dx, rect.y + dy, "keyboard-nudge");
+      var detail = moveNode(node, rect.x + dx, rect.y + dy, reason || "nudge");
       detail.moved = true;
       detail.fromX = round(rect.x);
       detail.fromY = round(rect.y);
@@ -295,8 +310,58 @@
       syncPositionFields(detail, true);
       emit(canvas, "gosxstudio:canvas-node-moved", detail);
       emitEditorTransaction("move-node", detail);
-      emitAction("nudge-node", detail);
+      emitAction(action || "nudge-node", detail);
       return true;
+    }
+
+    function keyboardNudge(event) {
+      var node = selectedNode();
+      if (!node) return false;
+      var step = number(canvas.getAttribute("data-gosx-studio-canvas-keyboard-nudge"), 8);
+      if (event.altKey) step = 1;
+      if (event.shiftKey) step *= 10;
+      var dx = event.key === "ArrowLeft" ? -step : event.key === "ArrowRight" ? step : 0;
+      var dy = event.key === "ArrowUp" ? -step : event.key === "ArrowDown" ? step : 0;
+      return nudgeNode(node, dx, dy, "keyboard-nudge", "nudge-node");
+    }
+
+    function openSelected(reason) {
+      var node = selectedNode();
+      if (!node) return false;
+      var detail = nodeDetail(node);
+      detail.reason = reason || "command";
+      emit(canvas, "gosxstudio:canvas-open", detail);
+      emitAction("open-node", detail);
+      return true;
+    }
+
+    function handleCanvasCommand(detail) {
+      detail = detail || {};
+      if (detail.kind !== "canvas") return false;
+      var target = detail.target || detail.key || "";
+      var step = number(canvas.getAttribute("data-gosx-studio-canvas-keyboard-nudge"), 8);
+      if (target === "fit" || target === "reset") {
+        fit("command");
+        emitAction("fit", { reason: "command" });
+        return true;
+      }
+      if (target === "select-next") return selectAdjacent(1, "command");
+      if (target === "select-previous") return selectAdjacent(-1, "command");
+      if (target === "center-selected") {
+        if (!centerNode(selectedNode(), "command")) return false;
+        emitAction("center-node", { key: state.selected, reason: "command" });
+        return true;
+      }
+      if (target === "open-selected") return openSelected("command");
+      if (target === "clear-selection") {
+        clearSelection("command");
+        return true;
+      }
+      if (target === "nudge-left") return nudgeNode(selectedNode(), -step, 0, "command-nudge", "nudge-node");
+      if (target === "nudge-right") return nudgeNode(selectedNode(), step, 0, "command-nudge", "nudge-node");
+      if (target === "nudge-up") return nudgeNode(selectedNode(), 0, -step, "command-nudge", "nudge-node");
+      if (target === "nudge-down") return nudgeNode(selectedNode(), 0, step, "command-nudge", "nudge-node");
+      return false;
     }
 
     function emitAction(action, detail) {
@@ -459,6 +524,13 @@
       if (detail.form && detail.form.contains && !detail.form.contains(canvas)) return;
       setZoom(detail.zoom || detail.scale, detail.reason || "workbench");
     });
+    var ownerForm = canvas.closest && canvas.closest("form");
+    if (ownerForm) {
+      ownerForm.addEventListener("gosxstudio:command", function (event) {
+        if (event.defaultPrevented) return;
+        if (handleCanvasCommand(event.detail || {})) event.preventDefault();
+      });
+    }
     updateEdges();
     if (state.selected) {
       var selected = nodeByKey(state.selected);

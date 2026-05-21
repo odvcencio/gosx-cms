@@ -50,6 +50,16 @@ func StudioCommands(options StudioCommandOptions) []Command {
 		{Kind: CommandToggle, Key: "toggle-inspector", Label: "Toggle inspector rail", Summary: "Show or hide properties and style controls.", Group: "View", Target: "right", Shortcut: "I", Keywords: []string{"sidebar", "properties"}},
 		{Kind: CommandToggle, Key: "toggle-activity", Label: "Toggle activity rail", Summary: "Show readiness checks, proposals, and review activity.", Group: "View", Target: "activity", Shortcut: "A", Keywords: []string{"comments", "proposals"}},
 		{Kind: CommandToggle, Key: "toggle-focus", Label: "Focus canvas", Summary: "Give the live preview more room.", Group: "View", Target: "focus", Shortcut: "F", Keywords: []string{"preview", "canvas"}},
+		{Kind: CommandCanvas, Key: "canvas-fit", Label: "Fit website map", Summary: "Center every page, flow, content, style, and release node in the canvas.", Group: "Canvas", Target: "fit", Keywords: []string{"site map", "spatial", "center"}},
+		{Kind: CommandCanvas, Key: "canvas-select-next", Label: "Select next canvas node", Summary: "Move focus to the next website object on the canvas.", Group: "Canvas", Target: "select-next", Keywords: []string{"website map", "node", "next"}},
+		{Kind: CommandCanvas, Key: "canvas-select-previous", Label: "Select previous canvas node", Summary: "Move focus to the previous website object on the canvas.", Group: "Canvas", Target: "select-previous", Keywords: []string{"website map", "node", "previous"}},
+		{Kind: CommandCanvas, Key: "canvas-center-selected", Label: "Center selected canvas node", Summary: "Pan the canvas so the selected website object is centered.", Group: "Canvas", Target: "center-selected", Keywords: []string{"selection", "focus", "pan"}},
+		{Kind: CommandCanvas, Key: "canvas-open-selected", Label: "Open selected canvas node", Summary: "Dispatch the selected website object's open action.", Group: "Canvas", Target: "open-selected", Keywords: []string{"open", "route", "surface"}},
+		{Kind: CommandCanvas, Key: "canvas-clear-selection", Label: "Clear canvas selection", Summary: "Leave the current website object selection.", Group: "Canvas", Target: "clear-selection", Keywords: []string{"deselect", "clear"}},
+		{Kind: CommandCanvas, Key: "canvas-nudge-left", Label: "Nudge selected node left", Summary: "Move the selected canvas node left without leaving the browser.", Group: "Canvas", Target: "nudge-left", Keywords: []string{"move", "position", "keyboard"}},
+		{Kind: CommandCanvas, Key: "canvas-nudge-right", Label: "Nudge selected node right", Summary: "Move the selected canvas node right without leaving the browser.", Group: "Canvas", Target: "nudge-right", Keywords: []string{"move", "position", "keyboard"}},
+		{Kind: CommandCanvas, Key: "canvas-nudge-up", Label: "Nudge selected node up", Summary: "Move the selected canvas node up without leaving the browser.", Group: "Canvas", Target: "nudge-up", Keywords: []string{"move", "position", "keyboard"}},
+		{Kind: CommandCanvas, Key: "canvas-nudge-down", Label: "Nudge selected node down", Summary: "Move the selected canvas node down without leaving the browser.", Group: "Canvas", Target: "nudge-down", Keywords: []string{"move", "position", "keyboard"}},
 	}
 	for _, mode := range shell.Modes {
 		commands = append(commands, Command{

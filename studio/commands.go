@@ -12,6 +12,7 @@ const (
 	CommandMode            CommandKind = "mode"
 	CommandViewport        CommandKind = "viewport"
 	CommandZoom            CommandKind = "zoom"
+	CommandCanvas          CommandKind = "canvas"
 	CommandInsert          CommandKind = "insert"
 	CommandSelectionAction CommandKind = "selection-action"
 	CommandHistory         CommandKind = "history"
@@ -187,7 +188,7 @@ func normalizeCommands(commands []Command) []Command {
 
 func normalizeCommandKind(kind CommandKind) CommandKind {
 	switch kind {
-	case CommandMode, CommandViewport, CommandZoom, CommandInsert, CommandSelectionAction, CommandHistory, CommandToggle, CommandLink, CommandSubmit:
+	case CommandMode, CommandViewport, CommandZoom, CommandCanvas, CommandInsert, CommandSelectionAction, CommandHistory, CommandToggle, CommandLink, CommandSubmit:
 		return kind
 	default:
 		return CommandLink
@@ -216,6 +217,8 @@ func commandKindLabel(kind CommandKind) string {
 		return "Viewport"
 	case CommandZoom:
 		return "Zoom"
+	case CommandCanvas:
+		return "Canvas"
 	case CommandInsert:
 		return "Insert"
 	case CommandSelectionAction:

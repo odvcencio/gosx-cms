@@ -85,12 +85,12 @@ func TestStudioCommandsBuildsDefaultBlocksAndFlows(t *testing.T) {
 	for _, command := range commands {
 		byKey[command.Key] = command
 	}
-	for _, key := range []string{"save", "undo", "redo", "toggle-layers", "mode-structure", "viewport-desktop", "zoom-fit", "open-public", "selection-reveal", "insert-hero", "media", "open-flow-schedule-tour", "insert-flow-schedule-tour"} {
+	for _, key := range []string{"save", "undo", "redo", "toggle-layers", "mode-structure", "viewport-desktop", "zoom-fit", "canvas-fit", "canvas-open-selected", "canvas-nudge-left", "open-public", "selection-reveal", "insert-hero", "media", "open-flow-schedule-tour", "insert-flow-schedule-tour"} {
 		if byKey[key].Key == "" {
 			t.Fatalf("expected command %q in %#v", key, commands)
 		}
 	}
-	if byKey["save"].Label != "Save checkpoint" || byKey["open-public"].Label != "Open public site" || byKey["undo"].Kind != CommandHistory || byKey["redo"].Shortcut != "Ctrl Shift Z" || byKey["insert-hero"].Kind != CommandInsert || byKey["open-flow-schedule-tour"].Href == "" || byKey["insert-flow-schedule-tour"].Target != "tour-form" {
+	if byKey["save"].Label != "Save checkpoint" || byKey["open-public"].Label != "Open public site" || byKey["undo"].Kind != CommandHistory || byKey["redo"].Shortcut != "Ctrl Shift Z" || byKey["canvas-fit"].Kind != CommandCanvas || byKey["canvas-open-selected"].Target != "open-selected" || byKey["insert-hero"].Kind != CommandInsert || byKey["open-flow-schedule-tour"].Href == "" || byKey["insert-flow-schedule-tour"].Target != "tour-form" {
 		t.Fatalf("unexpected generated commands: %#v", byKey)
 	}
 }
