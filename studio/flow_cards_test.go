@@ -70,6 +70,15 @@ func TestFlowCardsFromStudioFlowsBuildsReusableEditorModels(t *testing.T) {
 	if _, ok := byKey["preview-flow-newsletter"]; ok {
 		t.Fatalf("expected preview commands only for routed flows: %#v", flowEditorCommands)
 	}
+	clientCommands := FlowEditorCommandsFromStudioFlows(flows[:1], FlowEditorCommandOptions{
+		EditGroup:      "Forms",
+		EditItemName:   "form",
+		EditSummary:    "Update visible form labels.",
+		PreviewSummary: "Preview the family form.",
+	})
+	if len(clientCommands) != 2 || clientCommands[0].Group != "Forms" || clientCommands[0].Label != "Edit Contact form" || clientCommands[0].Summary != "Update visible form labels." {
+		t.Fatalf("unexpected client-facing flow editor commands: %#v", clientCommands)
+	}
 	if ExecutableStudioFlowCount(flows) != 1 {
 		t.Fatalf("expected only fully routed, embedded, handler-backed flow to count")
 	}

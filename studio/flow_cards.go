@@ -18,6 +18,7 @@ type FlowCardBuildOptions struct {
 type FlowEditorCommandOptions struct {
 	EditHrefPrefix string
 	EditGroup      string
+	EditItemName   string
 	EditSummary    string
 	PreviewGroup   string
 	PreviewSummary string
@@ -91,6 +92,7 @@ func FlowEditorCommandsFromStudioFlows(flows []cmsflows.StudioFlow, options Flow
 	commands := make([]Command, 0, len(flows)*2)
 	editPrefix := firstNonEmpty(strings.TrimSpace(options.EditHrefPrefix), "#flow=")
 	editGroup := firstNonEmpty(strings.TrimSpace(options.EditGroup), "Flows")
+	editItemName := firstNonEmpty(strings.TrimSpace(options.EditItemName), "flow")
 	editSummary := firstNonEmpty(strings.TrimSpace(options.EditSummary), "Configure handler refs and flow step labels.")
 	previewGroup := firstNonEmpty(strings.TrimSpace(options.PreviewGroup), "Preview")
 	previewSummary := firstNonEmpty(strings.TrimSpace(options.PreviewSummary), "Open the public route that can host this flow.")
@@ -103,11 +105,11 @@ func FlowEditorCommandsFromStudioFlows(flows []cmsflows.StudioFlow, options Flow
 		commands = append(commands, Command{
 			Kind:     CommandLink,
 			Key:      "edit-flow-" + key,
-			Label:    "Edit " + label + " flow",
+			Label:    "Edit " + label + " " + editItemName,
 			Summary:  editSummary,
 			Group:    editGroup,
 			Href:     editPrefix + key,
-			Keywords: []string{"form", "request", "handler"},
+			Keywords: []string{editItemName, "form", "request"},
 		})
 		route := strings.TrimSpace(flow.Route)
 		if flow.HasRoute && route != "" {
