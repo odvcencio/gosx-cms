@@ -239,6 +239,94 @@
       return frame.getAttribute("data-studio-preview-src") || frame.getAttribute("src") || "";
     }
 
+    function frameDocument(frame) {
+      try {
+        return frame.contentDocument || (frame.contentWindow && frame.contentWindow.document) || null;
+      } catch (error) {
+        return null;
+      }
+    }
+
+    function previewPatchSelector(source) {
+      source = attrValue(source);
+      return [
+        '[data-studio-field="' + source + '"]',
+        '[data-editor-preview="' + source + '"]',
+        '[data-studio-field-source="' + source + '"]'
+      ].join(",");
+    }
+
+    function ensurePreviewPatchStyles(doc) {
+      if (!doc || doc.getElementById("gosx-studio-preview-patch-style")) return;
+      var style = doc.createElement("style");
+      style.id = "gosx-studio-preview-patch-style";
+      style.textContent = [
+        "[data-gosx-studio-preview-patched]{outline:2px solid currentColor;outline-offset:3px;transition:outline-offset 180ms ease,filter 180ms ease;}",
+        "[data-gosx-studio-preview-patched='fresh']{outline-offset:6px;filter:brightness(1.03);}"
+      ].join("");
+      (doc.head || doc.documentElement).appendChild(style);
+    }
+
+    function previewTargets(frame, patch) {
+      var doc = frameDocument(frame);
+      var field = patch && patch.field;
+      var source = field && (field.source || field.name);
+      if (!doc || !source) return [];
+      return queryAll(doc, previewPatchSelector(source));
+    }
+
+    function updatePreviewTarget(target, field) {
+      if (!target || !field) return;
+      var value = field.value == null ? "" : String(field.value);
+      var tag = String(target.tagName || "").toLowerCase();
+      var editable = target.getAttribute("data-studio-editable") || target.getAttribute("data-studio-field-editable") || "";
+      if (tag === "input" || tag === "textarea" || tag === "select") {
+        target.value = value;
+        if (field.type === "checkbox" || field.type === "radio") target.checked = !!field.checked;
+      } else if (tag === "img" || editable === "media" || editable === "image") {
+        if (value) target.setAttribute("src", value);
+      } else if (tag === "a" && (editable === "url" || field.name.toLowerCase().indexOf("url") >= 0)) {
+        target.setAttribute("href", value || "#");
+      } else {
+        target.textContent = value;
+      }
+      target.setAttribute("data-gosx-studio-preview-patched", "fresh");
+      window.setTimeout(function () {
+        if (target && target.setAttribute) target.setAttribute("data-gosx-studio-preview-patched", "true");
+      }, 220);
+    }
+
+    function applyPreviewPatch(frame, patch) {
+      var doc = frameDocument(frame);
+      if (!doc || !patch || !patch.field) return 0;
+      ensurePreviewPatchStyles(doc);
+      var targets = previewTargets(frame, patch);
+      targets.forEach(function (target) {
+        updatePreviewTarget(target, patch.field);
+      });
+      if (targets.length) {
+        frame.setAttribute("data-studio-preview-patched-count", String(targets.length));
+      }
+      return targets.length;
+    }
+
+    function syncPreviewFrame(frame, reason) {
+      if (!frameDocument(frame)) return 0;
+      var count = 0;
+      queryAll(form, "[data-studio-field-source], [data-editor-source]").forEach(function (field) {
+        var patch = {
+          type: "gosxstudio:preview-patch",
+          source: "gosx-studio",
+          reason: reason || "sync",
+          detail: {},
+          field: fieldPatch(field)
+        };
+        count += applyPreviewPatch(frame, patch);
+      });
+      if (count) emit(form, "gosxstudio:preview-sync", { count: count, reason: reason || "sync" });
+      return count;
+    }
+
     function setPreviewStatus(state, label, reason) {
       previewShells().forEach(function (shell) {
         shell.setAttribute("data-gosx-studio-preview-state", state);
@@ -311,6 +399,8 @@
       if (field.name === "csrf_token" || type === "button" || type === "submit" || type === "reset" || type === "file") return null;
       return {
         name: field.name,
+        source: field.getAttribute("data-studio-field-source") || field.getAttribute("data-editor-source") || field.name,
+        editable: field.getAttribute("data-studio-field-editable") || "",
         value: type === "checkbox" || type === "radio" ? (field.checked ? (field.value || "on") : "") : (field.value || ""),
         checked: !!field.checked,
         type: type,
@@ -330,6 +420,7 @@
       };
       frames.forEach(function (frame) {
         if (!frame.contentWindow || !frame.getAttribute("src")) return;
+        applyPreviewPatch(frame, patch);
         try {
           frame.contentWindow.postMessage(patch, new URL(frame.getAttribute("src"), window.location.href).origin);
         } catch (error) {
@@ -353,6 +444,7 @@
         }
         frame.addEventListener("load", function () {
           setPreviewStatus("ready", "Ready", "load");
+          syncPreviewFrame(frame, "load");
           postPreviewPatch("load-sync", { route: previewURL(frame) || frame.getAttribute("src") || "" }, null);
         });
         frame.addEventListener("error", function () {
