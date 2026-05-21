@@ -281,6 +281,8 @@
         "[data-gosx-studio-preview-patched]{outline:2px solid currentColor;outline-offset:3px;transition:outline-offset 180ms ease,filter 180ms ease;}",
         "[data-gosx-studio-preview-patched='fresh']{outline-offset:6px;filter:brightness(1.03);}",
         "[data-gosx-studio-preview-selectable='true'] [data-studio-field],[data-gosx-studio-preview-selectable='true'] [data-editor-preview],[data-gosx-studio-preview-selectable='true'] [data-studio-field-source],[data-gosx-studio-preview-selectable='true'] [data-studio-block-key],[data-gosx-studio-preview-selectable='true'] [data-studio-node-id]{cursor:pointer;}",
+        "[data-gosx-studio-preview-field-scope]{outline:1px dashed currentColor;outline-offset:3px;}",
+        "[data-gosx-studio-preview-field-current]{outline:3px solid currentColor;outline-offset:6px;filter:saturate(1.08);}",
         "[data-gosx-studio-preview-selected]{outline:3px solid currentColor;outline-offset:6px;filter:saturate(1.08);}",
         "[data-gosx-studio-inline-editing]{outline:3px solid currentColor;outline-offset:5px;caret-color:currentColor;}",
         "[data-gosx-studio-inline-editing]:focus{outline-offset:7px;}"
@@ -372,6 +374,17 @@
       return target.closest("[data-studio-field], [data-editor-preview], [data-studio-field-source], [data-studio-block-key], [data-studio-node-id]");
     }
 
+    function clearPreviewFieldMap(frame) {
+      var doc = frameDocument(frame);
+      if (!doc) return;
+      queryAll(doc, "[data-gosx-studio-preview-field-scope], [data-gosx-studio-preview-field-current]").forEach(function (target) {
+        target.removeAttribute("data-gosx-studio-preview-field-scope");
+        target.removeAttribute("data-gosx-studio-preview-field-current");
+        target.removeAttribute("data-gosx-studio-preview-field-position");
+        target.removeAttribute("data-gosx-studio-preview-field-total");
+      });
+    }
+
     function clearPreviewSelections() {
       previewFrames().forEach(function (frame) {
         finishInlineTextEdit(frame, true, "clear-selection");
@@ -379,6 +392,7 @@
       previewFrames().forEach(function (frame) {
         var doc = frameDocument(frame);
         if (!doc) return;
+        clearPreviewFieldMap(frame);
         queryAll(doc, "[data-gosx-studio-preview-selected]").forEach(function (target) {
           target.removeAttribute("data-gosx-studio-preview-selected");
         });
@@ -410,6 +424,7 @@
         "[data-gosx-studio-preview-dock][data-gosx-studio-preview-dock-placement='bottom']{transform:translate(-50%,0);}",
         "[data-gosx-studio-preview-dock-label]{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:700;}",
         "[data-gosx-studio-preview-dock-kind]{color:var(--gosx-studio-muted,currentColor);font-size:0.8125em;white-space:nowrap;}",
+        "[data-gosx-studio-preview-field-meter]{color:var(--gosx-studio-muted,currentColor);font-size:0.8125em;white-space:nowrap;}",
         "[data-gosx-studio-preview-dock-actions]{display:flex;align-items:center;gap:var(--gosx-studio-space-1,0.25rem);margin-left:auto;}",
         "[data-gosx-studio-preview-command]{appearance:none;border:1px solid var(--gosx-studio-border,currentColor);border-radius:var(--gosx-studio-radius-sm,0.375rem);background:var(--gosx-studio-surface,Canvas);color:inherit;font:inherit;font-size:0.8125em;line-height:1;padding:var(--gosx-studio-space-2,0.5rem);cursor:pointer;}",
         "[data-gosx-studio-preview-command]:hover,[data-gosx-studio-preview-command]:focus-visible{border-color:var(--gosx-studio-accent,Highlight);outline:2px solid var(--gosx-studio-accent,Highlight);outline-offset:2px;}",
@@ -445,6 +460,9 @@
       label.setAttribute("data-gosx-studio-preview-dock-label", "true");
       var kind = document.createElement("span");
       kind.setAttribute("data-gosx-studio-preview-dock-kind", "true");
+      var meter = document.createElement("span");
+      meter.hidden = true;
+      meter.setAttribute("data-gosx-studio-preview-field-meter", "true");
       var actions = document.createElement("div");
       actions.setAttribute("data-gosx-studio-preview-dock-actions", "true");
       actions.appendChild(createDockButton("content", "Content"));
@@ -455,6 +473,7 @@
       actions.appendChild(createDockButton("clear", "Clear"));
       dock.appendChild(label);
       dock.appendChild(kind);
+      dock.appendChild(meter);
       dock.appendChild(actions);
       shell.appendChild(dock);
       dock.addEventListener("click", function (event) {
@@ -561,12 +580,32 @@
       var state = previewFieldNavigationState(frame, target, detail);
       dock.setAttribute("data-gosx-studio-preview-field-count", String(state.count));
       dock.setAttribute("data-gosx-studio-preview-field-index", state.index >= 0 ? String(state.index + 1) : "");
+      var meter = dock.querySelector("[data-gosx-studio-preview-field-meter]");
+      if (meter) {
+        meter.hidden = state.count < 2 || state.index < 0;
+        meter.textContent = state.count > 1 && state.index >= 0 ? "Field " + (state.index + 1) + " of " + state.count : "";
+      }
       ["prev-field", "next-field"].forEach(function (action) {
         var button = dock.querySelector('[data-gosx-studio-preview-command="' + action + '"]');
         if (!button) return;
         button.hidden = state.count === 0;
         button.disabled = state.count < 2;
         button.setAttribute("aria-label", (action === "prev-field" ? "Previous" : "Next") + " editable field");
+      });
+      return state;
+    }
+
+    function syncPreviewFieldMap(frame, target, detail) {
+      clearPreviewFieldMap(frame);
+      var state = previewFieldNavigationState(frame, target, detail);
+      var current = detail && detail.field ? detail.field : fieldKeyForTarget(target);
+      state.fields.forEach(function (candidate, index) {
+        candidate.setAttribute("data-gosx-studio-preview-field-scope", "true");
+        candidate.setAttribute("data-gosx-studio-preview-field-position", String(index + 1));
+        candidate.setAttribute("data-gosx-studio-preview-field-total", String(state.count));
+        if (fieldKeyForTarget(candidate) === current) {
+          candidate.setAttribute("data-gosx-studio-preview-field-current", "true");
+        }
       });
       return state;
     }
@@ -589,6 +628,7 @@
         action.disabled = !detail.field && !detail.action && !detail.actionHref;
       }
       updatePreviewFieldNavigation(frame, dock, target, detail);
+      syncPreviewFieldMap(frame, target, detail);
       updatePreviewDockPosition(frame);
     }
 
