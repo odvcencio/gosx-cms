@@ -104,3 +104,34 @@ func TestRenderReusableWorkbenchPanels(t *testing.T) {
 		t.Fatalf("expected metric value helper to read flows")
 	}
 }
+
+func TestRenderWorkbenchSectionNavigation(t *testing.T) {
+	html := gosx.RenderHTML(gosx.Fragment(
+		RenderWorkbenchSectionNavigator([]WorkbenchSectionNavItem{
+			{Key: "map", Label: "Website map", Target: "website-map", Summary: "Pages and forms", Active: true},
+			{Key: "forms", Label: "Family forms", Target: "family-forms"},
+		}, WorkbenchSectionNavigatorOptions{Class: "workspace-nav", Title: "Move around"}),
+		RenderWorkbenchSection(WorkbenchSectionOptions{
+			Key:     "map",
+			ID:      "website-map",
+			Title:   "Website map",
+			Summary: "Pages and forms",
+			Children: []gosx.Node{
+				gosx.El("p", nil, gosx.Text("Canvas")),
+			},
+		}),
+	))
+	for _, check := range []string{
+		`data-studio-workbench-section-nav="true"`,
+		`class="is-active"`,
+		`href="#website-map"`,
+		`data-studio-workbench-section-link="map"`,
+		`id="website-map"`,
+		`data-studio-workbench-section="map"`,
+		`<h2>Website map</h2>`,
+	} {
+		if !strings.Contains(html, check) {
+			t.Fatalf("expected %q in workbench section navigation: %s", check, html)
+		}
+	}
+}

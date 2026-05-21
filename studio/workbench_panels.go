@@ -75,6 +75,37 @@ type WorkbenchPreviewPanelOptions struct {
 	StatusClass  string
 }
 
+type WorkbenchSectionNavItem struct {
+	Key     string
+	Label   string
+	Target  string
+	Href    string
+	Summary string
+	Class   string
+	Active  bool
+}
+
+type WorkbenchSectionNavigatorOptions struct {
+	Class        string
+	HeadingClass string
+	NavClass     string
+	Kicker       string
+	Title        string
+	Label        string
+	Mode         string
+}
+
+type WorkbenchSectionOptions struct {
+	Key          string
+	ID           string
+	Class        string
+	HeadingClass string
+	Kicker       string
+	Title        string
+	Summary      string
+	Children     []gosx.Node
+}
+
 type WorkbenchSummaryToolbarOptions struct {
 	Class                  string
 	ActionsClass           string
@@ -102,6 +133,97 @@ func RenderMetricCards(metrics []Metric, options MetricCardsOptions) gosx.Node {
 		))
 	}
 	return gosx.El("section", gosx.Attrs(gosx.Attr("class", firstNonEmpty(options.Class, "stat-grid"))), gosx.Fragment(cards...))
+}
+
+func RenderWorkbenchSectionNavigator(items []WorkbenchSectionNavItem, options WorkbenchSectionNavigatorOptions) gosx.Node {
+	links := make([]gosx.Node, 0, len(items))
+	for _, item := range normalizeWorkbenchSectionNavItems(items) {
+		className := strings.TrimSpace(item.Class)
+		if item.Active && !strings.Contains(" "+className+" ", " is-active ") {
+			className = strings.TrimSpace(className + " is-active")
+		}
+		attrs := []any{
+			gosx.Attr("href", firstNonEmpty(item.Href, "#"+item.Target)),
+			gosx.Attr("data-studio-workbench-section-link", item.Key),
+		}
+		if className != "" {
+			attrs = append(attrs, gosx.Attr("class", className))
+		}
+		children := []gosx.Node{gosx.El("span", nil, gosx.Text(item.Label))}
+		if item.Summary != "" {
+			children = append(children, gosx.El("small", nil, gosx.Text(item.Summary)))
+		}
+		links = append(links, gosx.El("a", gosx.Attrs(attrs...), gosx.Fragment(children...)))
+	}
+	return gosx.El("section", gosx.Attrs(
+		gosx.Attr("class", firstNonEmpty(options.Class, "studio-workbench-nav")),
+		gosx.Attr("data-studio-workbench-section-nav", "true"),
+		gosx.Attr("data-studio-mode-panel", firstNonEmpty(options.Mode, "workspace")),
+	),
+		RenderPanelHeading(PanelHeadingOptions{
+			Class:  options.HeadingClass,
+			Kicker: firstNonEmpty(options.Kicker, "Workspace"),
+			Title:  firstNonEmpty(options.Title, "Sections"),
+		}),
+		gosx.El("nav", gosx.Attrs(
+			gosx.Attr("class", firstNonEmpty(options.NavClass, "studio-workbench-nav__list")),
+			gosx.Attr("aria-label", firstNonEmpty(options.Label, "Workspace sections")),
+		), gosx.Fragment(links...)),
+	)
+}
+
+func RenderWorkbenchSection(options WorkbenchSectionOptions) gosx.Node {
+	key := normalizeKey(firstNonEmpty(options.Key, options.Title, options.ID))
+	id := strings.TrimSpace(options.ID)
+	if id == "" && key != "" {
+		id = "studio-section-" + key
+	}
+	children := make([]gosx.Node, 0, len(options.Children)+1)
+	if strings.TrimSpace(options.Title) != "" || strings.TrimSpace(options.Summary) != "" || strings.TrimSpace(options.Kicker) != "" {
+		headingChildren := []gosx.Node{}
+		if strings.TrimSpace(options.Kicker) != "" {
+			headingChildren = append(headingChildren, gosx.El("p", gosx.Attrs(gosx.Attr("class", "kicker")), gosx.Text(options.Kicker)))
+		}
+		if strings.TrimSpace(options.Title) != "" {
+			headingChildren = append(headingChildren, gosx.El("h2", nil, gosx.Text(options.Title)))
+		}
+		if strings.TrimSpace(options.Summary) != "" {
+			headingChildren = append(headingChildren, gosx.El("p", nil, gosx.Text(options.Summary)))
+		}
+		children = append(children, gosx.El("div", gosx.Attrs(gosx.Attr("class", firstNonEmpty(options.HeadingClass, "studio-workbench-section__head"))), gosx.Fragment(headingChildren...)))
+	}
+	children = append(children, options.Children...)
+	attrs := []any{
+		gosx.Attr("class", firstNonEmpty(options.Class, "studio-workbench-section")),
+		gosx.Attr("data-studio-workbench-section", key),
+	}
+	if id != "" {
+		attrs = append(attrs, gosx.Attr("id", id))
+	}
+	return gosx.El("section", gosx.Attrs(attrs...), gosx.Fragment(children...))
+}
+
+func normalizeWorkbenchSectionNavItems(items []WorkbenchSectionNavItem) []WorkbenchSectionNavItem {
+	out := make([]WorkbenchSectionNavItem, 0, len(items))
+	for _, item := range items {
+		item.Key = normalizeKey(firstNonEmpty(item.Key, item.Target, item.Label))
+		item.Label = strings.TrimSpace(item.Label)
+		item.Target = strings.Trim(strings.TrimSpace(item.Target), "#")
+		item.Href = strings.TrimSpace(item.Href)
+		item.Summary = strings.TrimSpace(item.Summary)
+		item.Class = strings.TrimSpace(item.Class)
+		if item.Label == "" || item.Key == "" {
+			continue
+		}
+		if item.Target == "" && strings.HasPrefix(item.Href, "#") {
+			item.Target = strings.TrimPrefix(item.Href, "#")
+		}
+		if item.Target == "" {
+			item.Target = "studio-section-" + item.Key
+		}
+		out = append(out, item)
+	}
+	return out
 }
 
 func RenderFlowStoragePanel(summary FlowStorageSummary, options FlowStoragePanelOptions) gosx.Node {
