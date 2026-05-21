@@ -17,6 +17,8 @@ type FlowEditorOptions struct {
 	FieldsTitle        string
 	FieldsLabel        string
 	EditorCardClass    string
+	HideHandlerRef     bool
+	HandlerRefLabel    string
 	PreviewButtonClass string
 	PreviewButtonLabel string
 	PublishAction      string
@@ -140,18 +142,23 @@ func renderFlowEditorFieldset(flow cmsflows.StudioFlow, selected bool, options F
 				gosx.BoolAttr("hidden"),
 			), gosx.Text("Saved")),
 		),
-		gosx.El("label", gosx.Attrs(
+	}
+	handlerAttrs := []any{
+		gosx.Attr("id", DOMID("studio-flow-handler", flow.Key)),
+		gosx.Attr("name", FlowHandlerRefInputName(flow.Key)),
+		gosx.Attr("value", flow.PrimaryAction.HandlerRef),
+		gosx.Attr("data-studio-initial-value", flow.PrimaryAction.HandlerRef),
+	}
+	if options.HideHandlerRef {
+		children = append(children, gosx.El("input", gosx.Attrs(append(handlerAttrs, gosx.Attr("type", "hidden"))...)))
+	} else {
+		children = append(children, gosx.El("label", gosx.Attrs(
 			gosx.Attr("class", "field"),
 			gosx.Attr("for", DOMID("studio-flow-handler", flow.Key)),
 		),
-			gosx.El("span", nil, gosx.Text("Handler ref")),
-			gosx.El("input", gosx.Attrs(
-				gosx.Attr("id", DOMID("studio-flow-handler", flow.Key)),
-				gosx.Attr("name", FlowHandlerRefInputName(flow.Key)),
-				gosx.Attr("value", flow.PrimaryAction.HandlerRef),
-				gosx.Attr("data-studio-initial-value", flow.PrimaryAction.HandlerRef),
-			)),
-		),
+			gosx.El("span", nil, gosx.Text(firstNonEmpty(options.HandlerRefLabel, "Handler ref"))),
+			gosx.El("input", gosx.Attrs(handlerAttrs...)),
+		))
 	}
 	for _, step := range flow.Steps {
 		children = append(children, gosx.El("label", gosx.Attrs(

@@ -57,3 +57,31 @@ func TestFlowEditorInputNameHelpersUseStablePrefixes(t *testing.T) {
 		t.Fatalf("unexpected step input name: %q", got)
 	}
 }
+
+func TestRenderFlowEditorCanHideHandlerRefForClientFacingSurfaces(t *testing.T) {
+	html := gosx.RenderHTML(RenderFlowEditor([]cmsflows.StudioFlow{
+		{
+			Key:         "contact",
+			Label:       "Contact",
+			Summary:     "1 step / 1 action / 3 fields",
+			StatusLabel: "Ready",
+			PrimaryAction: cmsflows.StudioAction{
+				HandlerRef: "contact.submit",
+			},
+		},
+	}, FlowEditorOptions{HideHandlerRef: true, LibraryTitle: "Family forms", FieldsTitle: "Form labels"}))
+	for _, check := range []string{
+		`<h2>Family forms</h2>`,
+		`<h2>Form labels</h2>`,
+		`type="hidden"`,
+		`name="flowContactHandlerRef"`,
+		`value="contact.submit" data-studio-initial-value="contact.submit"`,
+	} {
+		if !strings.Contains(html, check) {
+			t.Fatalf("expected %q in client-facing flow editor markup: %s", check, html)
+		}
+	}
+	if strings.Contains(html, "Handler ref") {
+		t.Fatalf("handler label should be hidden in client-facing flow editor: %s", html)
+	}
+}
