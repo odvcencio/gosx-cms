@@ -354,6 +354,7 @@
       var label = fieldNode ? (fieldNode.getAttribute("data-studio-field-label") || readableFieldName(field, editable)) : "";
       var action = fieldNode ? (fieldNode.getAttribute("data-studio-field-action") || "") : "";
       var actionHref = fieldNode ? (fieldNode.getAttribute("data-studio-field-action-href") || "") : "";
+      var actionFormAction = fieldNode ? (fieldNode.getAttribute("data-studio-field-action-formaction") || "") : "";
       var blockKey = blockNode ? (blockNode.getAttribute("data-studio-block-key") || "") : "";
       var nodeID = blockNode ? (blockNode.getAttribute("data-studio-node-id") || "") : "";
       var blockLabel = blockNode ? previewBlockLabel(blockNode, blockKey || nodeID || "") : "";
@@ -366,6 +367,7 @@
         blockLabel: blockLabel,
         action: action,
         actionHref: actionHref,
+        actionFormAction: actionFormAction,
         blockKey: blockKey,
         nodeID: nodeID
       };
@@ -499,6 +501,7 @@
         dock.removeAttribute("data-gosx-studio-preview-block");
         dock.removeAttribute("data-gosx-studio-preview-action-label");
         dock.removeAttribute("data-gosx-studio-preview-action-href");
+        dock.removeAttribute("data-gosx-studio-preview-action-formaction");
         dock.removeAttribute("data-gosx-studio-preview-block-label");
         dock.removeAttribute("data-gosx-studio-preview-field-count");
         dock.removeAttribute("data-gosx-studio-preview-field-index");
@@ -629,6 +632,7 @@
       dock.setAttribute("data-gosx-studio-preview-block-label", detail.blockLabel || "");
       dock.setAttribute("data-gosx-studio-preview-action-label", detail.action || "");
       dock.setAttribute("data-gosx-studio-preview-action-href", detail.actionHref || "");
+      dock.setAttribute("data-gosx-studio-preview-action-formaction", detail.actionFormAction || "");
       dock.querySelector("[data-gosx-studio-preview-dock-label]").textContent = detail.label || detail.field || detail.blockKey || "Preview selection";
       var breadcrumb = dock.querySelector("[data-gosx-studio-preview-breadcrumb]");
       if (breadcrumb) {
@@ -639,7 +643,7 @@
       var action = dock.querySelector('[data-gosx-studio-preview-command="field-action"]');
       if (action) {
         action.textContent = detail.action || (detail.editable === "text" ? "Edit text" : detail.editable === "media" || detail.editable === "image" ? "Media" : detail.editable === "flow" ? "Flow" : detail.editable === "source" ? "Source" : "Open");
-        action.disabled = !detail.field && !detail.action && !detail.actionHref;
+        action.disabled = !detail.field && !detail.action && !detail.actionHref && !detail.actionFormAction;
       }
       updatePreviewFieldNavigation(frame, dock, target, detail);
       syncPreviewFieldMap(frame, target, detail);
@@ -654,6 +658,7 @@
         label: compactText(dock.querySelector("[data-gosx-studio-preview-dock-label]") && dock.querySelector("[data-gosx-studio-preview-dock-label]").textContent),
         action: dock.getAttribute("data-gosx-studio-preview-action-label") || "",
         actionHref: dock.getAttribute("data-gosx-studio-preview-action-href") || "",
+        actionFormAction: dock.getAttribute("data-gosx-studio-preview-action-formaction") || "",
         editable: form.getAttribute("data-studio-field-editable") || ""
       };
     }
@@ -675,7 +680,8 @@
           label: detail.label || "",
           blockLabel: detail.blockLabel || "",
           actionLabel: detail.action || "",
-          actionHref: detail.actionHref || ""
+          actionHref: detail.actionHref || "",
+          actionFormAction: detail.actionFormAction || ""
         }
       });
       emit(form, "gosxstudio:preview-action", {
@@ -687,6 +693,7 @@
         blockKey: detail.blockKey || "",
         actionLabel: detail.action || "",
         actionHref: detail.actionHref || "",
+        actionFormAction: detail.actionFormAction || "",
         reason: "preview-dock"
       });
       emit(form, "gosxstudio:selection-action", {
@@ -695,6 +702,60 @@
         selection: form.getAttribute("data-studio-selection") || detail.blockKey || detail.field || "",
         kind: form.getAttribute("data-studio-selection-kind") || "preview"
       });
+    }
+
+    function isFormSubmitControl(node) {
+      if (!node) return false;
+      var tag = String(node.tagName || "").toLowerCase();
+      var type = String(node.getAttribute("type") || "submit").toLowerCase();
+      if (tag === "button") return type !== "button" && type !== "reset";
+      if (tag === "input") return type === "submit" || type === "image";
+      return false;
+    }
+
+    function fieldActionSubmitter(source, formAction) {
+      if (!source || !source.querySelector) return null;
+      var selector = "button[type='submit'], input[type='submit'], button[formaction], input[formaction], button[data-studio-field-action-formaction], input[data-studio-field-action-formaction]";
+      var submitters = queryAll(source, selector);
+      if (!formAction) return submitters[0] || null;
+      for (var i = 0; i < submitters.length; i += 1) {
+        var candidate = submitters[i];
+        if (!isFormSubmitControl(candidate)) continue;
+        if ((candidate.getAttribute("data-studio-field-action-formaction") || candidate.getAttribute("formaction") || "") === formAction) return candidate;
+      }
+      return submitters.filter(isFormSubmitControl)[0] || null;
+    }
+
+    function submitPreviewFieldAction(detail) {
+      detail = detail || {};
+      var source = inspectorSource(detail.field);
+      var submitter = fieldActionSubmitter(source, detail.actionFormAction || "");
+      var action = detail.actionFormAction || (submitter && (submitter.getAttribute("data-studio-field-action-formaction") || submitter.getAttribute("formaction"))) || "";
+      if (!action) return false;
+      var confirmMessage = (submitter && submitter.getAttribute("data-admin-confirm")) || (source && source.getAttribute("data-admin-confirm")) || "";
+      if (confirmMessage && !window.confirm(confirmMessage)) return false;
+      form.dataset.gosxStudioPendingAction = action;
+      form.dataset.gosxStudioPendingActionLabel = detail.action || detail.label || "Field action";
+      try {
+        if (submitter && form.requestSubmit) {
+          form.requestSubmit(submitter);
+        } else if (form.requestSubmit) {
+          var button = document.createElement("button");
+          button.type = "submit";
+          button.hidden = true;
+          button.setAttribute("formaction", action);
+          form.appendChild(button);
+          form.requestSubmit(button);
+          form.removeChild(button);
+        } else {
+          form.setAttribute("action", action);
+          form.submit();
+        }
+      } catch (error) {
+        if (submitter && submitter.click) submitter.click();
+        else return false;
+      }
+      return true;
     }
 
     function navigatePreviewField(frame, direction, reason) {
@@ -752,6 +813,9 @@
         form.removeAttribute("data-studio-selection-kind");
         form.removeAttribute("data-studio-field-selection");
         form.removeAttribute("data-studio-field-editable");
+        form.removeAttribute("data-studio-field-action-label");
+        form.removeAttribute("data-studio-field-action-href");
+        form.removeAttribute("data-studio-field-action-formaction");
         setReadout("[data-studio-selection-label]", "No selection");
         setReadout("[data-studio-selection-status]", "No selection");
         setReadout("[data-studio-field-selection-label]", "Block");
@@ -780,6 +844,10 @@
       }
       if (action === "field-action") {
         if (detail.editable === "text" && startInlineTextFromDetail(frame, detail, "preview-dock")) return true;
+        if (detail.actionFormAction && submitPreviewFieldAction(detail)) {
+          emitPreviewDockAction(action, detail);
+          return true;
+        }
         if (detail.actionHref) {
           window.location.href = detail.actionHref;
         } else {
@@ -848,6 +916,12 @@
       } else {
         form.removeAttribute("data-studio-field-action-href");
       }
+      var actionFormAction = detail.actionFormAction || (source && source.getAttribute("data-studio-field-action-formaction")) || "";
+      if (actionFormAction) {
+        form.setAttribute("data-studio-field-action-formaction", actionFormAction);
+      } else {
+        form.removeAttribute("data-studio-field-action-formaction");
+      }
       var selectionKey = detail.blockKey || detail.nodeID || detail.field || "";
       if (selectionKey) form.setAttribute("data-studio-selection", selectionKey);
       else form.removeAttribute("data-studio-selection");
@@ -866,6 +940,7 @@
         blockLabel: detail.blockLabel || "",
         action: actionLabel || "",
         actionHref: actionHref || "",
+        actionFormAction: actionFormAction || "",
         blockKey: detail.blockKey || "",
         nodeID: detail.nodeID || ""
       });
@@ -878,6 +953,7 @@
         blockLabel: detail.blockLabel || "",
         action: actionLabel || "",
         actionHref: actionHref || "",
+        actionFormAction: actionFormAction || "",
         blockKey: detail.blockKey || "",
         nodeID: detail.nodeID || "",
         reason: options.reason || "preview"
@@ -897,7 +973,8 @@
           label: detail.label || "",
           blockLabel: detail.blockLabel || "",
           action: actionLabel || "",
-          actionHref: actionHref || ""
+          actionHref: actionHref || "",
+          actionFormAction: actionFormAction || ""
         }
       });
       return true;
