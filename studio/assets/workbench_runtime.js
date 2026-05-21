@@ -449,6 +449,8 @@
       actions.setAttribute("data-gosx-studio-preview-dock-actions", "true");
       actions.appendChild(createDockButton("content", "Content"));
       actions.appendChild(createDockButton("style", "Style"));
+      actions.appendChild(createDockButton("prev-field", "Prev field"));
+      actions.appendChild(createDockButton("next-field", "Next field"));
       actions.appendChild(createDockButton("field-action", "Open"));
       actions.appendChild(createDockButton("clear", "Clear"));
       dock.appendChild(label);
@@ -471,6 +473,8 @@
         dock.removeAttribute("data-gosx-studio-preview-block");
         dock.removeAttribute("data-gosx-studio-preview-action-label");
         dock.removeAttribute("data-gosx-studio-preview-action-href");
+        dock.removeAttribute("data-gosx-studio-preview-field-count");
+        dock.removeAttribute("data-gosx-studio-preview-field-index");
       });
     }
 
@@ -507,6 +511,66 @@
       dock.style.left = Math.round(left) + "px";
     }
 
+    function fieldKeyForTarget(target) {
+      if (!target) return "";
+      return target.getAttribute("data-studio-field") || target.getAttribute("data-editor-preview") || target.getAttribute("data-studio-field-source") || "";
+    }
+
+    function fieldNavigationScope(frame, target, detail) {
+      var doc = frameDocument(frame);
+      if (!doc) return null;
+      if (target && target.closest) {
+        var targetBlock = target.closest("[data-studio-block-key], [data-studio-node-id]");
+        if (targetBlock) return targetBlock;
+      }
+      var blockKey = detail && (detail.blockKey || detail.nodeID);
+      if (blockKey) {
+        var selector = '[data-studio-block-key="' + attrValue(blockKey) + '"], [data-studio-node-id="' + attrValue(blockKey) + '"]';
+        return doc.querySelector(selector) || doc.body || doc.documentElement;
+      }
+      return doc.body || doc.documentElement;
+    }
+
+    function previewFieldNodesForSelection(frame, target, detail) {
+      var scope = fieldNavigationScope(frame, target, detail);
+      if (!scope) return [];
+      var seen = {};
+      return queryAll(scope, "[data-studio-field], [data-editor-preview], [data-studio-field-source]").filter(function (candidate) {
+        var key = fieldKeyForTarget(candidate);
+        if (!key || seen[key]) return false;
+        seen[key] = true;
+        return true;
+      });
+    }
+
+    function previewFieldNavigationState(frame, target, detail) {
+      var fields = previewFieldNodesForSelection(frame, target, detail);
+      var current = detail && detail.field ? detail.field : fieldKeyForTarget(target);
+      var index = -1;
+      fields.forEach(function (candidate, candidateIndex) {
+        if (index < 0 && fieldKeyForTarget(candidate) === current) index = candidateIndex;
+      });
+      return {
+        fields: fields,
+        count: fields.length,
+        index: index
+      };
+    }
+
+    function updatePreviewFieldNavigation(frame, dock, target, detail) {
+      var state = previewFieldNavigationState(frame, target, detail);
+      dock.setAttribute("data-gosx-studio-preview-field-count", String(state.count));
+      dock.setAttribute("data-gosx-studio-preview-field-index", state.index >= 0 ? String(state.index + 1) : "");
+      ["prev-field", "next-field"].forEach(function (action) {
+        var button = dock.querySelector('[data-gosx-studio-preview-command="' + action + '"]');
+        if (!button) return;
+        button.hidden = state.count === 0;
+        button.disabled = state.count < 2;
+        button.setAttribute("aria-label", (action === "prev-field" ? "Previous" : "Next") + " editable field");
+      });
+      return state;
+    }
+
     function syncPreviewDock(frame, target, detail) {
       var dock = previewDockForFrame(frame);
       if (!dock || !target) return;
@@ -524,6 +588,7 @@
         action.textContent = detail.action || (detail.editable === "text" ? "Edit text" : detail.editable === "media" || detail.editable === "image" ? "Media" : detail.editable === "flow" ? "Flow" : detail.editable === "source" ? "Source" : "Open");
         action.disabled = !detail.field && !detail.action && !detail.actionHref;
       }
+      updatePreviewFieldNavigation(frame, dock, target, detail);
       updatePreviewDockPosition(frame);
     }
 
@@ -575,6 +640,50 @@
       });
     }
 
+    function navigatePreviewField(frame, direction, reason) {
+      var dock = frame && frame.__gosxStudioPreviewDock;
+      var target = frame && frame.__gosxStudioPreviewDockTarget;
+      if (!dock || dock.hidden || !target) return false;
+      finishInlineTextEdit(frame, true, "field-navigation");
+      var detail = previewSelectionDetail(target);
+      var state = previewFieldNavigationState(frame, target, detail);
+      if (!state.count) return false;
+      var currentIndex = state.index >= 0 ? state.index : (direction > 0 ? -1 : 0);
+      var nextIndex = (currentIndex + direction + state.count) % state.count;
+      var nextTarget = state.fields[nextIndex];
+      var nextDetail = previewSelectionDetail(nextTarget);
+      if (!nextTarget || !nextDetail.field) return false;
+      if (!applyPreviewSelection(frame, nextTarget, nextDetail, { reveal: true, reason: reason || "field-navigation" })) return false;
+      emitEditorOperation("preview_field_navigate", {
+        mutation: false,
+        reason: reason || "field-navigation",
+        target: {
+          field: nextDetail.field || "",
+          editable: nextDetail.editable || "",
+          blockKey: nextDetail.blockKey || "",
+          selection: form.getAttribute("data-studio-selection") || nextDetail.field || "",
+          kind: form.getAttribute("data-studio-selection-kind") || "preview-field"
+        },
+        payload: {
+          direction: direction > 0 ? "next" : "previous",
+          fieldIndex: nextIndex + 1,
+          fieldCount: state.count,
+          label: nextDetail.label || ""
+        }
+      });
+      emit(form, "gosxstudio:preview-field-navigate", {
+        field: nextDetail.field || "",
+        editable: nextDetail.editable || "",
+        label: nextDetail.label || "",
+        blockKey: nextDetail.blockKey || "",
+        direction: direction > 0 ? "next" : "previous",
+        fieldIndex: nextIndex + 1,
+        fieldCount: state.count,
+        reason: reason || "field-navigation"
+      });
+      return true;
+    }
+
     function runPreviewDockAction(frame, action) {
       var dock = frame && frame.__gosxStudioPreviewDock;
       if (!dock || !action) return false;
@@ -603,6 +712,14 @@
         setMode("style", { scroll: true, reason: "preview-dock" });
         emitPreviewDockAction(action, detail);
         return true;
+      }
+      if (action === "prev-field" || action === "next-field") {
+        if (navigatePreviewField(frame, action === "next-field" ? 1 : -1, "preview-dock")) {
+          emitPreviewDockAction(action, previewDockDetail(dock));
+          return true;
+        }
+        emitPreviewDockAction(action, detail);
+        return false;
       }
       if (action === "field-action") {
         if (detail.editable === "text" && startInlineTextFromDetail(frame, detail, "preview-dock")) return true;
@@ -1139,9 +1256,16 @@
       doc.addEventListener("keydown", function (event) {
         if (frame.__gosxStudioInlineEdit) return;
         if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.altKey || event.shiftKey) return;
-        if (event.key !== "Enter" && event.key !== "F2") return;
         var focusedControl = event.target && event.target.closest ? event.target.closest("input, textarea, select, button, a[href], [contenteditable='true'], [contenteditable='plaintext-only']") : null;
         if (focusedControl) return;
+        if (event.key === "[" || event.key === "]") {
+          if (navigatePreviewField(frame, event.key === "]" ? 1 : -1, event.key === "]" ? "keyboard-next-field" : "keyboard-prev-field")) {
+            event.preventDefault();
+            event.stopPropagation();
+          }
+          return;
+        }
+        if (event.key !== "Enter" && event.key !== "F2") return;
         if (startInlineTextFromSelection(frame, event.key === "F2" ? "keyboard-f2" : "keyboard-enter")) {
           event.preventDefault();
           event.stopPropagation();
