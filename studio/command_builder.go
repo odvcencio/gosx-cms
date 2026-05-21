@@ -82,6 +82,7 @@ func StudioCommands(options StudioCommandOptions) []Command {
 			Target: zoom.Key,
 		})
 	}
+	commands = append(commands, ShellActionCommands(shell.Actions)...)
 	for _, action := range DefaultSelectionCommands() {
 		commands = append(commands, Command{
 			Kind:     CommandSelectionAction,
@@ -143,6 +144,46 @@ func StudioCommands(options StudioCommandOptions) []Command {
 		}
 	}
 	return normalizeCommands(commands)
+}
+
+func ShellActionCommands(actions []Action) []Command {
+	commands := make([]Command, 0, len(actions))
+	for _, action := range actions {
+		key := normalizeKey(action.Key)
+		label := strings.TrimSpace(action.Label)
+		href := strings.TrimSpace(action.Href)
+		if key == "" || key == "save" || label == "" || href == "" {
+			continue
+		}
+		commands = append(commands, Command{
+			Kind:     CommandLink,
+			Key:      "open-" + key,
+			Label:    shellActionCommandLabel(label),
+			Summary:  "Open " + strings.TrimSuffix(lowerFirst(label), ".") + ".",
+			Group:    "Open",
+			Href:     href,
+			Primary:  action.Primary,
+			Keywords: []string{key, label},
+		})
+	}
+	return normalizeCommands(commands)
+}
+
+func shellActionCommandLabel(label string) string {
+	label = strings.TrimSpace(label)
+	lower := strings.ToLower(label)
+	if strings.HasPrefix(lower, "open ") || strings.HasPrefix(lower, "preview ") || strings.HasPrefix(lower, "view ") {
+		return label
+	}
+	return "Open " + lowerFirst(label)
+}
+
+func lowerFirst(value string) string {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return ""
+	}
+	return strings.ToLower(value[:1]) + value[1:]
 }
 
 func firstKeywords(values, fallback []string) []string {

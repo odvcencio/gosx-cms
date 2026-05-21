@@ -63,6 +63,10 @@ func TestStudioCommandsBuildsDefaultBlocksAndFlows(t *testing.T) {
 			Modes:     []Mode{NewMode("structure", "Structure", true)},
 			Viewports: []Viewport{NewViewport("desktop", "Desktop", "100%", true)},
 			Canvas:    CanvasSurface{Zoom: "fit"},
+			Actions: []Action{
+				{Key: "public", Label: "Public site", Href: "/"},
+				{Key: "save", Label: "Save", Href: "/save"},
+			},
 		},
 		Blocks: []CommandBlock{{Key: "hero", Label: "Hero", Summary: "Homepage hero"}},
 		Flows: []CommandFlow{{
@@ -81,12 +85,30 @@ func TestStudioCommandsBuildsDefaultBlocksAndFlows(t *testing.T) {
 	for _, command := range commands {
 		byKey[command.Key] = command
 	}
-	for _, key := range []string{"save", "undo", "redo", "toggle-layers", "mode-structure", "viewport-desktop", "zoom-fit", "selection-reveal", "insert-hero", "media", "open-flow-schedule-tour", "insert-flow-schedule-tour"} {
+	for _, key := range []string{"save", "undo", "redo", "toggle-layers", "mode-structure", "viewport-desktop", "zoom-fit", "open-public", "selection-reveal", "insert-hero", "media", "open-flow-schedule-tour", "insert-flow-schedule-tour"} {
 		if byKey[key].Key == "" {
 			t.Fatalf("expected command %q in %#v", key, commands)
 		}
 	}
-	if byKey["save"].Label != "Save checkpoint" || byKey["undo"].Kind != CommandHistory || byKey["redo"].Shortcut != "Ctrl Shift Z" || byKey["insert-hero"].Kind != CommandInsert || byKey["open-flow-schedule-tour"].Href == "" || byKey["insert-flow-schedule-tour"].Target != "tour-form" {
+	if byKey["save"].Label != "Save checkpoint" || byKey["open-public"].Label != "Open public site" || byKey["undo"].Kind != CommandHistory || byKey["redo"].Shortcut != "Ctrl Shift Z" || byKey["insert-hero"].Kind != CommandInsert || byKey["open-flow-schedule-tour"].Href == "" || byKey["insert-flow-schedule-tour"].Target != "tour-form" {
 		t.Fatalf("unexpected generated commands: %#v", byKey)
+	}
+}
+
+func TestShellActionCommandsBuildLinks(t *testing.T) {
+	commands := ShellActionCommands([]Action{
+		{Key: "public", Label: "Public site", Href: "/"},
+		{Key: "preview", Label: "Preview storefront", Href: "/admin/storefront", Primary: true},
+		{Key: "save", Label: "Save", Href: "/save"},
+		{Key: "empty", Label: "Empty"},
+	})
+	if len(commands) != 2 {
+		t.Fatalf("expected only linkable non-save actions, got %#v", commands)
+	}
+	if commands[0].Key != "open-public" || commands[0].Label != "Open public site" || commands[0].Href != "/" {
+		t.Fatalf("unexpected public action command: %#v", commands[0])
+	}
+	if commands[1].Key != "open-preview" || commands[1].Label != "Preview storefront" || !commands[1].Primary {
+		t.Fatalf("unexpected preview action command: %#v", commands[1])
 	}
 }
