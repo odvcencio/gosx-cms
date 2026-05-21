@@ -588,6 +588,13 @@
       updateFrame();
       scheduleAutosave();
     });
+    form.addEventListener("gosxstudio:editor-operation", function (event) {
+      var detail = event.detail || {};
+      if (detail.mutation === false) return;
+      scheduleHistory(detail.kind || detail.reason || "operation");
+      updateFrame();
+      scheduleAutosave();
+    });
     form.addEventListener("click", function (event) {
       var undo = event.target && event.target.closest && event.target.closest("[data-gosx-studio-history-undo]");
       var redo = event.target && event.target.closest && event.target.closest("[data-gosx-studio-history-redo]");

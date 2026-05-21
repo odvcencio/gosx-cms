@@ -25,7 +25,7 @@ func TestRenderStudioStateScriptIncludesAutosaveRuntime(t *testing.T) {
 	if !strings.Contains(html, `data-gosx-studio-state-runtime="true"`) || !strings.Contains(html, `data-gosx-studio-state`) {
 		t.Fatalf("expected embedded state runtime, got: %s", html)
 	}
-	for _, want := range []string{`gosxstudio:save-state`, `gosxstudio:action-result`, `gosxstudio:history-state`, `gosxstudio:history-restore`, `gosxstudio:editor-transaction`, `data-gosx-studio-client`, `data-gosx-studio-autosave`, `X-GoSX-Studio-Autosave`, `X-GoSX-Studio-Client-Action`, `data-gosx-studio-save-button`, `data-gosx-studio-last-saved`, `data-gosx-studio-dirty-count`, `data-gosx-studio-history-undo`, `data-gosx-studio-history-redo`, `actionLabel`, `requestSubmit`, `restoreFormState`} {
+	for _, want := range []string{`gosxstudio:save-state`, `gosxstudio:action-result`, `gosxstudio:history-state`, `gosxstudio:history-restore`, `gosxstudio:editor-transaction`, `gosxstudio:editor-operation`, `data-gosx-studio-client`, `data-gosx-studio-autosave`, `X-GoSX-Studio-Autosave`, `X-GoSX-Studio-Client-Action`, `data-gosx-studio-save-button`, `data-gosx-studio-last-saved`, `data-gosx-studio-dirty-count`, `data-gosx-studio-history-undo`, `data-gosx-studio-history-redo`, `actionLabel`, `requestSubmit`, `restoreFormState`} {
 		if !strings.Contains(html, want) {
 			t.Fatalf("expected %q in studio state runtime, got: %s", want, html)
 		}
@@ -51,6 +51,15 @@ func TestRenderWorkbenchScriptIncludesClientWorkbenchRuntime(t *testing.T) {
 		`gosxstudio:preview-route`,
 		`gosxstudio:preview-sync`,
 		`gosxstudio:preview-select`,
+		`gosxstudio:preview-action`,
+		`gosxstudio:editor-operation`,
+		`select_preview`,
+		`preview_action`,
+		`set_field`,
+		`set_text`,
+		`gosxstudio:inline-text-start`,
+		`gosxstudio:inline-text`,
+		`gosxstudio:inline-text-commit`,
 		`data-studio-rail-toggle`,
 		`data-studio-resizer`,
 		`data-studio-preview-frame`,
@@ -58,11 +67,29 @@ func TestRenderWorkbenchScriptIncludesClientWorkbenchRuntime(t *testing.T) {
 		`data-gosx-studio-preview-selected`,
 		`data-gosx-studio-inspector-selected`,
 		`data-gosx-studio-preview-selectable`,
+		`data-gosx-studio-preview-dock`,
+		`data-gosx-studio-preview-command`,
+		`data-gosx-studio-inline-field`,
+		`data-gosx-studio-inline-editing`,
 		`data-studio-field-selection`,
 		`data-studio-field-source`,
 		`data-editor-preview`,
 		`applyPreviewPatch`,
 		`applyPreviewSelection`,
+		`emitEditorOperation`,
+		`emitFieldOperation`,
+		`startInlineTextEdit`,
+		`startInlineTextFromDetail`,
+		`startInlineTextFromSelection`,
+		`finishInlineTextEdit`,
+		`syncInlineTextEdit`,
+		`edit.finishing`,
+		`dblclick`,
+		`keyboard-f2`,
+		`keyboard-enter`,
+		`F2`,
+		`runPreviewDockAction`,
+		`updatePreviewDockPosition`,
 		`bindPreviewDocument`,
 		`syncPreviewFrame`,
 		`postMessage`,
