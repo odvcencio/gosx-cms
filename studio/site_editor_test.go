@@ -56,9 +56,13 @@ func TestRenderPreviewFrameExposesPreviewHooks(t *testing.T) {
 	}))
 	for _, want := range []string{
 		`data-gosx-studio-preview="true"`,
+		`data-gosx-studio-preview-url="/contact?flow=schedule-tour"`,
+		`data-gosx-studio-preview-state="ready"`,
 		`data-studio-preview-toolbar="true"`,
 		`data-studio-preview-frame="true"`,
+		`data-studio-preview-src="/contact?flow=schedule-tour"`,
 		`data-studio-preview-status="true"`,
+		`aria-live="polite"`,
 		`data-studio-selected-flow-label="true"`,
 		`data-studio-selected-flow-route="true"`,
 		`data-studio-open-preview="true"`,

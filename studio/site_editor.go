@@ -80,6 +80,7 @@ func RenderPreviewFrame(options PreviewFrameOptions) gosx.Node {
 		toolbarChildren = append(toolbarChildren, gosx.El("output", gosx.Attrs(
 			gosx.Attr("class", statusClass),
 			gosx.Attr("data-studio-preview-status", "true"),
+			gosx.Attr("aria-live", "polite"),
 		), gosx.Text(options.StatusLabel)))
 	}
 	toolbarChildren = append(toolbarChildren, options.Controls...)
@@ -91,6 +92,8 @@ func RenderPreviewFrame(options PreviewFrameOptions) gosx.Node {
 	return gosx.El("div", gosx.Attrs(
 		gosx.Attr("class", shellClass),
 		gosx.Attr("data-gosx-studio-preview", "true"),
+		gosx.Attr("data-gosx-studio-preview-url", url),
+		gosx.Attr("data-gosx-studio-preview-state", "ready"),
 	),
 		gosx.El("div", gosx.Attrs(
 			gosx.Attr("class", toolbarClass),
@@ -101,6 +104,7 @@ func RenderPreviewFrame(options PreviewFrameOptions) gosx.Node {
 			gosx.Attr("src", url),
 			gosx.Attr("title", iframeTitle),
 			gosx.Attr("data-studio-preview-frame", "true"),
+			gosx.Attr("data-studio-preview-src", url),
 		)),
 	)
 }

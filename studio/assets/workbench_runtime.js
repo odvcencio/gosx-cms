@@ -208,6 +208,7 @@
     form.__gosxStudioWorkbenchRuntime = { version: 1 };
     var stage = form.querySelector("[data-studio-layout]");
     var saveLayout = frameTask(function () { writeLayout(form); });
+    var previewRefreshTimer = 0;
     var refresh = frameTask(function () {
       emit(form, "gosxstudio:workbench-layout", {
         left: form.getAttribute("data-studio-left") || "open",
@@ -223,6 +224,140 @@
     function setReadout(selector, value) {
       queryAll(form, selector).forEach(function (node) {
         node.textContent = value;
+      });
+    }
+
+    function previewShells() {
+      return queryAll(form, "[data-gosx-studio-preview]");
+    }
+
+    function previewFrames() {
+      return queryAll(form, "[data-studio-preview-frame]");
+    }
+
+    function previewURL(frame) {
+      return frame.getAttribute("data-studio-preview-src") || frame.getAttribute("src") || "";
+    }
+
+    function setPreviewStatus(state, label, reason) {
+      previewShells().forEach(function (shell) {
+        shell.setAttribute("data-gosx-studio-preview-state", state);
+        shell.setAttribute("data-gosx-studio-preview-reason", reason || "");
+        queryAll(shell, "[data-studio-preview-status]").forEach(function (node) {
+          node.textContent = label;
+        });
+      });
+      previewFrames().forEach(function (frame) {
+        frame.setAttribute("data-studio-preview-state", state);
+      });
+    }
+
+    function cacheBustURL(url, reason) {
+      try {
+        var next = new URL(url || window.location.href, window.location.href);
+        next.searchParams.set("_gosx_preview", String(Date.now()));
+        if (reason) next.searchParams.set("_gosx_preview_reason", reason);
+        return next.pathname + next.search + next.hash;
+      } catch (error) {
+        return url || "";
+      }
+    }
+
+    function openLinks() {
+      return queryAll(form, "[data-studio-open-preview]");
+    }
+
+    function syncPreviewRoute(route, reason) {
+      route = route || "";
+      if (!route) return;
+      previewShells().forEach(function (shell) {
+        shell.setAttribute("data-gosx-studio-preview-url", route);
+      });
+      previewFrames().forEach(function (frame) {
+        frame.setAttribute("data-studio-preview-src", route);
+      });
+      openLinks().forEach(function (link) {
+        if (link.getAttribute("aria-disabled") === "true") return;
+        link.setAttribute("href", route);
+      });
+      queryAll(form, "[data-studio-selected-flow-route]").forEach(function (node) {
+        node.textContent = route;
+      });
+      emit(form, "gosxstudio:preview-route", { route: route, reason: reason || "" });
+    }
+
+    function refreshPreviewNow(reason, route) {
+      if (route) syncPreviewRoute(route, reason);
+      var frames = previewFrames();
+      if (!frames.length) return;
+      setPreviewStatus("loading", "Refreshing preview", reason || "refresh");
+      frames.forEach(function (frame) {
+        var base = route || previewURL(frame) || frame.getAttribute("src") || "/";
+        frame.setAttribute("src", cacheBustURL(base, reason || "refresh"));
+      });
+      emit(form, "gosxstudio:preview-refresh", { route: route || "", reason: reason || "refresh" });
+    }
+
+    function schedulePreviewRefresh(reason, route) {
+      window.clearTimeout(previewRefreshTimer);
+      previewRefreshTimer = window.setTimeout(function () {
+        refreshPreviewNow(reason, route);
+      }, 180);
+    }
+
+    function fieldPatch(field) {
+      if (!field || !field.name || field.disabled) return null;
+      var type = String(field.type || "").toLowerCase();
+      if (field.name === "csrf_token" || type === "button" || type === "submit" || type === "reset" || type === "file") return null;
+      return {
+        name: field.name,
+        value: type === "checkbox" || type === "radio" ? (field.checked ? (field.value || "on") : "") : (field.value || ""),
+        checked: !!field.checked,
+        type: type,
+        tag: String(field.tagName || "").toLowerCase()
+      };
+    }
+
+    function postPreviewPatch(reason, detail, field) {
+      var frames = previewFrames();
+      if (!frames.length) return;
+      var patch = {
+        type: "gosxstudio:preview-patch",
+        source: "gosx-studio",
+        reason: reason || "patch",
+        detail: detail || {},
+        field: fieldPatch(field)
+      };
+      frames.forEach(function (frame) {
+        if (!frame.contentWindow || !frame.getAttribute("src")) return;
+        try {
+          frame.contentWindow.postMessage(patch, new URL(frame.getAttribute("src"), window.location.href).origin);
+        } catch (error) {
+          try {
+            frame.contentWindow.postMessage(patch, window.location.origin);
+          } catch (ignored) {
+            return;
+          }
+        }
+      });
+      if (reason !== "load-sync") setPreviewStatus("dirty", "Live preview pending", reason || "patch");
+      emit(form, "gosxstudio:preview-patch", patch);
+    }
+
+    function bindPreviewFrames() {
+      previewFrames().forEach(function (frame) {
+        if (frame.dataset.gosxStudioPreviewBound === "true") return;
+        frame.dataset.gosxStudioPreviewBound = "true";
+        if (!frame.getAttribute("data-studio-preview-src")) {
+          frame.setAttribute("data-studio-preview-src", frame.getAttribute("src") || "");
+        }
+        frame.addEventListener("load", function () {
+          setPreviewStatus("ready", "Ready", "load");
+          postPreviewPatch("load-sync", { route: previewURL(frame) || frame.getAttribute("src") || "" }, null);
+        });
+        frame.addEventListener("error", function () {
+          setPreviewStatus("error", "Preview failed", "error");
+        });
       });
     }
 
@@ -602,6 +737,46 @@
       setReadout("[data-studio-selection-status]", detail.key ? (detail.kind || "Selected") : "No selection");
     });
 
+    form.addEventListener("input", function (event) {
+      if (!event.target || !form.contains(event.target)) return;
+      postPreviewPatch("input", {}, event.target);
+    });
+
+    form.addEventListener("change", function (event) {
+      if (!event.target || !form.contains(event.target)) return;
+      postPreviewPatch("change", {}, event.target);
+    });
+
+    form.addEventListener("gosxstudio:editor-transaction", function (event) {
+      postPreviewPatch("transaction", event.detail || {}, null);
+    });
+
+    form.addEventListener("gosxstudio:history-restore", function (event) {
+      postPreviewPatch("history-restore", event.detail || {}, null);
+    });
+
+    form.addEventListener("gosxstudio:save-state", function (event) {
+      var detail = event.detail || {};
+      if (detail.state === "dirty") setPreviewStatus("dirty", "Draft changed", detail.reason || "dirty");
+      else if (detail.state === "autosaving" || detail.state === "saving") setPreviewStatus("syncing", "Syncing preview", detail.reason || "saving");
+      else if (detail.state === "saved") schedulePreviewRefresh(detail.reason || "saved", "");
+      else if (detail.state === "error") setPreviewStatus("error", "Preview waiting on save", detail.reason || "error");
+    });
+
+    form.addEventListener("gosxstudio:action-result", function (event) {
+      var detail = event.detail || {};
+      if (detail.ok) schedulePreviewRefresh("action", "");
+      else setPreviewStatus("error", "Preview waiting on action", "action-error");
+    });
+
+    form.addEventListener("gosxstudio:flow-preview", function (event) {
+      var detail = event.detail || {};
+      if (detail.route) {
+        syncPreviewRoute(detail.route, "flow");
+        schedulePreviewRefresh("flow", detail.route);
+      }
+    });
+
     document.addEventListener("keydown", function (event) {
       if (!document.contains(form) || event.defaultPrevented) return;
       if ((event.metaKey || event.ctrlKey) && event.key === "\\") {
@@ -614,6 +789,7 @@
 
     restoreLayout(form);
     bindResizers();
+    bindPreviewFrames();
     updateResizerValue("left", currentRailWidth("left"));
     updateResizerValue("right", currentRailWidth("right"));
     setMode(form.getAttribute("data-studio-mode") || "", { reason: "init" });
