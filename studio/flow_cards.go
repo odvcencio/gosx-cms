@@ -15,6 +15,14 @@ type FlowCardBuildOptions struct {
 	OptionalLabel      string
 }
 
+type FlowEditorCommandOptions struct {
+	EditHrefPrefix string
+	EditGroup      string
+	EditSummary    string
+	PreviewGroup   string
+	PreviewSummary string
+}
+
 func FlowCardsFromStudioFlows(flows []cmsflows.StudioFlow, options FlowCardBuildOptions) []FlowCard {
 	cards := make([]FlowCard, 0, len(flows))
 	for _, flow := range flows {
@@ -77,6 +85,44 @@ func FlowFieldsFromStudioFields(fields []cmsflows.StudioField, options FlowCardB
 		})
 	}
 	return out
+}
+
+func FlowEditorCommandsFromStudioFlows(flows []cmsflows.StudioFlow, options FlowEditorCommandOptions) []Command {
+	commands := make([]Command, 0, len(flows)*2)
+	editPrefix := firstNonEmpty(strings.TrimSpace(options.EditHrefPrefix), "#flow=")
+	editGroup := firstNonEmpty(strings.TrimSpace(options.EditGroup), "Flows")
+	editSummary := firstNonEmpty(strings.TrimSpace(options.EditSummary), "Configure handler refs and flow step labels.")
+	previewGroup := firstNonEmpty(strings.TrimSpace(options.PreviewGroup), "Preview")
+	previewSummary := firstNonEmpty(strings.TrimSpace(options.PreviewSummary), "Open the public route that can host this flow.")
+	for _, flow := range flows {
+		key := normalizeKey(flow.Key)
+		label := strings.TrimSpace(flow.Label)
+		if key == "" || label == "" {
+			continue
+		}
+		commands = append(commands, Command{
+			Kind:     CommandLink,
+			Key:      "edit-flow-" + key,
+			Label:    "Edit " + label + " flow",
+			Summary:  editSummary,
+			Group:    editGroup,
+			Href:     editPrefix + key,
+			Keywords: []string{"form", "request", "handler"},
+		})
+		route := strings.TrimSpace(flow.Route)
+		if flow.HasRoute && route != "" {
+			commands = append(commands, Command{
+				Kind:     CommandLink,
+				Key:      "preview-flow-" + key,
+				Label:    "Preview " + label,
+				Summary:  previewSummary,
+				Group:    previewGroup,
+				Href:     route,
+				Keywords: []string{"form", "route", "family"},
+			})
+		}
+	}
+	return normalizeCommands(commands)
 }
 
 func CommandFlowsFromStudioFlows(flows []cmsflows.StudioFlow) []CommandFlow {

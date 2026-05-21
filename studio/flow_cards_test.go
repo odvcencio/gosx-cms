@@ -59,6 +59,17 @@ func TestFlowCardsFromStudioFlowsBuildsReusableEditorModels(t *testing.T) {
 	if len(commandFlows) != 2 || commandFlows[0].Route != "/contact" || commandFlows[0].EmbedTarget != "contact-form" {
 		t.Fatalf("unexpected command flows: %#v", commandFlows)
 	}
+	flowEditorCommands := FlowEditorCommandsFromStudioFlows(flows, FlowEditorCommandOptions{})
+	byKey := map[string]Command{}
+	for _, command := range flowEditorCommands {
+		byKey[command.Key] = command
+	}
+	if byKey["edit-flow-contact"].Href != "#flow=contact" || byKey["preview-flow-contact"].Href != "/contact" || byKey["edit-flow-newsletter"].Kind != CommandLink {
+		t.Fatalf("unexpected flow editor commands: %#v", flowEditorCommands)
+	}
+	if _, ok := byKey["preview-flow-newsletter"]; ok {
+		t.Fatalf("expected preview commands only for routed flows: %#v", flowEditorCommands)
+	}
 	if ExecutableStudioFlowCount(flows) != 1 {
 		t.Fatalf("expected only fully routed, embedded, handler-backed flow to count")
 	}
