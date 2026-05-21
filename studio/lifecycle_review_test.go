@@ -120,6 +120,34 @@ func TestLifecyclePublishScheduleChoosesNextFuturePublish(t *testing.T) {
 	}
 }
 
+func TestParseLifecyclePublishAt(t *testing.T) {
+	location := time.FixedZone("PDT", -7*60*60)
+	now := time.Date(2026, 5, 18, 12, 0, 0, 0, location)
+	parsed, err := ParseLifecyclePublishAt("2026-05-18T13:30", LifecyclePublishAtOptions{Now: now, Location: location})
+	if err != nil {
+		t.Fatalf("parse datetime-local publish at: %v", err)
+	}
+	if want := time.Date(2026, 5, 18, 20, 30, 0, 0, time.UTC); !parsed.Equal(want) {
+		t.Fatalf("unexpected parsed publish time %s want %s", parsed, want)
+	}
+	parsed, err = ParseLifecyclePublishAt("2026-05-18T20:45:00Z", LifecyclePublishAtOptions{Now: now, Location: location})
+	if err != nil {
+		t.Fatalf("parse RFC3339 publish at: %v", err)
+	}
+	if want := time.Date(2026, 5, 18, 20, 45, 0, 0, time.UTC); !parsed.Equal(want) {
+		t.Fatalf("unexpected RFC3339 publish time %s want %s", parsed, want)
+	}
+	if _, err := ParseLifecyclePublishAt("", LifecyclePublishAtOptions{Now: now, Location: location}); err == nil || err.Error() != "choose a publish time" {
+		t.Fatalf("expected empty publish time error, got %v", err)
+	}
+	if _, err := ParseLifecyclePublishAt("not-a-date", LifecyclePublishAtOptions{Now: now, Location: location}); err == nil || err.Error() != "use YYYY-MM-DD HH:MM" {
+		t.Fatalf("expected invalid publish time error, got %v", err)
+	}
+	if _, err := ParseLifecyclePublishAt("2026-05-18T11:58", LifecyclePublishAtOptions{Now: now, Location: location, PastGrace: time.Minute}); err == nil || err.Error() != "choose a future publish time" {
+		t.Fatalf("expected past publish time error, got %v", err)
+	}
+}
+
 func TestLifecycleStateDefaults(t *testing.T) {
 	if LifecycleDraftStateFromRevisions(0) != lifecycle.DraftStateDraft {
 		t.Fatalf("expected draft state with no revisions")

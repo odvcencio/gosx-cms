@@ -2,6 +2,7 @@ package studio
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"time"
 
@@ -40,6 +41,12 @@ type LifecycleScheduleOptions struct {
 	ManualSummary string
 	ManualDetail  string
 	Location      *time.Location
+}
+
+type LifecyclePublishAtOptions struct {
+	Location  *time.Location
+	Now       time.Time
+	PastGrace time.Duration
 }
 
 func LoadLifecycleReviewState(ctx context.Context, store lifecycle.LedgerStore, query LifecycleReviewQuery) (LifecycleReviewState, error) {
@@ -188,6 +195,34 @@ func LifecycleScheduleHelp(state LifecycleReviewState, location *time.Location) 
 		return "Set a future publish time before using Schedule."
 	}
 	return "Pending publish: " + LifecycleTimeLabel(schedule.DueAt, location) + "."
+}
+
+func ParseLifecyclePublishAt(value string, options LifecyclePublishAtOptions) (time.Time, error) {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return time.Time{}, fmt.Errorf("choose a publish time")
+	}
+	location := options.Location
+	if location == nil {
+		location = time.Local
+	}
+	now := options.Now
+	if now.IsZero() {
+		now = time.Now()
+	}
+	pastGrace := options.PastGrace
+	if pastGrace == 0 {
+		pastGrace = time.Minute
+	}
+	for _, layout := range []string{"2006-01-02T15:04", time.RFC3339, time.RFC3339Nano} {
+		if parsed, err := time.ParseInLocation(layout, value, location); err == nil {
+			if parsed.Before(now.Add(-pastGrace)) {
+				return time.Time{}, fmt.Errorf("choose a future publish time")
+			}
+			return parsed.UTC(), nil
+		}
+	}
+	return time.Time{}, fmt.Errorf("use YYYY-MM-DD HH:MM")
 }
 
 func LifecycleTimeLabel(value time.Time, location *time.Location) string {
