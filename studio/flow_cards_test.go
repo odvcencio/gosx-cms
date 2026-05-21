@@ -1,0 +1,65 @@
+package studio
+
+import (
+	"testing"
+
+	cmsflows "github.com/odvcencio/gosx-cms/flows"
+)
+
+func TestFlowCardsFromStudioFlowsBuildsReusableEditorModels(t *testing.T) {
+	flows := []cmsflows.StudioFlow{
+		{
+			Key:                "contact",
+			Label:              "Contact",
+			Description:        "Public contact form.",
+			Summary:            "1 step / 1 action / 1 field",
+			Status:             "ready",
+			StatusLabel:        "Ready",
+			Route:              "/contact",
+			HasRoute:           true,
+			EmbedTarget:        "contact-form",
+			HasEmbedTarget:     true,
+			RequiredFieldCount: 1,
+			CanExecute:         true,
+			Steps:              []cmsflows.StudioStep{{Key: "message", Label: "Message", BlockCount: 1, HasBlocks: true}},
+			Actions:            []cmsflows.StudioAction{{Key: "submit", Label: "Submit", HandlerRef: "contact.submit", Fields: []cmsflows.StudioField{{Name: "email", Label: "Email", Required: true}}}},
+			PrimaryAction:      cmsflows.StudioAction{Key: "submit", Label: "Submit", HandlerRef: "contact.submit"},
+			HasPrimaryAction:   true,
+		},
+		{
+			Key:         "newsletter",
+			Label:       "Newsletter",
+			Status:      "watch",
+			StatusLabel: "Registered",
+			CanExecute:  true,
+			Actions:     []cmsflows.StudioAction{{Key: "submit", Label: "Submit", Fields: []cmsflows.StudioField{{Name: "email", Label: "Email"}}}},
+		},
+	}
+	cards := FlowCardsFromStudioFlows(flows, FlowCardBuildOptions{})
+	if len(cards) != 2 {
+		t.Fatalf("expected two cards, got %#v", cards)
+	}
+	contact := cards[0]
+	if contact.StatusClass != "status status--ready" || contact.CardClass != "studio-flow-card studio-flow-card--ready" {
+		t.Fatalf("unexpected contact classes: %#v", contact)
+	}
+	if contact.PrimaryHandlerRef != "contact.submit" || !contact.CanExecute || !contact.HasRoute || !contact.HasEmbedTarget {
+		t.Fatalf("expected executable contact card: %#v", contact)
+	}
+	if len(contact.Steps) != 1 || contact.Steps[0].Key != "message" || !contact.Steps[0].HasBlocks {
+		t.Fatalf("expected step metadata: %#v", contact.Steps)
+	}
+	if len(contact.Actions) != 1 || len(contact.Actions[0].Fields) != 1 || contact.Actions[0].Fields[0].RequiredLabel != "Required" {
+		t.Fatalf("expected field metadata: %#v", contact.Actions)
+	}
+	if cards[1].StatusClass != "status status--request" || cards[1].Actions[0].Fields[0].RequiredLabel != "Optional" {
+		t.Fatalf("unexpected watch flow card defaults: %#v", cards[1])
+	}
+	commandFlows := CommandFlowsFromStudioFlows(flows)
+	if len(commandFlows) != 2 || commandFlows[0].Route != "/contact" || commandFlows[0].EmbedTarget != "contact-form" {
+		t.Fatalf("unexpected command flows: %#v", commandFlows)
+	}
+	if ExecutableStudioFlowCount(flows) != 1 {
+		t.Fatalf("expected only fully routed, embedded, handler-backed flow to count")
+	}
+}
