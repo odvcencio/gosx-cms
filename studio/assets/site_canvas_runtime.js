@@ -32,6 +32,11 @@
     canvas.dispatchEvent(new CustomEvent(name, { bubbles: true, detail: detail || {} }));
   }
 
+  function selectorValue(value) {
+    if (window.CSS && CSS.escape) return CSS.escape(String(value || ""));
+    return String(value || "").replace(/\\/g, "\\\\").replace(/"/g, "\\\"");
+  }
+
   function initCanvas(canvas) {
     if (!canvas || canvas.dataset.gosxStudioSiteCanvasBound === "true") return;
     canvas.dataset.gosxStudioSiteCanvasBound = "true";
@@ -64,12 +69,42 @@
 
     function nodeByKey(key) {
       if (!key) return null;
-      if (window.CSS && CSS.escape) {
-        return canvas.querySelector("[data-gosx-studio-canvas-node=\"" + CSS.escape(key) + "\"]");
-      }
+      if (window.CSS && CSS.escape) return canvas.querySelector("[data-gosx-studio-canvas-node=\"" + CSS.escape(key) + "\"]");
       return nodes().filter(function (node) {
         return node.getAttribute("data-gosx-studio-canvas-node") === key;
       })[0] || null;
+    }
+
+    function positionFields(key, axis) {
+      return Array.prototype.slice.call(canvas.querySelectorAll(
+        "[data-gosx-studio-canvas-node-position-key=\"" + selectorValue(key) + "\"][data-gosx-studio-canvas-node-position-axis=\"" + selectorValue(axis) + "\"]"
+      ));
+    }
+
+    function notifyField(field) {
+      field.dispatchEvent(new Event("input", { bubbles: true }));
+      field.dispatchEvent(new Event("change", { bubbles: true }));
+    }
+
+    function syncPositionFields(detail, notify) {
+      if (!detail || !detail.key) return;
+      [["x", detail.x], ["y", detail.y]].forEach(function (entry) {
+        positionFields(detail.key, entry[0]).forEach(function (field) {
+          var value = String(round(entry[1]));
+          if (field.value !== value) field.value = value;
+          field.setAttribute("value", value);
+          if (notify) notifyField(field);
+        });
+      });
+    }
+
+    function emitEditorTransaction(kind, detail) {
+      var payload = {};
+      Object.keys(detail || {}).forEach(function (key) {
+        payload[key] = detail[key];
+      });
+      payload.kind = kind;
+      emit(canvas, "gosxstudio:editor-transaction", payload);
     }
 
     function contentBounds() {
@@ -215,6 +250,7 @@
       updateEdges();
       var detail = nodeDetail(node);
       detail.reason = reason || "move";
+      syncPositionFields(detail, false);
       emit(canvas, "gosxstudio:canvas-node-move", detail);
       if (state.selected === detail.key) syncSelection(detail);
       return detail;
@@ -282,9 +318,15 @@
         var detail = nodeDetail(nodeDrag.node);
         detail.reason = "drag-end";
         detail.moved = nodeDrag.moved;
+        detail.fromX = round(nodeDrag.nodeX);
+        detail.fromY = round(nodeDrag.nodeY);
+        detail.toX = detail.x;
+        detail.toY = detail.y;
         nodeDrag.node.removeAttribute("data-gosx-studio-canvas-node-dragging");
+        syncPositionFields(detail, nodeDrag.moved);
         nodeDrag = null;
         emit(canvas, "gosxstudio:canvas-node-moved", detail);
+        if (detail.moved) emitEditorTransaction("move-node", detail);
         emitAction("move-node", detail);
       }
       if (panDrag) panDrag = null;
@@ -354,6 +396,19 @@
       } else if (event.key === "Escape") {
         clearSelection("clear");
       }
+    });
+    canvas.addEventListener("input", function (event) {
+      var field = event.target && event.target.closest && event.target.closest("[data-gosx-studio-canvas-node-position]");
+      if (!field || !canvas.contains(field)) return;
+      var key = field.getAttribute("data-gosx-studio-canvas-node-position-key") || "";
+      var node = nodeByKey(key);
+      if (!node) return;
+      var rect = nodeRect(node);
+      var xFields = positionFields(key, "x");
+      var yFields = positionFields(key, "y");
+      var x = xFields.length ? number(xFields[0].value, rect.x) : rect.x;
+      var y = yFields.length ? number(yFields[0].value, rect.y) : rect.y;
+      moveNode(node, x, y, "field");
     });
     document.addEventListener("gosxstudio:workbench-zoom", function (event) {
       var detail = event.detail || {};

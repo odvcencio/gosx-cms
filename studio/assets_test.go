@@ -25,7 +25,7 @@ func TestRenderStudioStateScriptIncludesAutosaveRuntime(t *testing.T) {
 	if !strings.Contains(html, `data-gosx-studio-state-runtime="true"`) || !strings.Contains(html, `data-gosx-studio-state`) {
 		t.Fatalf("expected embedded state runtime, got: %s", html)
 	}
-	for _, want := range []string{`gosxstudio:save-state`, `gosxstudio:action-result`, `gosxstudio:history-state`, `gosxstudio:history-restore`, `data-gosx-studio-client`, `data-gosx-studio-autosave`, `X-GoSX-Studio-Autosave`, `X-GoSX-Studio-Client-Action`, `data-gosx-studio-save-button`, `data-gosx-studio-last-saved`, `data-gosx-studio-dirty-count`, `data-gosx-studio-history-undo`, `data-gosx-studio-history-redo`, `actionLabel`, `requestSubmit`, `restoreFormState`} {
+	for _, want := range []string{`gosxstudio:save-state`, `gosxstudio:action-result`, `gosxstudio:history-state`, `gosxstudio:history-restore`, `gosxstudio:editor-transaction`, `data-gosx-studio-client`, `data-gosx-studio-autosave`, `X-GoSX-Studio-Autosave`, `X-GoSX-Studio-Client-Action`, `data-gosx-studio-save-button`, `data-gosx-studio-last-saved`, `data-gosx-studio-dirty-count`, `data-gosx-studio-history-undo`, `data-gosx-studio-history-redo`, `actionLabel`, `requestSubmit`, `restoreFormState`} {
 		if !strings.Contains(html, want) {
 			t.Fatalf("expected %q in studio state runtime, got: %s", want, html)
 		}
@@ -98,11 +98,14 @@ func TestRenderSiteCanvasScriptIncludesRuntime(t *testing.T) {
 		`gosxstudio:canvas-node-move`,
 		`gosxstudio:canvas-node-moved`,
 		`gosxstudio:canvas-action`,
+		`gosxstudio:editor-transaction`,
 		`data-gosx-studio-canvas-selection-detail`,
 		`data-gosx-studio-canvas-node-dragging`,
+		`data-gosx-studio-canvas-node-position`,
 		`data-gosx-studio-canvas-fit-padding`,
 		`open-node`,
 		`move-node`,
+		`syncPositionFields`,
 		`data-gosx-studio-canvas-node`,
 		`gosxstudio:workbench-zoom`,
 	} {

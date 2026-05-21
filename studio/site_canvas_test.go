@@ -46,3 +46,62 @@ func TestRenderSiteCanvasMapsWebsiteObjects(t *testing.T) {
 		}
 	}
 }
+
+func TestRenderSiteCanvasCanPersistNodePositions(t *testing.T) {
+	html := gosx.RenderHTML(RenderSiteCanvas(SiteCanvasOptions{
+		PositionInputPrefix:  "pajaritosCanvas",
+		PersistNodePositions: true,
+		Nodes: []SiteCanvasNode{
+			{Key: "home", Kind: "page", Label: "Home", X: 80, Y: 120},
+			{Key: "flow-schedule-tour", Kind: "flow", Label: "Schedule tour", X: 400, Y: 160},
+		},
+	}))
+
+	for _, want := range []string{
+		`name="pajaritosCanvasHomeX" value="80"`,
+		`name="pajaritosCanvasHomeY" value="120"`,
+		`name="pajaritosCanvasFlowScheduleTourX" value="400"`,
+		`data-gosx-studio-canvas-node-position="true"`,
+		`data-gosx-studio-canvas-node-position-key="flow-schedule-tour"`,
+		`data-gosx-studio-canvas-node-position-axis="y"`,
+	} {
+		if !strings.Contains(html, want) {
+			t.Fatalf("expected %q in persisted site canvas markup: %s", want, html)
+		}
+	}
+}
+
+func TestSiteCanvasPositionsFromForm(t *testing.T) {
+	nodes := []SiteCanvasNode{
+		{Key: "home", Label: "Home", X: 80, Y: 120},
+		{Key: "flow-schedule-tour", Label: "Schedule tour", X: 400, Y: 160},
+	}
+	positions, err := SiteCanvasPositionsFromForm(map[string]string{
+		SiteCanvasPositionInputName("pajaritosCanvas", "home", "x"):               "144.5",
+		SiteCanvasPositionInputName("pajaritosCanvas", "home", "y"):               "180",
+		SiteCanvasPositionInputName("pajaritosCanvas", "flow-schedule-tour", "x"): "520",
+	}, nodes, SiteCanvasPositionFormOptions{NamePrefix: "pajaritosCanvas"})
+	if err != nil {
+		t.Fatalf("positions from form: %v", err)
+	}
+	if positions["home"].X != 144.5 || positions["home"].Y != 180 {
+		t.Fatalf("unexpected home position: %#v", positions["home"])
+	}
+	if positions["flow-schedule-tour"].X != 520 || positions["flow-schedule-tour"].Y != 160 {
+		t.Fatalf("unexpected partial flow position: %#v", positions["flow-schedule-tour"])
+	}
+
+	applied := ApplySiteCanvasPositions(nodes, positions)
+	if applied[0].X != 144.5 || applied[1].X != 520 {
+		t.Fatalf("expected positions applied to nodes: %#v", applied)
+	}
+}
+
+func TestSiteCanvasPositionsFromFormRejectsInvalidNumbers(t *testing.T) {
+	_, err := SiteCanvasPositionsFromForm(map[string]string{
+		SiteCanvasPositionInputName("", "home", "x"): "nope",
+	}, []SiteCanvasNode{{Key: "home", Label: "Home"}}, SiteCanvasPositionFormOptions{})
+	if err == nil {
+		t.Fatal("expected invalid position error")
+	}
+}

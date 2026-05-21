@@ -3,25 +3,28 @@ package studio
 import (
 	"fmt"
 	"math"
+	"strconv"
 	"strings"
 
 	"github.com/odvcencio/gosx"
 )
 
 type SiteCanvasNode struct {
-	Key      string
-	Kind     string
-	Label    string
-	Summary  string
-	Status   string
-	Href     string
-	X        float64
-	Y        float64
-	Width    float64
-	Height   float64
-	Selected bool
-	Metrics  []Metric
-	Tags     []string
+	Key        string
+	Kind       string
+	Label      string
+	Summary    string
+	Status     string
+	Href       string
+	X          float64
+	Y          float64
+	Width      float64
+	Height     float64
+	Selected   bool
+	XInputName string
+	YInputName string
+	Metrics    []Metric
+	Tags       []string
 }
 
 type SiteCanvasEdge struct {
@@ -33,28 +36,31 @@ type SiteCanvasEdge struct {
 }
 
 type SiteCanvasOptions struct {
-	Class         string
-	ToolbarClass  string
-	ControlsClass string
-	ViewportClass string
-	SurfaceClass  string
-	EdgesClass    string
-	NodesClass    string
-	NodeClass     string
-	Label         string
-	Kicker        string
-	Title         string
-	Summary       string
-	Zoom          float64
-	PanX          float64
-	PanY          float64
-	Nodes         []SiteCanvasNode
-	Edges         []SiteCanvasEdge
-	Controls      []gosx.Node
+	Class                string
+	ToolbarClass         string
+	ControlsClass        string
+	ViewportClass        string
+	SurfaceClass         string
+	EdgesClass           string
+	NodesClass           string
+	NodeClass            string
+	Label                string
+	Kicker               string
+	Title                string
+	Summary              string
+	PositionInputPrefix  string
+	Zoom                 float64
+	PanX                 float64
+	PanY                 float64
+	PersistNodePositions bool
+	Nodes                []SiteCanvasNode
+	Edges                []SiteCanvasEdge
+	Controls             []gosx.Node
 }
 
 func RenderSiteCanvas(options SiteCanvasOptions) gosx.Node {
 	nodes := normalizeSiteCanvasNodes(options.Nodes)
+	nodes = attachSiteCanvasPositionInputs(nodes, options)
 	edges := normalizeSiteCanvasEdges(options.Edges, nodes)
 	zoom := options.Zoom
 	if zoom <= 0 {
@@ -94,6 +100,82 @@ func RenderSiteCanvas(options SiteCanvasOptions) gosx.Node {
 			),
 		),
 	)
+}
+
+type SiteCanvasPosition struct {
+	Key string
+	X   float64
+	Y   float64
+}
+
+type SiteCanvasPositionFormOptions struct {
+	NamePrefix string
+}
+
+func SiteCanvasPositionInputName(prefix, nodeKey, axis string) string {
+	prefix = strings.TrimSpace(prefix)
+	if prefix == "" {
+		prefix = "siteCanvas"
+	}
+	axis = strings.ToUpper(strings.TrimSpace(axis))
+	if axis != "Y" {
+		axis = "X"
+	}
+	return prefix + FieldNamePrefix(nodeKey) + axis
+}
+
+func SiteCanvasPositionInputNames(prefix, nodeKey string) (string, string) {
+	return SiteCanvasPositionInputName(prefix, nodeKey, "x"), SiteCanvasPositionInputName(prefix, nodeKey, "y")
+}
+
+func SiteCanvasPositionsFromForm(form map[string]string, nodes []SiteCanvasNode, options SiteCanvasPositionFormOptions) (map[string]SiteCanvasPosition, error) {
+	positions := map[string]SiteCanvasPosition{}
+	if len(form) == 0 || len(nodes) == 0 {
+		return positions, nil
+	}
+	nodes = normalizeSiteCanvasNodes(nodes)
+	for _, node := range nodes {
+		xName := firstNonEmpty(node.XInputName, SiteCanvasPositionInputName(options.NamePrefix, node.Key, "x"))
+		yName := firstNonEmpty(node.YInputName, SiteCanvasPositionInputName(options.NamePrefix, node.Key, "y"))
+		xValue, hasX := form[xName]
+		yValue, hasY := form[yName]
+		if !hasX && !hasY {
+			continue
+		}
+		position := SiteCanvasPosition{Key: node.Key, X: node.X, Y: node.Y}
+		if hasX {
+			x, err := strconv.ParseFloat(strings.TrimSpace(xValue), 64)
+			if err != nil {
+				return positions, fmt.Errorf("invalid site canvas x position for %s: %w", node.Key, err)
+			}
+			position.X = x
+		}
+		if hasY {
+			y, err := strconv.ParseFloat(strings.TrimSpace(yValue), 64)
+			if err != nil {
+				return positions, fmt.Errorf("invalid site canvas y position for %s: %w", node.Key, err)
+			}
+			position.Y = y
+		}
+		positions[node.Key] = position
+	}
+	return positions, nil
+}
+
+func ApplySiteCanvasPositions(nodes []SiteCanvasNode, positions map[string]SiteCanvasPosition) []SiteCanvasNode {
+	if len(nodes) == 0 || len(positions) == 0 {
+		return nodes
+	}
+	out := make([]SiteCanvasNode, 0, len(nodes))
+	for _, node := range nodes {
+		key := normalizeKey(firstNonEmpty(node.Key, node.Label))
+		if position, ok := positions[key]; ok {
+			node.X = position.X
+			node.Y = position.Y
+		}
+		out = append(out, node)
+	}
+	return out
 }
 
 func renderSiteCanvasToolbar(className, controlsClass string, options SiteCanvasOptions) gosx.Node {
@@ -152,11 +234,34 @@ func renderSiteCanvasNodes(className, nodeClass string, nodes []SiteCanvasNode) 
 	children := make([]gosx.Node, 0, len(nodes))
 	for _, node := range nodes {
 		children = append(children, renderSiteCanvasNode(nodeClass, node))
+		children = append(children, renderSiteCanvasPositionInputs(node)...)
 	}
 	return gosx.El("div", gosx.Attrs(
 		gosx.Attr("class", className),
 		gosx.Attr("data-gosx-studio-canvas-nodes", "true"),
 	), gosx.Fragment(children...))
+}
+
+func renderSiteCanvasPositionInputs(node SiteCanvasNode) []gosx.Node {
+	fields := []gosx.Node{}
+	if strings.TrimSpace(node.XInputName) != "" {
+		fields = append(fields, renderSiteCanvasPositionInput(node, "x", node.XInputName, node.X))
+	}
+	if strings.TrimSpace(node.YInputName) != "" {
+		fields = append(fields, renderSiteCanvasPositionInput(node, "y", node.YInputName, node.Y))
+	}
+	return fields
+}
+
+func renderSiteCanvasPositionInput(node SiteCanvasNode, axis, name string, value float64) gosx.Node {
+	return gosx.El("input", gosx.Attrs(
+		gosx.Attr("type", "hidden"),
+		gosx.Attr("name", name),
+		gosx.Attr("value", fmtFloat(value)),
+		gosx.Attr("data-gosx-studio-canvas-node-position", "true"),
+		gosx.Attr("data-gosx-studio-canvas-node-position-key", node.Key),
+		gosx.Attr("data-gosx-studio-canvas-node-position-axis", axis),
+	))
 }
 
 func renderSiteCanvasNode(className string, node SiteCanvasNode) gosx.Node {
@@ -217,6 +322,26 @@ func normalizeSiteCanvasNodes(nodes []SiteCanvasNode) []SiteCanvasNode {
 		}
 		if node.Height <= 0 {
 			node.Height = 132
+		}
+		out = append(out, node)
+	}
+	return out
+}
+
+func attachSiteCanvasPositionInputs(nodes []SiteCanvasNode, options SiteCanvasOptions) []SiteCanvasNode {
+	if !options.PersistNodePositions {
+		return nodes
+	}
+	out := make([]SiteCanvasNode, 0, len(nodes))
+	for _, node := range nodes {
+		if strings.TrimSpace(node.XInputName) == "" || strings.TrimSpace(node.YInputName) == "" {
+			xName, yName := SiteCanvasPositionInputNames(options.PositionInputPrefix, node.Key)
+			if strings.TrimSpace(node.XInputName) == "" {
+				node.XInputName = xName
+			}
+			if strings.TrimSpace(node.YInputName) == "" {
+				node.YInputName = yName
+			}
 		}
 		out = append(out, node)
 	}

@@ -582,6 +582,12 @@
       updateFrame();
       scheduleAutosave();
     });
+    form.addEventListener("gosxstudio:editor-transaction", function (event) {
+      var detail = event.detail || {};
+      scheduleHistory(detail.kind || detail.reason || "transaction");
+      updateFrame();
+      scheduleAutosave();
+    });
     form.addEventListener("click", function (event) {
       var undo = event.target && event.target.closest && event.target.closest("[data-gosx-studio-history-undo]");
       var redo = event.target && event.target.closest && event.target.closest("[data-gosx-studio-history-redo]");
