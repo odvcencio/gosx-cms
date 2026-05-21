@@ -356,12 +356,14 @@
       var actionHref = fieldNode ? (fieldNode.getAttribute("data-studio-field-action-href") || "") : "";
       var blockKey = blockNode ? (blockNode.getAttribute("data-studio-block-key") || "") : "";
       var nodeID = blockNode ? (blockNode.getAttribute("data-studio-node-id") || "") : "";
-      if (!label) label = previewBlockLabel(blockNode, blockKey || nodeID || "Preview selection");
+      var blockLabel = blockNode ? previewBlockLabel(blockNode, blockKey || nodeID || "") : "";
+      if (!label) label = blockLabel || "Preview selection";
       return {
         field: field,
         source: field,
         editable: editable,
         label: label,
+        blockLabel: blockLabel,
         action: action,
         actionHref: actionHref,
         blockKey: blockKey,
@@ -423,6 +425,7 @@
         "[data-gosx-studio-preview-dock][hidden]{display:none;}",
         "[data-gosx-studio-preview-dock][data-gosx-studio-preview-dock-placement='bottom']{transform:translate(-50%,0);}",
         "[data-gosx-studio-preview-dock-label]{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:700;}",
+        "[data-gosx-studio-preview-breadcrumb]{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--gosx-studio-muted,currentColor);font-size:0.8125em;}",
         "[data-gosx-studio-preview-dock-kind]{color:var(--gosx-studio-muted,currentColor);font-size:0.8125em;white-space:nowrap;}",
         "[data-gosx-studio-preview-field-meter]{color:var(--gosx-studio-muted,currentColor);font-size:0.8125em;white-space:nowrap;}",
         "[data-gosx-studio-preview-dock-actions]{display:flex;align-items:center;gap:var(--gosx-studio-space-1,0.25rem);margin-left:auto;}",
@@ -458,6 +461,9 @@
       dock.setAttribute("aria-label", "Preview selection actions");
       var label = document.createElement("strong");
       label.setAttribute("data-gosx-studio-preview-dock-label", "true");
+      var breadcrumb = document.createElement("span");
+      breadcrumb.hidden = true;
+      breadcrumb.setAttribute("data-gosx-studio-preview-breadcrumb", "true");
       var kind = document.createElement("span");
       kind.setAttribute("data-gosx-studio-preview-dock-kind", "true");
       var meter = document.createElement("span");
@@ -472,6 +478,7 @@
       actions.appendChild(createDockButton("field-action", "Open"));
       actions.appendChild(createDockButton("clear", "Clear"));
       dock.appendChild(label);
+      dock.appendChild(breadcrumb);
       dock.appendChild(kind);
       dock.appendChild(meter);
       dock.appendChild(actions);
@@ -492,6 +499,7 @@
         dock.removeAttribute("data-gosx-studio-preview-block");
         dock.removeAttribute("data-gosx-studio-preview-action-label");
         dock.removeAttribute("data-gosx-studio-preview-action-href");
+        dock.removeAttribute("data-gosx-studio-preview-block-label");
         dock.removeAttribute("data-gosx-studio-preview-field-count");
         dock.removeAttribute("data-gosx-studio-preview-field-index");
       });
@@ -618,9 +626,15 @@
       dock.hidden = false;
       dock.setAttribute("data-gosx-studio-preview-field", detail.field || "");
       dock.setAttribute("data-gosx-studio-preview-block", detail.blockKey || detail.nodeID || "");
+      dock.setAttribute("data-gosx-studio-preview-block-label", detail.blockLabel || "");
       dock.setAttribute("data-gosx-studio-preview-action-label", detail.action || "");
       dock.setAttribute("data-gosx-studio-preview-action-href", detail.actionHref || "");
       dock.querySelector("[data-gosx-studio-preview-dock-label]").textContent = detail.label || detail.field || detail.blockKey || "Preview selection";
+      var breadcrumb = dock.querySelector("[data-gosx-studio-preview-breadcrumb]");
+      if (breadcrumb) {
+        breadcrumb.hidden = !detail.blockLabel || !detail.field;
+        breadcrumb.textContent = detail.blockLabel && detail.field ? detail.blockLabel + " / " + (detail.label || detail.field) : "";
+      }
       dock.querySelector("[data-gosx-studio-preview-dock-kind]").textContent = dockKindLabel(detail);
       var action = dock.querySelector('[data-gosx-studio-preview-command="field-action"]');
       if (action) {
@@ -636,6 +650,7 @@
       return {
         field: dock.getAttribute("data-gosx-studio-preview-field") || "",
         blockKey: dock.getAttribute("data-gosx-studio-preview-block") || "",
+        blockLabel: dock.getAttribute("data-gosx-studio-preview-block-label") || "",
         label: compactText(dock.querySelector("[data-gosx-studio-preview-dock-label]") && dock.querySelector("[data-gosx-studio-preview-dock-label]").textContent),
         action: dock.getAttribute("data-gosx-studio-preview-action-label") || "",
         actionHref: dock.getAttribute("data-gosx-studio-preview-action-href") || "",
@@ -658,6 +673,7 @@
         payload: {
           action: action,
           label: detail.label || "",
+          blockLabel: detail.blockLabel || "",
           actionLabel: detail.action || "",
           actionHref: detail.actionHref || ""
         }
@@ -667,6 +683,7 @@
         field: detail.field || "",
         editable: detail.editable || "",
         label: detail.label || "",
+        blockLabel: detail.blockLabel || "",
         blockKey: detail.blockKey || "",
         actionLabel: detail.action || "",
         actionHref: detail.actionHref || "",
@@ -846,6 +863,7 @@
         field: detail.field || "",
         editable: selectedEditable,
         label: detail.label || "",
+        blockLabel: detail.blockLabel || "",
         action: actionLabel || "",
         actionHref: actionHref || "",
         blockKey: detail.blockKey || "",
@@ -857,6 +875,7 @@
         source: detail.source || detail.field || "",
         editable: selectedEditable,
         label: detail.label || "",
+        blockLabel: detail.blockLabel || "",
         action: actionLabel || "",
         actionHref: actionHref || "",
         blockKey: detail.blockKey || "",
@@ -876,6 +895,7 @@
         },
         payload: {
           label: detail.label || "",
+          blockLabel: detail.blockLabel || "",
           action: actionLabel || "",
           actionHref: actionHref || ""
         }
