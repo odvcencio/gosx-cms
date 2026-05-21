@@ -75,6 +75,10 @@
       })[0] || null;
     }
 
+    function selectedNode() {
+      return nodeByKey(state.selected);
+    }
+
     function positionFields(key, axis) {
       return Array.prototype.slice.call(canvas.querySelectorAll(
         "[data-gosx-studio-canvas-node-position-key=\"" + selectorValue(key) + "\"][data-gosx-studio-canvas-node-position-axis=\"" + selectorValue(axis) + "\"]"
@@ -223,7 +227,23 @@
       apply(reason || "fit");
     }
 
-    function zoomBy(delta, reason) {
+    function zoomAt(clientX, clientY, nextZoom, reason) {
+      var rect = viewport.getBoundingClientRect();
+      var x = clientX - rect.left;
+      var y = clientY - rect.top;
+      var worldX = (x - state.panX) / state.zoom;
+      var worldY = (y - state.panY) / state.zoom;
+      state.zoom = clamp(nextZoom, 0.25, 2.8);
+      state.panX = x - worldX * state.zoom;
+      state.panY = y - worldY * state.zoom;
+      apply(reason || "zoom-at");
+    }
+
+    function zoomBy(delta, reason, anchor) {
+      if (anchor && Number.isFinite(anchor.clientX) && Number.isFinite(anchor.clientY)) {
+        zoomAt(anchor.clientX, anchor.clientY, state.zoom + delta, reason || "zoom");
+        return;
+      }
       state.zoom = clamp(state.zoom + delta, 0.25, 2.8);
       apply(reason || "zoom");
     }
@@ -254,6 +274,29 @@
       emit(canvas, "gosxstudio:canvas-node-move", detail);
       if (state.selected === detail.key) syncSelection(detail);
       return detail;
+    }
+
+    function keyboardNudge(event) {
+      var node = selectedNode();
+      if (!node) return false;
+      var rect = nodeRect(node);
+      var step = number(canvas.getAttribute("data-gosx-studio-canvas-keyboard-nudge"), 8);
+      if (event.altKey) step = 1;
+      if (event.shiftKey) step *= 10;
+      var dx = event.key === "ArrowLeft" ? -step : event.key === "ArrowRight" ? step : 0;
+      var dy = event.key === "ArrowUp" ? -step : event.key === "ArrowDown" ? step : 0;
+      if (!dx && !dy) return false;
+      var detail = moveNode(node, rect.x + dx, rect.y + dy, "keyboard-nudge");
+      detail.moved = true;
+      detail.fromX = round(rect.x);
+      detail.fromY = round(rect.y);
+      detail.toX = detail.x;
+      detail.toY = detail.y;
+      syncPositionFields(detail, true);
+      emit(canvas, "gosxstudio:canvas-node-moved", detail);
+      emitEditorTransaction("move-node", detail);
+      emitAction("nudge-node", detail);
+      return true;
     }
 
     function emitAction(action, detail) {
@@ -340,7 +383,7 @@
     viewport.addEventListener("wheel", function (event) {
       event.preventDefault();
       if (event.ctrlKey || event.metaKey) {
-        zoomBy(event.deltaY > 0 ? -0.08 : 0.08, "wheel");
+        zoomBy(event.deltaY > 0 ? -0.08 : 0.08, "wheel", { clientX: event.clientX, clientY: event.clientY });
         return;
       }
       state.panX -= event.deltaX;
@@ -390,6 +433,7 @@
         emitAction("fit", { reason: "keyboard" });
       } else if (event.key === "ArrowLeft" || event.key === "ArrowRight" || event.key === "ArrowUp" || event.key === "ArrowDown") {
         event.preventDefault();
+        if (keyboardNudge(event)) return;
         state.panX += event.key === "ArrowLeft" ? 42 : event.key === "ArrowRight" ? -42 : 0;
         state.panY += event.key === "ArrowUp" ? 42 : event.key === "ArrowDown" ? -42 : 0;
         apply("keyboard-pan");

@@ -30,6 +30,7 @@ func TestRenderSiteCanvasMapsWebsiteObjects(t *testing.T) {
 		`data-gosx-studio-site-canvas="true"`,
 		`data-gosx-studio-canvas-viewport="true"`,
 		`data-gosx-studio-canvas-surface="true"`,
+		`data-gosx-studio-canvas-keyboard-nudge="8"`,
 		`data-gosx-studio-canvas-node="home"`,
 		`data-gosx-studio-canvas-node-kind="style"`,
 		`data-gosx-studio-canvas-edge-from="home"`,

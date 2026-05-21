@@ -52,6 +52,7 @@ type SiteCanvasOptions struct {
 	Zoom                 float64
 	PanX                 float64
 	PanY                 float64
+	KeyboardNudge        float64
 	PersistNodePositions bool
 	Nodes                []SiteCanvasNode
 	Edges                []SiteCanvasEdge
@@ -67,6 +68,10 @@ func RenderSiteCanvas(options SiteCanvasOptions) gosx.Node {
 		zoom = 1
 	}
 	width, height := siteCanvasBounds(nodes)
+	keyboardNudge := options.KeyboardNudge
+	if keyboardNudge <= 0 {
+		keyboardNudge = 8
+	}
 	className := firstNonEmpty(options.Class, "gosx-studio-site-canvas")
 	toolbarClass := firstNonEmpty(options.ToolbarClass, "gosx-studio-site-canvas__toolbar")
 	controlsClass := firstNonEmpty(options.ControlsClass, "gosx-studio-site-canvas__controls")
@@ -82,6 +87,7 @@ func RenderSiteCanvas(options SiteCanvasOptions) gosx.Node {
 		gosx.Attr("data-gosx-studio-canvas-zoom", fmtFloat(zoom)),
 		gosx.Attr("data-gosx-studio-canvas-pan-x", fmtFloat(options.PanX)),
 		gosx.Attr("data-gosx-studio-canvas-pan-y", fmtFloat(options.PanY)),
+		gosx.Attr("data-gosx-studio-canvas-keyboard-nudge", fmtFloat(keyboardNudge)),
 		gosx.Attr("tabindex", "0"),
 		gosx.Attr("aria-label", label),
 	),
