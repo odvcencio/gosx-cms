@@ -25,6 +25,7 @@ type StudioCommandOptions struct {
 	Blocks       []CommandBlock
 	Flows        []CommandFlow
 	Extra        []Command
+	SaveLabel    string
 	SaveSummary  string
 	SaveKeywords []string
 }
@@ -35,7 +36,7 @@ func StudioCommands(options StudioCommandOptions) []Command {
 		{
 			Kind:     CommandSubmit,
 			Key:      "save",
-			Label:    "Save changes",
+			Label:    firstNonEmpty(options.SaveLabel, "Save changes"),
 			Summary:  firstNonEmpty(options.SaveSummary, "Persist the current draft."),
 			Group:    "Save",
 			Target:   "save",

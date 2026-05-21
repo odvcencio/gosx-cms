@@ -74,7 +74,8 @@ func TestStudioCommandsBuildsDefaultBlocksAndFlows(t *testing.T) {
 			EmbedTarget:    "tour-form",
 			HasEmbedTarget: true,
 		}},
-		Extra: []Command{{Kind: CommandLink, Key: "media", Label: "Media", Href: "/admin/media"}},
+		Extra:     []Command{{Kind: CommandLink, Key: "media", Label: "Media", Href: "/admin/media"}},
+		SaveLabel: "Save checkpoint",
 	})
 	byKey := map[string]Command{}
 	for _, command := range commands {
@@ -85,7 +86,7 @@ func TestStudioCommandsBuildsDefaultBlocksAndFlows(t *testing.T) {
 			t.Fatalf("expected command %q in %#v", key, commands)
 		}
 	}
-	if byKey["undo"].Kind != CommandHistory || byKey["redo"].Shortcut != "Ctrl Shift Z" || byKey["insert-hero"].Kind != CommandInsert || byKey["open-flow-schedule-tour"].Href == "" || byKey["insert-flow-schedule-tour"].Target != "tour-form" {
+	if byKey["save"].Label != "Save checkpoint" || byKey["undo"].Kind != CommandHistory || byKey["redo"].Shortcut != "Ctrl Shift Z" || byKey["insert-hero"].Kind != CommandInsert || byKey["open-flow-schedule-tour"].Href == "" || byKey["insert-flow-schedule-tour"].Target != "tour-form" {
 		t.Fatalf("unexpected generated commands: %#v", byKey)
 	}
 }
