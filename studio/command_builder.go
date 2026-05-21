@@ -43,6 +43,8 @@ func StudioCommands(options StudioCommandOptions) []Command {
 			Primary:  true,
 			Keywords: firstKeywords(options.SaveKeywords, []string{"publish", "draft", "settings"}),
 		},
+		{Kind: CommandHistory, Key: "undo", Label: "Undo", Summary: "Revert the last in-browser editor change.", Group: "History", Target: "undo", Shortcut: "Ctrl Z", Keywords: []string{"back", "revert"}},
+		{Kind: CommandHistory, Key: "redo", Label: "Redo", Summary: "Reapply the last undone editor change.", Group: "History", Target: "redo", Shortcut: "Ctrl Shift Z", Keywords: []string{"forward", "restore"}},
 		{Kind: CommandToggle, Key: "toggle-layers", Label: "Toggle layers rail", Summary: "Show or hide the page and layer navigator.", Group: "View", Target: "left", Shortcut: "L", Keywords: []string{"sidebar", "left"}},
 		{Kind: CommandToggle, Key: "toggle-inspector", Label: "Toggle inspector rail", Summary: "Show or hide properties and style controls.", Group: "View", Target: "right", Shortcut: "I", Keywords: []string{"sidebar", "properties"}},
 		{Kind: CommandToggle, Key: "toggle-activity", Label: "Toggle activity rail", Summary: "Show readiness checks, proposals, and review activity.", Group: "View", Target: "activity", Shortcut: "A", Keywords: []string{"comments", "proposals"}},

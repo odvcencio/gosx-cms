@@ -76,16 +76,18 @@ type WorkbenchPreviewPanelOptions struct {
 }
 
 type WorkbenchSummaryToolbarOptions struct {
-	Class              string
-	ActionsClass       string
-	Title              string
-	Summary            string
-	SaveButtonClass    string
-	SaveButtonLabel    string
-	CommandPaletteNode gosx.Node
-	SaveStatusNode     gosx.Node
-	Controls           []gosx.Node
-	Actions            []gosx.Node
+	Class                  string
+	ActionsClass           string
+	Title                  string
+	Summary                string
+	SaveButtonClass        string
+	SaveButtonLabel        string
+	DisableHistoryControls bool
+	CommandPaletteNode     gosx.Node
+	SaveStatusNode         gosx.Node
+	HistoryControlsNode    gosx.Node
+	Controls               []gosx.Node
+	Actions                []gosx.Node
 }
 
 func RenderMetricCards(metrics []Metric, options MetricCardsOptions) gosx.Node {
@@ -242,6 +244,13 @@ func RenderWorkbenchSummaryToolbar(shell Shell, options WorkbenchSummaryToolbarO
 	}
 	if !isZeroNode(options.SaveStatusNode) {
 		actions = append(actions, options.SaveStatusNode)
+	}
+	if !options.DisableHistoryControls {
+		if !isZeroNode(options.HistoryControlsNode) {
+			actions = append(actions, options.HistoryControlsNode)
+		} else {
+			actions = append(actions, RenderHistoryControls(HistoryControlsOptions{}))
+		}
 	}
 	actions = append(actions, options.Actions...)
 	if firstNonEmpty(options.SaveButtonLabel, "Save checkpoint") != "" {

@@ -61,6 +61,7 @@ func TestComposeWorkbenchBuildsSharedEditorBundle(t *testing.T) {
 		`data-gosx-studio-workbench="true"`,
 		`data-gosx-studio-workbench-runtime="true"`,
 		`data-gosx-studio-flow-editor-runtime="true"`,
+		`data-gosx-studio-history-controls="true"`,
 		`data-studio-health="true"`,
 		`data-studio-publish-review=`,
 	} {

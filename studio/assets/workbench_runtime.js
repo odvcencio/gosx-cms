@@ -480,6 +480,67 @@
       emit(form, "gosxstudio:workbench-action", detail);
     }
 
+    function runInsertTarget(target, label) {
+      target = target || "";
+      if (!target) return false;
+      var button = form.querySelector('[data-studio-insert-block="' + attrValue(target) + '"], [data-editor-add-block="' + attrValue(target) + '"]');
+      if (button) {
+        runInsert(button);
+        return true;
+      }
+      emit(form, "gosxstudio:insert-block", { target: target, label: label || target });
+      emit(form, "gosxstudio:workbench-action", { action: "insert-block", target: target, label: label || target });
+      return true;
+    }
+
+    function runSelectionTarget(target, label) {
+      target = target || "";
+      if (!target) return false;
+      var button = form.querySelector('[data-studio-selection-action="' + attrValue(target) + '"]');
+      if (button) {
+        runSelectionAction(button);
+        return true;
+      }
+      emit(form, "gosxstudio:selection-action", {
+        action: target,
+        label: label || target,
+        selection: form.getAttribute("data-studio-selection") || "",
+        kind: form.getAttribute("data-studio-selection-kind") || ""
+      });
+      emit(form, "gosxstudio:workbench-action", { action: target, label: label || target });
+      return true;
+    }
+
+    function handleCommand(detail) {
+      detail = detail || {};
+      if (detail.kind === "mode") {
+        setMode(detail.target, { scroll: true, reason: "command" });
+        return true;
+      }
+      if (detail.kind === "viewport") {
+        setViewport(detail.target, { reason: "command" });
+        return true;
+      }
+      if (detail.kind === "zoom") {
+        setZoom(detail.target, { reason: "command" });
+        return true;
+      }
+      if (detail.kind === "toggle") {
+        if (detail.target === "left" || detail.target === "right") toggleRail(detail.target);
+        else if (detail.target === "activity") setActivity(activityState() === "open" ? "collapsed" : "open", "command");
+        else if (detail.target === "focus") setFocus(form.getAttribute("data-studio-focus") !== "true", "command");
+        else return false;
+        return true;
+      }
+      if (detail.kind === "insert") return runInsertTarget(detail.target, detail.label);
+      if (detail.kind === "selection-action") return runSelectionTarget(detail.target, detail.label);
+      return false;
+    }
+
+    form.addEventListener("gosxstudio:command", function (event) {
+      if (handleCommand(event.detail || {})) event.preventDefault();
+    });
+
     form.addEventListener("click", function (event) {
       var mode = event.target.closest("[data-studio-mode-control]");
       if (mode && form.contains(mode)) {

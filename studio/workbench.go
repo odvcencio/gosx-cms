@@ -31,6 +31,7 @@ type WorkbenchOptions struct {
 	FormAttrs               []FieldAttribute
 	DisableClientActions    bool
 	DisableCanvasStatus     bool
+	DisableHistoryControls  bool
 	DisableSelectionTools   bool
 	ResizableRails          bool
 	SaveButtonLabel         string
@@ -160,6 +161,9 @@ func renderWorkbenchToolbar(shell Shell, options WorkbenchOptions) gosx.Node {
 			LastSavedClass:  "editor-save-time",
 			DirtyCountClass: "editor-save-count",
 		}),
+	}
+	if !options.DisableHistoryControls {
+		actions = append(actions, RenderHistoryControls(HistoryControlsOptions{}))
 	}
 	actions = append(actions, renderWorkbenchActionLinks(shell.Actions)...)
 	actions = append(actions, options.ToolbarActions...)

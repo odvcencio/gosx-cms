@@ -254,7 +254,12 @@
         target: button.getAttribute("data-studio-command-target") || "",
         href: button.getAttribute("data-studio-command-href") || ""
       };
-      node.dispatchEvent(new CustomEvent("gosxstudio:command", { bubbles: true, detail: detail }));
+      var commandEvent = new CustomEvent("gosxstudio:command", { bubbles: true, cancelable: true, detail: detail });
+      node.dispatchEvent(commandEvent);
+      if (commandEvent.defaultPrevented) {
+        close();
+        return;
+      }
       if (detail.kind === "submit") {
         close({ restoreFocus: false });
         submitTo(detail.href, button.textContent);
