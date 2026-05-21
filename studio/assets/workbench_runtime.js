@@ -262,7 +262,9 @@
       style.id = "gosx-studio-preview-patch-style";
       style.textContent = [
         "[data-gosx-studio-preview-patched]{outline:2px solid currentColor;outline-offset:3px;transition:outline-offset 180ms ease,filter 180ms ease;}",
-        "[data-gosx-studio-preview-patched='fresh']{outline-offset:6px;filter:brightness(1.03);}"
+        "[data-gosx-studio-preview-patched='fresh']{outline-offset:6px;filter:brightness(1.03);}",
+        "[data-gosx-studio-preview-selectable='true'] [data-studio-field],[data-gosx-studio-preview-selectable='true'] [data-editor-preview],[data-gosx-studio-preview-selectable='true'] [data-studio-field-source],[data-gosx-studio-preview-selectable='true'] [data-studio-block-key],[data-gosx-studio-preview-selectable='true'] [data-studio-node-id]{cursor:pointer;}",
+        "[data-gosx-studio-preview-selected]{outline:3px solid currentColor;outline-offset:6px;filter:saturate(1.08);}"
       ].join("");
       (doc.head || doc.documentElement).appendChild(style);
     }
@@ -273,6 +275,186 @@
       var source = field && (field.source || field.name);
       if (!doc || !source) return [];
       return queryAll(doc, previewPatchSelector(source));
+    }
+
+    function readableFieldName(field, editable) {
+      var value = compactText(field || "field").split(".").pop() || field || "Field";
+      value = value.replace(/([a-z])([A-Z])/g, "$1 $2").replace(/[-_]/g, " ");
+      value = value.charAt(0).toUpperCase() + value.slice(1);
+      if (editable === "media" || editable === "image") return value === "Media" ? value : value + " media";
+      if (editable === "source") return value + " source";
+      if (editable === "flow") return value + " flow";
+      if (editable === "url" || editable === "link") return value + " URL";
+      return value || "Field";
+    }
+
+    function inspectorSource(field) {
+      if (!field) return null;
+      var source = attrValue(field);
+      return form.querySelector('[data-studio-field-source="' + source + '"], [data-editor-source="' + source + '"]');
+    }
+
+    function inspectorControl(source) {
+      if (!source) return null;
+      if (source.matches && source.matches("input, textarea, select, button, a[href], [tabindex]")) return source;
+      return source.querySelector ? source.querySelector("input, textarea, select, button, a[href], [tabindex]") : null;
+    }
+
+    function inferInspectorEditable(source, control) {
+      var explicit = source && (source.getAttribute("data-studio-field-editable") || source.getAttribute("data-studio-editable"));
+      if (explicit) return explicit;
+      var tag = control && control.tagName ? String(control.tagName).toLowerCase() : "";
+      var type = control && control.type ? String(control.type).toLowerCase() : "";
+      if (tag === "textarea") return "text";
+      if (tag === "input" && (type === "url" || type === "email")) return "url";
+      if (tag === "input" || tag === "select") return "text";
+      return "";
+    }
+
+    function previewBlockLabel(node, fallback) {
+      if (!node) return fallback || "Preview selection";
+      var explicit = node.getAttribute("data-studio-block-label") || node.getAttribute("data-studio-node-label") || node.getAttribute("aria-label") || "";
+      if (explicit) return explicit;
+      var heading = node.querySelector && node.querySelector("[data-studio-block-title], h1, h2, h3, strong");
+      var text = compactText(heading ? heading.textContent : node.textContent);
+      if (text) return text.length > 72 ? text.slice(0, 69) + "..." : text;
+      return fallback || "Preview selection";
+    }
+
+    function previewSelectionDetail(node) {
+      if (!node || !node.closest) return {};
+      var fieldNode = node.closest("[data-studio-field], [data-editor-preview], [data-studio-field-source]");
+      var blockNode = node.closest("[data-studio-block-key], [data-studio-node-id]");
+      var field = fieldNode ? (fieldNode.getAttribute("data-studio-field") || fieldNode.getAttribute("data-editor-preview") || fieldNode.getAttribute("data-studio-field-source") || "") : "";
+      var editable = fieldNode ? (fieldNode.getAttribute("data-studio-editable") || fieldNode.getAttribute("data-studio-field-editable") || "") : "";
+      var source = inspectorSource(field);
+      var control = inspectorControl(source);
+      if (!editable) editable = inferInspectorEditable(source, control);
+      var label = fieldNode ? (fieldNode.getAttribute("data-studio-field-label") || readableFieldName(field, editable)) : "";
+      var action = fieldNode ? (fieldNode.getAttribute("data-studio-field-action") || "") : "";
+      var actionHref = fieldNode ? (fieldNode.getAttribute("data-studio-field-action-href") || "") : "";
+      var blockKey = blockNode ? (blockNode.getAttribute("data-studio-block-key") || "") : "";
+      var nodeID = blockNode ? (blockNode.getAttribute("data-studio-node-id") || "") : "";
+      if (!label) label = previewBlockLabel(blockNode, blockKey || nodeID || "Preview selection");
+      return {
+        field: field,
+        source: field,
+        editable: editable,
+        label: label,
+        action: action,
+        actionHref: actionHref,
+        blockKey: blockKey,
+        nodeID: nodeID
+      };
+    }
+
+    function previewSelectableNode(target) {
+      if (!target || !target.closest) return null;
+      return target.closest("[data-studio-field], [data-editor-preview], [data-studio-field-source], [data-studio-block-key], [data-studio-node-id]");
+    }
+
+    function clearPreviewSelections() {
+      previewFrames().forEach(function (frame) {
+        var doc = frameDocument(frame);
+        if (!doc) return;
+        queryAll(doc, "[data-gosx-studio-preview-selected]").forEach(function (target) {
+          target.removeAttribute("data-gosx-studio-preview-selected");
+        });
+      });
+      previewShells().forEach(function (shell) {
+        shell.removeAttribute("data-gosx-studio-preview-selection");
+      });
+      previewFrames().forEach(function (frame) {
+        frame.removeAttribute("data-studio-preview-selection");
+      });
+    }
+
+    function clearInspectorSelection() {
+      queryAll(form, "[data-gosx-studio-inspector-selected]").forEach(function (target) {
+        target.removeAttribute("data-gosx-studio-inspector-selected");
+        if (target.classList) target.classList.remove("is-studio-field-active", "is-preview-selected");
+      });
+    }
+
+    function markInspectorSelection(source) {
+      if (!source) return null;
+      var row = source.closest ? source.closest(".field-row, [data-studio-field-row]") : null;
+      var control = inspectorControl(source);
+      [source, row, control].forEach(function (target) {
+        if (!target) return;
+        target.setAttribute("data-gosx-studio-inspector-selected", "true");
+        if (target.classList) target.classList.add(target === row ? "is-studio-field-active" : "is-preview-selected");
+      });
+      return control || source;
+    }
+
+    function revealInspectorSelection(source, control) {
+      if (!source) return;
+      if (form.querySelector('[data-studio-mode-control="content"], [data-studio-mode-panel="content"]')) {
+        setMode("content", { reason: "preview-select" });
+      }
+      var target = (source.closest && source.closest(".field-row, [data-studio-field-row]")) || source;
+      if (target.scrollIntoView) target.scrollIntoView({ block: "center", behavior: "smooth" });
+      window.setTimeout(function () {
+        if (control && control.focus) control.focus({ preventScroll: true });
+      }, 120);
+    }
+
+    function applyPreviewSelection(frame, target, detail, options) {
+      detail = detail || previewSelectionDetail(target);
+      options = options || {};
+      if (!detail.field && !detail.blockKey && !detail.nodeID) return false;
+      clearPreviewSelections();
+      clearInspectorSelection();
+      var selectedTargets = detail.field ? previewTargets(frame, { field: { source: detail.field, name: detail.field } }) : [];
+      if (!selectedTargets.length && target) selectedTargets = [target];
+      selectedTargets.forEach(function (candidate) {
+        candidate.setAttribute("data-gosx-studio-preview-selected", "true");
+      });
+      var source = inspectorSource(detail.field);
+      var control = markInspectorSelection(source);
+      var selectedEditable = detail.editable || inferInspectorEditable(source, control) || "";
+      if (detail.field) {
+        form.setAttribute("data-studio-field-selection", detail.field);
+        if (selectedEditable) form.setAttribute("data-studio-field-editable", selectedEditable);
+        else form.removeAttribute("data-studio-field-editable");
+      } else {
+        form.removeAttribute("data-studio-field-selection");
+        form.removeAttribute("data-studio-field-editable");
+      }
+      var actionLabel = detail.action || (source && source.getAttribute("data-studio-field-action")) || "";
+      if (actionLabel) form.setAttribute("data-studio-field-action-label", actionLabel);
+      else form.removeAttribute("data-studio-field-action-label");
+      var actionHref = detail.actionHref || (source && source.getAttribute("data-studio-field-action-href")) || "";
+      if (actionHref) {
+        form.setAttribute("data-studio-field-action-href", actionHref);
+      } else {
+        form.removeAttribute("data-studio-field-action-href");
+      }
+      var selectionKey = detail.blockKey || detail.nodeID || detail.field || "";
+      if (selectionKey) form.setAttribute("data-studio-selection", selectionKey);
+      else form.removeAttribute("data-studio-selection");
+      form.setAttribute("data-studio-selection-kind", detail.field ? "preview-field" : "preview");
+      setReadout("[data-studio-selection-label]", detail.label || detail.field || detail.blockKey || "Preview selection");
+      setReadout("[data-studio-selection-status]", detail.field ? "Preview field" : "Preview selection");
+      setReadout("[data-studio-field-selection-label]", detail.field ? (detail.label || readableFieldName(detail.field, selectedEditable)) : "Block");
+      previewShells().forEach(function (shell) {
+        shell.setAttribute("data-gosx-studio-preview-selection", detail.field || detail.blockKey || detail.nodeID || "");
+      });
+      frame.setAttribute("data-studio-preview-selection", detail.field || detail.blockKey || detail.nodeID || "");
+      if (options.reveal && source) revealInspectorSelection(source, control);
+      emit(form, "gosxstudio:preview-select", {
+        field: detail.field || "",
+        source: detail.source || detail.field || "",
+        editable: selectedEditable,
+        label: detail.label || "",
+        action: actionLabel || "",
+        actionHref: actionHref || "",
+        blockKey: detail.blockKey || "",
+        nodeID: detail.nodeID || "",
+        reason: options.reason || "preview"
+      });
+      return true;
     }
 
     function updatePreviewTarget(target, field) {
@@ -445,12 +627,35 @@
         frame.addEventListener("load", function () {
           setPreviewStatus("ready", "Ready", "load");
           syncPreviewFrame(frame, "load");
+          bindPreviewDocument(frame);
           postPreviewPatch("load-sync", { route: previewURL(frame) || frame.getAttribute("src") || "" }, null);
         });
         frame.addEventListener("error", function () {
           setPreviewStatus("error", "Preview failed", "error");
         });
+        bindPreviewDocument(frame);
       });
+    }
+
+    function bindPreviewDocument(frame) {
+      var doc = frameDocument(frame);
+      if (!doc || frame.__gosxStudioPreviewDocument === doc) return;
+      frame.__gosxStudioPreviewDocument = doc;
+      ensurePreviewPatchStyles(doc);
+      if (doc.documentElement) doc.documentElement.setAttribute("data-gosx-studio-preview-selectable", "true");
+      doc.addEventListener("click", function (event) {
+        if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button > 0) return;
+        var target = previewSelectableNode(event.target);
+        if (!target) return;
+        if (applyPreviewSelection(frame, target, previewSelectionDetail(target), { reveal: true, reason: "click" })) {
+          event.preventDefault();
+          event.stopPropagation();
+        }
+      }, true);
+      doc.addEventListener("focusin", function (event) {
+        var target = previewSelectableNode(event.target);
+        if (target) applyPreviewSelection(frame, target, previewSelectionDetail(target), { reveal: false, reason: "focus" });
+      }, true);
     }
 
     function modeLabel(mode) {
