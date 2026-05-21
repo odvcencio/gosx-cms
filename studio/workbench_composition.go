@@ -4,6 +4,8 @@ import "github.com/odvcencio/gosx"
 
 type WorkbenchCompositionOptions struct {
 	Commands                  []Command
+	CommandPaletteNode        gosx.Node
+	SaveStatusNode            gosx.Node
 	CommandPalette            CommandPaletteOptions
 	SaveStatus                SaveStatusOptions
 	Workbench                 WorkbenchOptions
@@ -35,8 +37,14 @@ func ComposeWorkbench(shell Shell, options WorkbenchCompositionOptions) Workbenc
 	if len(commandPaletteOptions.Commands) == 0 {
 		commandPaletteOptions.Commands = commands
 	}
-	commandPaletteNode := RenderCommandPalette(commandPaletteOptions)
-	saveStatusNode := RenderSaveStatus(options.SaveStatus)
+	commandPaletteNode := options.CommandPaletteNode
+	if isZeroNode(commandPaletteNode) {
+		commandPaletteNode = RenderCommandPalette(commandPaletteOptions)
+	}
+	saveStatusNode := options.SaveStatusNode
+	if isZeroNode(saveStatusNode) {
+		saveStatusNode = RenderSaveStatus(options.SaveStatus)
+	}
 
 	workbenchOptions := options.Workbench
 	if len(workbenchOptions.Commands) == 0 {
