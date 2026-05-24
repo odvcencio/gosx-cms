@@ -126,6 +126,7 @@ func TestRenderWorkbenchScriptIncludesClientWorkbenchRuntime(t *testing.T) {
 		`setPointerCapture`,
 		`data-studio-viewport`,
 		`data-studio-zoom`,
+		`button[data-studio-zoom]`,
 		`gosxstudio:workbench-zoom`,
 		`handleCommand`,
 	} {

@@ -1497,7 +1497,7 @@
       zoom = zoom || "fit";
       var scale = zoomScale(zoom);
       form.setAttribute("data-studio-zoom", zoom);
-      queryAll(form, "[data-studio-zoom]").forEach(function (button) {
+      queryAll(form, "button[data-studio-zoom], [role='button'][data-studio-zoom]").forEach(function (button) {
         button.setAttribute("aria-pressed", button.getAttribute("data-studio-zoom") === zoom ? "true" : "false");
       });
       queryAll(form, "[data-studio-canvas], [data-gosx-studio-preview]").forEach(function (node) {
@@ -1761,7 +1761,7 @@
         setViewport(viewport.getAttribute("data-studio-viewport"), { reason: "click" });
         return;
       }
-      var zoom = event.target.closest("[data-studio-zoom]");
+      var zoom = event.target.closest("button[data-studio-zoom], [role='button'][data-studio-zoom]");
       if (zoom && form.contains(zoom)) {
         event.preventDefault();
         setZoom(zoom.getAttribute("data-studio-zoom"), { reason: "click" });
