@@ -19,7 +19,7 @@ require (
 	github.com/odvcencio/gotreesitter v0.15.3 // indirect
 	github.com/odvcencio/manta v0.0.13 // indirect
 	github.com/odvcencio/mll v0.0.1 // indirect
-	github.com/odvcencio/turboquant v0.1.2 // indirect
+	github.com/odvcencio/turboquant v0.1.3 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
 	golang.org/x/net v0.52.0 // indirect
 	golang.org/x/sys v0.42.0 // indirect
@@ -32,3 +32,7 @@ require (
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.11.0 // indirect
 )
+
+replace m31labs.dev/gosx => ../gosx
+
+replace m31labs.dev/gosx-admin => ../gosx-admin
