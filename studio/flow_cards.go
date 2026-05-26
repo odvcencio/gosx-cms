@@ -3,7 +3,7 @@ package studio
 import (
 	"strings"
 
-	cmsflows "github.com/odvcencio/gosx-cms/flows"
+	cmsflows "m31labs.dev/gosx-cms/flows"
 )
 
 type FlowCardBuildOptions struct {

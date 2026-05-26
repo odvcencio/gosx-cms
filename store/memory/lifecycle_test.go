@@ -4,8 +4,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/odvcencio/gosx-admin/blockstudio"
-	cmsstore "github.com/odvcencio/gosx-cms/store"
+	"m31labs.dev/gosx-admin/blockstudio"
+	cmsstore "m31labs.dev/gosx-cms/store"
 )
 
 func TestPagePreviewPublishAndRestoreRevision(t *testing.T) {

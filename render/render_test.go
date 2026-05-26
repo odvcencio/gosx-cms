@@ -4,9 +4,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/odvcencio/gosx"
-	"github.com/odvcencio/gosx-admin/blockstudio"
-	"github.com/odvcencio/gosx-cms/content"
+	"m31labs.dev/gosx"
+	"m31labs.dev/gosx-admin/blockstudio"
+	"m31labs.dev/gosx-cms/content"
 )
 
 func TestBodyRendersGenericBlocks(t *testing.T) {

@@ -6,10 +6,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/odvcencio/gosx"
-	"github.com/odvcencio/gosx-admin/blockstudio"
-	"github.com/odvcencio/gosx-cms/lifecycle"
-	"github.com/odvcencio/gosx-cms/media"
+	"m31labs.dev/gosx"
+	"m31labs.dev/gosx-admin/blockstudio"
+	"m31labs.dev/gosx-cms/lifecycle"
+	"m31labs.dev/gosx-cms/media"
 )
 
 func TestNewNormalizesShell(t *testing.T) {

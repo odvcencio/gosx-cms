@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/odvcencio/gosx-admin/workbench"
+	"m31labs.dev/gosx-admin/workbench"
 )
 
 func TestResolveExecutableFlowPrefersPublication(t *testing.T) {

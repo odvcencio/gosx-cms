@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/odvcencio/gosx-cms/lifecycle"
+	"m31labs.dev/gosx-cms/lifecycle"
 )
 
 func TestFileStorePersistsDocumentsDraftsAndPublications(t *testing.T) {

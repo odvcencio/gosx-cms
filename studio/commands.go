@@ -3,7 +3,7 @@ package studio
 import (
 	"strings"
 
-	"github.com/odvcencio/gosx"
+	"m31labs.dev/gosx"
 )
 
 type CommandKind string

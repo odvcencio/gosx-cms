@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/odvcencio/gosx"
-	"github.com/odvcencio/gosx-cms/lifecycle"
+	"m31labs.dev/gosx"
+	"m31labs.dev/gosx-cms/lifecycle"
 )
 
 func TestRenderPreviewSharePanelReady(t *testing.T) {

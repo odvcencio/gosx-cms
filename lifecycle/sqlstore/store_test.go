@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/odvcencio/gosx-cms/lifecycle"
-	"github.com/odvcencio/gosx-cms/lifecycle/sqlstore"
+	"m31labs.dev/gosx-cms/lifecycle"
+	"m31labs.dev/gosx-cms/lifecycle/sqlstore"
 )
 
 func TestStoreMigratesAndRoundTripsRevisions(t *testing.T) {

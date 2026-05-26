@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/odvcencio/gosx-admin/workbench"
+	"m31labs.dev/gosx-admin/workbench"
 )
 
 type StudioLibraryOptions struct {

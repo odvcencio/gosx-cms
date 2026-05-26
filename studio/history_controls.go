@@ -1,6 +1,6 @@
 package studio
 
-import "github.com/odvcencio/gosx"
+import "m31labs.dev/gosx"
 
 type HistoryControlsOptions struct {
 	Class         string

@@ -7,10 +7,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/odvcencio/gosx-admin/blockstudio"
-	"github.com/odvcencio/gosx-cms/lifecycle"
-	cmsstore "github.com/odvcencio/gosx-cms/store"
-	"github.com/odvcencio/gosx-cms/store/memory"
+	"m31labs.dev/gosx-admin/blockstudio"
+	"m31labs.dev/gosx-cms/lifecycle"
+	cmsstore "m31labs.dev/gosx-cms/store"
+	"m31labs.dev/gosx-cms/store/memory"
 )
 
 func TestStoreContracts(t *testing.T) {

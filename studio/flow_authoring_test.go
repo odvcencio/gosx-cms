@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	cmsflows "github.com/odvcencio/gosx-cms/flows"
+	cmsflows "m31labs.dev/gosx-cms/flows"
 )
 
 func TestConfiguredFlowDefinitionsPrefersDraftThenPublicationThenDocument(t *testing.T) {

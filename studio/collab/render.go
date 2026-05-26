@@ -3,7 +3,7 @@ package collab
 import (
 	"fmt"
 
-	"github.com/odvcencio/gosx"
+	"m31labs.dev/gosx"
 )
 
 type RenderProposalOptions struct {

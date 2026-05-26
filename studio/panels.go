@@ -3,11 +3,11 @@ package studio
 import (
 	"strings"
 
-	"github.com/odvcencio/gosx"
-	"github.com/odvcencio/gosx-admin/blockstudio"
-	"github.com/odvcencio/gosx-admin/calendar"
-	"github.com/odvcencio/gosx-admin/workbench"
-	"github.com/odvcencio/gosx-cms/lifecycle"
+	"m31labs.dev/gosx"
+	"m31labs.dev/gosx-admin/blockstudio"
+	"m31labs.dev/gosx-admin/calendar"
+	"m31labs.dev/gosx-admin/workbench"
+	"m31labs.dev/gosx-cms/lifecycle"
 )
 
 type PanelHeadingOptions struct {

@@ -3,7 +3,7 @@ package studio
 import (
 	_ "embed"
 
-	"github.com/odvcencio/gosx"
+	"m31labs.dev/gosx"
 )
 
 //go:embed assets/command_palette.js

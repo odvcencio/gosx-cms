@@ -3,7 +3,7 @@ package collab
 import (
 	"strings"
 
-	admincollab "github.com/odvcencio/gosx-admin/blockstudio/collab"
+	admincollab "m31labs.dev/gosx-admin/blockstudio/collab"
 )
 
 type ProposalView struct {

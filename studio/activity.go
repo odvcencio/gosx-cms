@@ -3,8 +3,8 @@ package studio
 import (
 	"fmt"
 
-	"github.com/odvcencio/gosx"
-	studiocollab "github.com/odvcencio/gosx-cms/studio/collab"
+	"m31labs.dev/gosx"
+	studiocollab "m31labs.dev/gosx-cms/studio/collab"
 )
 
 type ActivityOptions struct {

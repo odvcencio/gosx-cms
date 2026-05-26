@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	cmsflows "github.com/odvcencio/gosx-cms/flows"
+	cmsflows "m31labs.dev/gosx-cms/flows"
 )
 
 type FlowDocumentDraftStore interface {

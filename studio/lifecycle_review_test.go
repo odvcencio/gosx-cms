@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/odvcencio/gosx-cms/lifecycle"
-	lifecyclesql "github.com/odvcencio/gosx-cms/lifecycle/sqlstore"
+	"m31labs.dev/gosx-cms/lifecycle"
+	lifecyclesql "m31labs.dev/gosx-cms/lifecycle/sqlstore"
 )
 
 func TestLifecycleReviewStateLoadsLedgerData(t *testing.T) {

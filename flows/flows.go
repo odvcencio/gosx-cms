@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/odvcencio/gosx-admin/blockstudio"
-	"github.com/odvcencio/gosx-admin/workbench"
+	"m31labs.dev/gosx-admin/blockstudio"
+	"m31labs.dev/gosx-admin/workbench"
 )
 
 type Definition struct {

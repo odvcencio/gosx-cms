@@ -5,8 +5,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/odvcencio/gosx"
-	"github.com/odvcencio/gosx-cms/lifecycle"
+	"m31labs.dev/gosx"
+	"m31labs.dev/gosx-cms/lifecycle"
 )
 
 type PreviewShareOptions struct {

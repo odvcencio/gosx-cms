@@ -1,10 +1,10 @@
-module github.com/odvcencio/gosx-cms
+module m31labs.dev/gosx-cms
 
 go 1.26
 
 require (
-	github.com/odvcencio/gosx v0.18.28
-	github.com/odvcencio/gosx-admin v0.1.1
+	m31labs.dev/gosx v0.18.28
+	m31labs.dev/gosx-admin v0.1.1
 	modernc.org/sqlite v1.50.1
 )
 

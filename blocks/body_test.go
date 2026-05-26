@@ -3,7 +3,7 @@ package blocks
 import (
 	"testing"
 
-	"github.com/odvcencio/gosx-admin/blockstudio"
+	"m31labs.dev/gosx-admin/blockstudio"
 )
 
 func TestBodyCatalogNormalizes(t *testing.T) {

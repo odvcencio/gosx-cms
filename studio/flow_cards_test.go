@@ -3,7 +3,7 @@ package studio
 import (
 	"testing"
 
-	cmsflows "github.com/odvcencio/gosx-cms/flows"
+	cmsflows "m31labs.dev/gosx-cms/flows"
 )
 
 func TestFlowCardsFromStudioFlowsBuildsReusableEditorModels(t *testing.T) {

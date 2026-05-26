@@ -5,8 +5,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/odvcencio/gosx-cms/lifecycle"
-	cmsstore "github.com/odvcencio/gosx-cms/store"
+	"m31labs.dev/gosx-cms/lifecycle"
+	cmsstore "m31labs.dev/gosx-cms/store"
 )
 
 func (s *Store) PreviewPage(id string, input cmsstore.PageInput) (cmsstore.Page, lifecycle.Revision, error) {

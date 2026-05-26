@@ -3,7 +3,7 @@ package studio
 import (
 	"testing"
 
-	"github.com/odvcencio/gosx-admin/workbench"
+	"m31labs.dev/gosx-admin/workbench"
 )
 
 func TestBuildWorkspaceSurfaceProjectsResourcesAndTools(t *testing.T) {

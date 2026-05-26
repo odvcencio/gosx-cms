@@ -10,9 +10,9 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/odvcencio/gosx-cms/lifecycle"
-	cmsstore "github.com/odvcencio/gosx-cms/store"
-	"github.com/odvcencio/gosx-cms/store/memory"
+	"m31labs.dev/gosx-cms/lifecycle"
+	cmsstore "m31labs.dev/gosx-cms/store"
+	"m31labs.dev/gosx-cms/store/memory"
 )
 
 type Option func(*options)

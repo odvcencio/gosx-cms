@@ -3,8 +3,8 @@ package studio
 import (
 	"strings"
 
-	"github.com/odvcencio/gosx"
-	cmsflows "github.com/odvcencio/gosx-cms/flows"
+	"m31labs.dev/gosx"
+	cmsflows "m31labs.dev/gosx-cms/flows"
 )
 
 type FlowEditorOptions struct {

@@ -1,6 +1,6 @@
 package blocks
 
-import "github.com/odvcencio/gosx-admin/blockstudio"
+import "m31labs.dev/gosx-admin/blockstudio"
 
 func HomeCatalog() []blockstudio.Definition {
 	return []blockstudio.Definition{

@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/odvcencio/gosx"
-	cmsstyle "github.com/odvcencio/gosx-cms/style"
+	"m31labs.dev/gosx"
+	cmsstyle "m31labs.dev/gosx-cms/style"
 )
 
 func TestRenderStyleScope(t *testing.T) {

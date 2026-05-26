@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/odvcencio/gosx"
-	admincollab "github.com/odvcencio/gosx-admin/blockstudio/collab"
+	"m31labs.dev/gosx"
+	admincollab "m31labs.dev/gosx-admin/blockstudio/collab"
 )
 
 func TestRenderProposalPanelWithPendingActions(t *testing.T) {
