@@ -1,4 +1,38 @@
-# GoSX CMS
+# GoSX CMS — frozen, folded into gosx-studio
+
+**This repository is frozen.** On 2026-07-06 all 13 packages were folded into
+[`m31labs.dev/gosx-studio`](https://github.com/M31-Labs/gosx-studio) as the
+`cms/` subtree, copied from this repo's `main` at commit `81dc8b0`. Full
+provenance (path mapping, source SHA, copy method) lives in
+`cms/PROVENANCE.md` in the gosx-studio repo.
+
+No further development happens here. The code below is left intact and
+`v0.2.1` (final tag) keeps resolving for existing consumers, but new work
+should target the folded paths in gosx-studio.
+
+**Import path mapping** (`m31labs.dev/gosx-cms/X` → `m31labs.dev/gosx-studio/cms/X`):
+
+| Old import path | New import path |
+|---|---|
+| `m31labs.dev/gosx-cms/blocks` | `m31labs.dev/gosx-studio/cms/blocks` |
+| `m31labs.dev/gosx-cms/content` | `m31labs.dev/gosx-studio/cms/content` |
+| `m31labs.dev/gosx-cms/flows` | `m31labs.dev/gosx-studio/cms/flows` |
+| `m31labs.dev/gosx-cms/lifecycle` | `m31labs.dev/gosx-studio/cms/lifecycle` |
+| `m31labs.dev/gosx-cms/lifecycle/sqlstore` | `m31labs.dev/gosx-studio/cms/lifecycle/sqlstore` |
+| `m31labs.dev/gosx-cms/media` | `m31labs.dev/gosx-studio/cms/media` |
+| `m31labs.dev/gosx-cms/render` | `m31labs.dev/gosx-studio/cms/render` |
+| `m31labs.dev/gosx-cms/store` | `m31labs.dev/gosx-studio/cms/store` |
+| `m31labs.dev/gosx-cms/store/file` | `m31labs.dev/gosx-studio/cms/store/file` |
+| `m31labs.dev/gosx-cms/store/memory` | `m31labs.dev/gosx-studio/cms/store/memory` |
+| `m31labs.dev/gosx-cms/style` | `m31labs.dev/gosx-studio/cms/style` |
+| `m31labs.dev/gosx-cms/studio` | `m31labs.dev/gosx-studio/cms/studio` |
+| `m31labs.dev/gosx-cms/studio/collab` | `m31labs.dev/gosx-studio/cms/studio/collab` |
+
+Migrate by a mechanical prefix sed: `m31labs.dev/gosx-cms/` → `m31labs.dev/gosx-studio/cms/`.
+
+---
+
+## GoSX CMS (historical description, frozen at v0.2.1)
 
 GoSX CMS is the opinionated content layer for GoSX applications.
 
