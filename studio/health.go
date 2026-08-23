@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"m31labs.dev/gosx"
+	gosxstudio "m31labs.dev/gosx-studio"
 )
 
 type HealthReport struct {
@@ -15,7 +16,7 @@ type HealthCheck struct {
 	Key         string
 	Label       string
 	Scope       string
-	Status      ReadinessStatus
+	Status      gosxstudio.ShellReadinessStatus
 	Value       string
 	Detail      string
 	Href        string
@@ -34,7 +35,7 @@ func NewHealthReport(checks ...HealthCheck) HealthReport {
 	return NormalizeHealthReport(HealthReport{Checks: checks})
 }
 
-func NewHealthCheck(key, label, scope string, status ReadinessStatus, value, detail string) HealthCheck {
+func NewHealthCheck(key, label, scope string, status gosxstudio.ShellReadinessStatus, value, detail string) HealthCheck {
 	return HealthCheck{
 		Key:    key,
 		Label:  label,
@@ -58,25 +59,25 @@ func (check HealthCheck) WithActionLabel(label string) HealthCheck {
 func NormalizeHealthReport(report HealthReport) HealthReport {
 	out := make([]HealthCheck, 0, len(report.Checks))
 	for _, check := range report.Checks {
-		check.Key = normalizeKey(check.Key)
+		check.Key = gosxstudio.NormalizeKey(check.Key)
 		check.Label = strings.TrimSpace(check.Label)
 		check.Scope = strings.TrimSpace(check.Scope)
-		check.Status = normalizeReadinessStatus(check.Status)
+		check.Status = gosxstudio.NormalizeShellReadinessStatus(check.Status)
 		check.Value = strings.TrimSpace(check.Value)
 		check.Detail = strings.TrimSpace(check.Detail)
 		check.Href = strings.TrimSpace(check.Href)
 		check.ActionLabel = strings.TrimSpace(check.ActionLabel)
 		if check.Key == "" {
-			check.Key = normalizeKey(check.Label)
+			check.Key = gosxstudio.NormalizeKey(check.Label)
 		}
 		if check.Scope == "" {
 			check.Scope = "Site"
 		}
 		if check.Value == "" {
-			check.Value = readinessStatusLabel(check.Status)
+			check.Value = gosxstudio.ShellReadinessStatusLabel(check.Status)
 		}
 		if check.ActionLabel == "" {
-			check.ActionLabel = readinessActionLabel(check.Status)
+			check.ActionLabel = gosxstudio.ShellReadinessActionLabel(check.Status)
 		}
 		if check.Key == "" || check.Label == "" {
 			continue
@@ -90,9 +91,9 @@ func (report HealthReport) Counts() (ready, watch, next, total int) {
 	normalized := NormalizeHealthReport(report)
 	for _, check := range normalized.Checks {
 		switch check.Status {
-		case ReadinessReady:
+		case gosxstudio.ShellReadinessReady:
 			ready++
-		case ReadinessNext:
+		case gosxstudio.ShellReadinessNext:
 			next++
 		default:
 			watch++
@@ -120,22 +121,22 @@ func HealthReportView(report HealthReport) map[string]any {
 }
 
 func RenderHealthPanel(report HealthReport, options HealthPanelOptions) gosx.Node {
-	className := firstNonEmpty(options.Class, "studio-health")
+	className := gosxstudio.FirstNonEmpty(options.Class, "studio-health")
 	report = NormalizeHealthReport(report)
 	ready, watch, next, _ := report.Counts()
 	children := []gosx.Node{
 		gosx.El("div", gosx.Attrs(gosx.Attr("class", className+"__head")),
 			gosx.El("div", nil,
-				gosx.El("p", gosx.Attrs(gosx.Attr("class", className+"__kicker")), gosx.Text(firstNonEmpty(options.Kicker, "Health"))),
-				gosx.El("h2", nil, gosx.Text(firstNonEmpty(options.Title, "Site health"))),
+				gosx.El("p", gosx.Attrs(gosx.Attr("class", className+"__kicker")), gosx.Text(gosxstudio.FirstNonEmpty(options.Kicker, "Health"))),
+				gosx.El("h2", nil, gosx.Text(gosxstudio.FirstNonEmpty(options.Title, "Site health"))),
 			),
 			gosx.El("output", gosx.Attrs(gosx.Attr("class", className+"__count")), gosx.Text(report.Summary())),
 		),
 	}
 	if len(report.Checks) == 0 {
 		children = append(children, gosx.El("article", gosx.Attrs(gosx.Attr("class", className+"__empty")),
-			gosx.El("strong", nil, gosx.Text(firstNonEmpty(options.EmptyTitle, "No health checks"))),
-			gosx.El("p", nil, gosx.Text(firstNonEmpty(options.EmptyDetail, "Register content, media, flow, and deployment checks to review site health before publish."))),
+			gosx.El("strong", nil, gosx.Text(gosxstudio.FirstNonEmpty(options.EmptyTitle, "No health checks"))),
+			gosx.El("p", nil, gosx.Text(gosxstudio.FirstNonEmpty(options.EmptyDetail, "Register content, media, flow, and deployment checks to review site health before publish."))),
 		))
 	} else {
 		children = append(children, gosx.El("div", gosx.Attrs(
@@ -161,19 +162,19 @@ func RenderHealthPanel(report HealthReport, options HealthPanelOptions) gosx.Nod
 func healthCheckViews(checks []HealthCheck) []map[string]any {
 	out := make([]map[string]any, 0, len(checks))
 	for _, check := range checks {
-		status := normalizeReadinessStatus(check.Status)
+		status := gosxstudio.NormalizeShellReadinessStatus(check.Status)
 		out = append(out, map[string]any{
 			"key":         check.Key,
 			"label":       check.Label,
 			"scope":       check.Scope,
 			"status":      string(status),
-			"statusLabel": readinessStatusLabel(status),
+			"statusLabel": gosxstudio.ShellReadinessStatusLabel(status),
 			"class":       "studio-health__card studio-health__card--" + string(status),
 			"value":       check.Value,
 			"detail":      check.Detail,
 			"href":        check.Href,
 			"hasHref":     check.Href != "",
-			"actionLabel": firstNonEmpty(check.ActionLabel, readinessActionLabel(status)),
+			"actionLabel": gosxstudio.FirstNonEmpty(check.ActionLabel, gosxstudio.ShellReadinessActionLabel(status)),
 		})
 	}
 	return out
@@ -186,7 +187,7 @@ func renderHealthCheck(className string, check HealthCheck) gosx.Node {
 				gosx.El("strong", nil, gosx.Text(check.Label)),
 				gosx.El("span", nil, gosx.Text(check.Scope)),
 			),
-			gosx.El("output", nil, gosx.Text(readinessStatusLabel(check.Status))),
+			gosx.El("output", nil, gosx.Text(gosxstudio.ShellReadinessStatusLabel(check.Status))),
 		),
 		gosx.El("p", gosx.Attrs(gosx.Attr("class", className+"__value")), gosx.Text(check.Value)),
 	}

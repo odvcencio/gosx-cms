@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"m31labs.dev/gosx"
+	gosxstudio "m31labs.dev/gosx-studio"
 )
 
 type PublishReview struct {
@@ -14,7 +15,7 @@ type PublishReview struct {
 	ResourceID         string
 	Title              string
 	Summary            string
-	Status             ReadinessStatus
+	Status             gosxstudio.ShellReadinessStatus
 	Approval           PublishApproval
 	Schedule           PublishSchedule
 	Checks             []PublishCheck
@@ -27,7 +28,7 @@ type PublishCheck struct {
 	Key         string
 	Label       string
 	Scope       string
-	Status      ReadinessStatus
+	Status      gosxstudio.ShellReadinessStatus
 	Summary     string
 	Detail      string
 	Href        string
@@ -40,7 +41,7 @@ type PublishImpact struct {
 	Scope  string
 	Value  string
 	Detail string
-	Status ReadinessStatus
+	Status gosxstudio.ShellReadinessStatus
 }
 
 type PublishApproval struct {
@@ -50,7 +51,7 @@ type PublishApproval struct {
 	Reviewer    string
 	Summary     string
 	Detail      string
-	Status      ReadinessStatus
+	Status      gosxstudio.ShellReadinessStatus
 	Href        string
 	ActionLabel string
 }
@@ -63,7 +64,7 @@ type PublishSchedule struct {
 	Timezone    string
 	Summary     string
 	Detail      string
-	Status      ReadinessStatus
+	Status      gosxstudio.ShellReadinessStatus
 	Href        string
 	ActionLabel string
 }
@@ -81,7 +82,7 @@ func NewPublishReview(checks ...PublishCheck) PublishReview {
 	return NormalizePublishReview(PublishReview{Checks: checks})
 }
 
-func NewPublishCheck(key, label, scope string, status ReadinessStatus, summary, detail string) PublishCheck {
+func NewPublishCheck(key, label, scope string, status gosxstudio.ShellReadinessStatus, summary, detail string) PublishCheck {
 	return PublishCheck{
 		Key:     key,
 		Label:   label,
@@ -102,7 +103,7 @@ func (check PublishCheck) WithActionLabel(label string) PublishCheck {
 	return check
 }
 
-func NewPublishImpact(key, label, scope, value, detail string, status ReadinessStatus) PublishImpact {
+func NewPublishImpact(key, label, scope, value, detail string, status gosxstudio.ShellReadinessStatus) PublishImpact {
 	return PublishImpact{
 		Key:    key,
 		Label:  label,
@@ -114,7 +115,7 @@ func NewPublishImpact(key, label, scope, value, detail string, status ReadinessS
 }
 
 func NormalizePublishReview(review PublishReview) PublishReview {
-	review.Key = normalizeKey(review.Key)
+	review.Key = gosxstudio.NormalizeKey(review.Key)
 	review.ResourceKind = strings.TrimSpace(review.ResourceKind)
 	review.ResourceID = strings.TrimSpace(review.ResourceID)
 	review.Title = strings.TrimSpace(review.Title)
@@ -126,7 +127,7 @@ func NormalizePublishReview(review PublishReview) PublishReview {
 	review.Checks = normalizePublishChecks(review.Checks)
 	review.Impacts = normalizePublishImpacts(review.Impacts)
 	if review.Key == "" {
-		review.Key = normalizeKey(firstNonEmpty(review.ResourceID, review.Title, review.ResourceKind, "publish-review"))
+		review.Key = gosxstudio.NormalizeKey(gosxstudio.FirstNonEmpty(review.ResourceID, review.Title, review.ResourceKind, "publish-review"))
 	}
 	if review.ResourceKind == "" {
 		review.ResourceKind = "Site"
@@ -134,8 +135,8 @@ func NormalizePublishReview(review PublishReview) PublishReview {
 	if review.Title == "" {
 		review.Title = "Publish review"
 	}
-	review.Status = normalizeReadinessStatus(review.Status)
-	if review.Status == ReadinessWatch && (len(review.Checks) > 0 || hasPublishApproval(review.Approval) || hasPublishSchedule(review.Schedule)) {
+	review.Status = gosxstudio.NormalizeShellReadinessStatus(review.Status)
+	if review.Status == gosxstudio.ShellReadinessWatch && (len(review.Checks) > 0 || hasPublishApproval(review.Approval) || hasPublishSchedule(review.Schedule)) {
 		review.Status = derivedPublishStatus(review.Checks, review.Approval, review.Schedule)
 	}
 	if review.Summary == "" {
@@ -143,7 +144,7 @@ func NormalizePublishReview(review PublishReview) PublishReview {
 		review.Summary = fmt.Sprintf("%d/%d clear", ready, total)
 	}
 	if review.PrimaryActionLabel == "" {
-		review.PrimaryActionLabel = readinessActionLabel(review.Status)
+		review.PrimaryActionLabel = gosxstudio.ShellReadinessActionLabel(review.Status)
 	}
 	return review
 }
@@ -155,9 +156,9 @@ func (review PublishReview) Counts() (ready, watch, next, total int) {
 func publishCheckCounts(checks []PublishCheck) (ready, watch, next, total int) {
 	for _, check := range checks {
 		switch check.Status {
-		case ReadinessReady:
+		case gosxstudio.ShellReadinessReady:
 			ready++
-		case ReadinessNext:
+		case gosxstudio.ShellReadinessNext:
 			next++
 		default:
 			watch++
@@ -181,7 +182,7 @@ func PublishReviewView(review PublishReview) map[string]any {
 		"title":              review.Title,
 		"summary":            review.Summary,
 		"status":             string(review.Status),
-		"statusLabel":        readinessStatusLabel(review.Status),
+		"statusLabel":        gosxstudio.ShellReadinessStatusLabel(review.Status),
 		"readyCount":         ready,
 		"watchCount":         watch,
 		"nextCount":          next,
@@ -199,14 +200,14 @@ func PublishReviewView(review PublishReview) map[string]any {
 }
 
 func RenderPublishReviewPanel(review PublishReview, options PublishReviewOptions) gosx.Node {
-	className := firstNonEmpty(options.Class, "studio-publish-review")
+	className := gosxstudio.FirstNonEmpty(options.Class, "studio-publish-review")
 	review = NormalizePublishReview(review)
 	ready, watch, next, _ := review.Counts()
 	children := []gosx.Node{
 		gosx.El("div", gosx.Attrs(gosx.Attr("class", className+"__head")),
 			gosx.El("div", nil,
-				gosx.El("p", gosx.Attrs(gosx.Attr("class", className+"__kicker")), gosx.Text(firstNonEmpty(options.Kicker, review.ResourceKind))),
-				gosx.El("h2", nil, gosx.Text(firstNonEmpty(options.Title, review.Title))),
+				gosx.El("p", gosx.Attrs(gosx.Attr("class", className+"__kicker")), gosx.Text(gosxstudio.FirstNonEmpty(options.Kicker, review.ResourceKind))),
+				gosx.El("h2", nil, gosx.Text(gosxstudio.FirstNonEmpty(options.Title, review.Title))),
 			),
 			gosx.El("output", gosx.Attrs(gosx.Attr("class", className+"__count")), gosx.Text(review.CountSummary())),
 		),
@@ -217,8 +218,8 @@ func RenderPublishReviewPanel(review PublishReview, options PublishReviewOptions
 	}
 	if len(review.Checks) == 0 {
 		children = append(children, gosx.El("article", gosx.Attrs(gosx.Attr("class", className+"__empty")),
-			gosx.El("strong", nil, gosx.Text(firstNonEmpty(options.EmptyTitle, "No publish checks"))),
-			gosx.El("p", nil, gosx.Text(firstNonEmpty(options.EmptyDetail, "Register content, approval, flow, and deployment checks before publish."))),
+			gosx.El("strong", nil, gosx.Text(gosxstudio.FirstNonEmpty(options.EmptyTitle, "No publish checks"))),
+			gosx.El("p", nil, gosx.Text(gosxstudio.FirstNonEmpty(options.EmptyDetail, "Register content, approval, flow, and deployment checks before publish."))),
 		))
 	} else {
 		children = append(children, gosx.El("div", gosx.Attrs(
@@ -236,7 +237,7 @@ func RenderPublishReviewPanel(review PublishReview, options PublishReviewOptions
 		children = append(children, gosx.El("div", gosx.Attrs(gosx.Attr("class", className+"__list")), gosx.Fragment(items...)))
 	}
 	if len(review.Impacts) > 0 {
-		children = append(children, renderPublishImpacts(className, firstNonEmpty(options.ImpactTitle, "Publish impact"), review.Impacts))
+		children = append(children, renderPublishImpacts(className, gosxstudio.FirstNonEmpty(options.ImpactTitle, "Publish impact"), review.Impacts))
 	}
 	if review.PrimaryHref != "" {
 		children = append(children, gosx.El("a", gosx.Attrs(
@@ -255,25 +256,25 @@ func RenderPublishReviewPanel(review PublishReview, options PublishReviewOptions
 func normalizePublishChecks(checks []PublishCheck) []PublishCheck {
 	out := make([]PublishCheck, 0, len(checks))
 	for _, check := range checks {
-		check.Key = normalizeKey(check.Key)
+		check.Key = gosxstudio.NormalizeKey(check.Key)
 		check.Label = strings.TrimSpace(check.Label)
 		check.Scope = strings.TrimSpace(check.Scope)
-		check.Status = normalizeReadinessStatus(check.Status)
+		check.Status = gosxstudio.NormalizeShellReadinessStatus(check.Status)
 		check.Summary = strings.TrimSpace(check.Summary)
 		check.Detail = strings.TrimSpace(check.Detail)
 		check.Href = strings.TrimSpace(check.Href)
 		check.ActionLabel = strings.TrimSpace(check.ActionLabel)
 		if check.Key == "" {
-			check.Key = normalizeKey(check.Label)
+			check.Key = gosxstudio.NormalizeKey(check.Label)
 		}
 		if check.Scope == "" {
 			check.Scope = "Site"
 		}
 		if check.Summary == "" {
-			check.Summary = readinessStatusLabel(check.Status)
+			check.Summary = gosxstudio.ShellReadinessStatusLabel(check.Status)
 		}
 		if check.ActionLabel == "" {
-			check.ActionLabel = readinessActionLabel(check.Status)
+			check.ActionLabel = gosxstudio.ShellReadinessActionLabel(check.Status)
 		}
 		if check.Key == "" || check.Label == "" {
 			continue
@@ -286,14 +287,14 @@ func normalizePublishChecks(checks []PublishCheck) []PublishCheck {
 func normalizePublishImpacts(impacts []PublishImpact) []PublishImpact {
 	out := make([]PublishImpact, 0, len(impacts))
 	for _, impact := range impacts {
-		impact.Key = normalizeKey(impact.Key)
+		impact.Key = gosxstudio.NormalizeKey(impact.Key)
 		impact.Label = strings.TrimSpace(impact.Label)
 		impact.Scope = strings.TrimSpace(impact.Scope)
 		impact.Value = strings.TrimSpace(impact.Value)
 		impact.Detail = strings.TrimSpace(impact.Detail)
-		impact.Status = normalizeReadinessStatus(impact.Status)
+		impact.Status = gosxstudio.NormalizeShellReadinessStatus(impact.Status)
 		if impact.Key == "" {
-			impact.Key = normalizeKey(impact.Label)
+			impact.Key = gosxstudio.NormalizeKey(impact.Label)
 		}
 		if impact.Scope == "" {
 			impact.Scope = "Site"
@@ -319,17 +320,17 @@ func normalizePublishApproval(approval PublishApproval) PublishApproval {
 	if approval.Label == "" {
 		approval.Label = "Approval"
 	}
-	approval.Status = normalizeReadinessStatus(approval.Status)
+	approval.Status = gosxstudio.NormalizeShellReadinessStatus(approval.Status)
 	if hasPublishApproval(approval) {
 		switch {
 		case approval.Approved:
-			approval.Status = ReadinessReady
-		case approval.Required && approval.Status == ReadinessWatch:
-			approval.Status = ReadinessNext
+			approval.Status = gosxstudio.ShellReadinessReady
+		case approval.Required && approval.Status == gosxstudio.ShellReadinessWatch:
+			approval.Status = gosxstudio.ShellReadinessNext
 		}
 		if approval.Summary == "" {
 			if approval.Approved {
-				approval.Summary = firstNonEmpty(approval.Reviewer, "Approved")
+				approval.Summary = gosxstudio.FirstNonEmpty(approval.Reviewer, "Approved")
 			} else if approval.Required {
 				approval.Summary = "Approval required"
 			} else {
@@ -344,7 +345,7 @@ func normalizePublishApproval(approval PublishApproval) PublishApproval {
 			}
 		}
 		if approval.ActionLabel == "" {
-			approval.ActionLabel = readinessActionLabel(approval.Status)
+			approval.ActionLabel = gosxstudio.ShellReadinessActionLabel(approval.Status)
 		}
 	}
 	return approval
@@ -360,13 +361,13 @@ func normalizePublishSchedule(schedule PublishSchedule) PublishSchedule {
 	if schedule.Label == "" {
 		schedule.Label = "Schedule"
 	}
-	schedule.Status = normalizeReadinessStatus(schedule.Status)
+	schedule.Status = gosxstudio.NormalizeShellReadinessStatus(schedule.Status)
 	if hasPublishSchedule(schedule) {
 		if schedule.Enabled {
-			if schedule.PublishAt.IsZero() && schedule.Status == ReadinessWatch {
-				schedule.Status = ReadinessNext
+			if schedule.PublishAt.IsZero() && schedule.Status == gosxstudio.ShellReadinessWatch {
+				schedule.Status = gosxstudio.ShellReadinessNext
 			} else if !schedule.PublishAt.IsZero() {
-				schedule.Status = ReadinessReady
+				schedule.Status = gosxstudio.ShellReadinessReady
 			}
 		}
 		if schedule.Summary == "" {
@@ -386,7 +387,7 @@ func normalizePublishSchedule(schedule PublishSchedule) PublishSchedule {
 			}
 		}
 		if schedule.ActionLabel == "" {
-			schedule.ActionLabel = readinessActionLabel(schedule.Status)
+			schedule.ActionLabel = gosxstudio.ShellReadinessActionLabel(schedule.Status)
 		}
 	}
 	return schedule
@@ -410,54 +411,54 @@ func hasPublishSchedule(schedule PublishSchedule) bool {
 		strings.TrimSpace(schedule.Href) != ""
 }
 
-func derivedPublishStatus(checks []PublishCheck, approval PublishApproval, schedule PublishSchedule) ReadinessStatus {
-	status := ReadinessReady
+func derivedPublishStatus(checks []PublishCheck, approval PublishApproval, schedule PublishSchedule) gosxstudio.ShellReadinessStatus {
+	status := gosxstudio.ShellReadinessReady
 	for _, check := range checks {
-		status = highestReadinessStatus(status, normalizeReadinessStatus(check.Status))
-		if status == ReadinessNext {
+		status = highestReadinessStatus(status, gosxstudio.NormalizeShellReadinessStatus(check.Status))
+		if status == gosxstudio.ShellReadinessNext {
 			return status
 		}
 	}
 	if hasPublishApproval(approval) {
-		status = highestReadinessStatus(status, normalizeReadinessStatus(approval.Status))
+		status = highestReadinessStatus(status, gosxstudio.NormalizeShellReadinessStatus(approval.Status))
 	}
-	if status == ReadinessNext {
+	if status == gosxstudio.ShellReadinessNext {
 		return status
 	}
 	if hasPublishSchedule(schedule) {
-		status = highestReadinessStatus(status, normalizeReadinessStatus(schedule.Status))
+		status = highestReadinessStatus(status, gosxstudio.NormalizeShellReadinessStatus(schedule.Status))
 	}
 	return status
 }
 
-func highestReadinessStatus(current, candidate ReadinessStatus) ReadinessStatus {
-	current = normalizeReadinessStatus(current)
-	candidate = normalizeReadinessStatus(candidate)
-	if current == ReadinessNext || candidate == ReadinessNext {
-		return ReadinessNext
+func highestReadinessStatus(current, candidate gosxstudio.ShellReadinessStatus) gosxstudio.ShellReadinessStatus {
+	current = gosxstudio.NormalizeShellReadinessStatus(current)
+	candidate = gosxstudio.NormalizeShellReadinessStatus(candidate)
+	if current == gosxstudio.ShellReadinessNext || candidate == gosxstudio.ShellReadinessNext {
+		return gosxstudio.ShellReadinessNext
 	}
-	if current == ReadinessWatch || candidate == ReadinessWatch {
-		return ReadinessWatch
+	if current == gosxstudio.ShellReadinessWatch || candidate == gosxstudio.ShellReadinessWatch {
+		return gosxstudio.ShellReadinessWatch
 	}
-	return ReadinessReady
+	return gosxstudio.ShellReadinessReady
 }
 
 func publishCheckViews(checks []PublishCheck) []map[string]any {
 	out := make([]map[string]any, 0, len(checks))
 	for _, check := range checks {
-		status := normalizeReadinessStatus(check.Status)
+		status := gosxstudio.NormalizeShellReadinessStatus(check.Status)
 		out = append(out, map[string]any{
 			"key":         check.Key,
 			"label":       check.Label,
 			"scope":       check.Scope,
 			"status":      string(status),
-			"statusLabel": readinessStatusLabel(status),
+			"statusLabel": gosxstudio.ShellReadinessStatusLabel(status),
 			"class":       "studio-publish-review__card studio-publish-review__card--" + string(status),
 			"summary":     check.Summary,
 			"detail":      check.Detail,
 			"href":        check.Href,
 			"hasHref":     check.Href != "",
-			"actionLabel": firstNonEmpty(check.ActionLabel, readinessActionLabel(status)),
+			"actionLabel": gosxstudio.FirstNonEmpty(check.ActionLabel, gosxstudio.ShellReadinessActionLabel(status)),
 		})
 	}
 	return out
@@ -465,7 +466,7 @@ func publishCheckViews(checks []PublishCheck) []map[string]any {
 
 func publishApprovalView(approval PublishApproval) map[string]any {
 	approval = normalizePublishApproval(approval)
-	status := normalizeReadinessStatus(approval.Status)
+	status := gosxstudio.NormalizeShellReadinessStatus(approval.Status)
 	return map[string]any{
 		"required":    approval.Required,
 		"approved":    approval.Approved,
@@ -474,17 +475,17 @@ func publishApprovalView(approval PublishApproval) map[string]any {
 		"summary":     approval.Summary,
 		"detail":      approval.Detail,
 		"status":      string(status),
-		"statusLabel": readinessStatusLabel(status),
+		"statusLabel": gosxstudio.ShellReadinessStatusLabel(status),
 		"class":       "studio-publish-review__decision-card studio-publish-review__decision-card--" + string(status),
 		"href":        approval.Href,
 		"hasHref":     approval.Href != "",
-		"actionLabel": firstNonEmpty(approval.ActionLabel, readinessActionLabel(status)),
+		"actionLabel": gosxstudio.FirstNonEmpty(approval.ActionLabel, gosxstudio.ShellReadinessActionLabel(status)),
 	}
 }
 
 func publishScheduleView(schedule PublishSchedule) map[string]any {
 	schedule = normalizePublishSchedule(schedule)
-	status := normalizeReadinessStatus(schedule.Status)
+	status := gosxstudio.NormalizeShellReadinessStatus(schedule.Status)
 	publishAt := ""
 	unpublishAt := ""
 	if !schedule.PublishAt.IsZero() {
@@ -502,18 +503,18 @@ func publishScheduleView(schedule PublishSchedule) map[string]any {
 		"summary":     schedule.Summary,
 		"detail":      schedule.Detail,
 		"status":      string(status),
-		"statusLabel": readinessStatusLabel(status),
+		"statusLabel": gosxstudio.ShellReadinessStatusLabel(status),
 		"class":       "studio-publish-review__decision-card studio-publish-review__decision-card--" + string(status),
 		"href":        schedule.Href,
 		"hasHref":     schedule.Href != "",
-		"actionLabel": firstNonEmpty(schedule.ActionLabel, readinessActionLabel(status)),
+		"actionLabel": gosxstudio.FirstNonEmpty(schedule.ActionLabel, gosxstudio.ShellReadinessActionLabel(status)),
 	}
 }
 
 func publishImpactViews(impacts []PublishImpact) []map[string]any {
 	out := make([]map[string]any, 0, len(impacts))
 	for _, impact := range impacts {
-		status := normalizeReadinessStatus(impact.Status)
+		status := gosxstudio.NormalizeShellReadinessStatus(impact.Status)
 		out = append(out, map[string]any{
 			"key":         impact.Key,
 			"label":       impact.Label,
@@ -521,7 +522,7 @@ func publishImpactViews(impacts []PublishImpact) []map[string]any {
 			"value":       impact.Value,
 			"detail":      impact.Detail,
 			"status":      string(status),
-			"statusLabel": readinessStatusLabel(status),
+			"statusLabel": gosxstudio.ShellReadinessStatusLabel(status),
 			"class":       "studio-publish-review__impact studio-publish-review__impact--" + string(status),
 		})
 	}
@@ -535,7 +536,7 @@ func renderPublishCheck(className string, check PublishCheck) gosx.Node {
 				gosx.El("strong", nil, gosx.Text(check.Label)),
 				gosx.El("span", nil, gosx.Text(check.Scope)),
 			),
-			gosx.El("output", nil, gosx.Text(readinessStatusLabel(check.Status))),
+			gosx.El("output", nil, gosx.Text(gosxstudio.ShellReadinessStatusLabel(check.Status))),
 		),
 		gosx.El("p", gosx.Attrs(gosx.Attr("class", className+"__check-summary")), gosx.Text(check.Summary)),
 	}
@@ -568,11 +569,11 @@ func renderPublishDecision(className string, approval PublishApproval, schedule 
 	), gosx.Fragment(items...))
 }
 
-func renderPublishDecisionCard(className, key, label, summary, detail string, status ReadinessStatus, href, actionLabel string) gosx.Node {
+func renderPublishDecisionCard(className, key, label, summary, detail string, status gosxstudio.ShellReadinessStatus, href, actionLabel string) gosx.Node {
 	children := []gosx.Node{
 		gosx.El("div", gosx.Attrs(gosx.Attr("class", className+"__decision-head")),
 			gosx.El("strong", nil, gosx.Text(label)),
-			gosx.El("output", nil, gosx.Text(readinessStatusLabel(status))),
+			gosx.El("output", nil, gosx.Text(gosxstudio.ShellReadinessStatusLabel(status))),
 		),
 		gosx.El("p", gosx.Attrs(gosx.Attr("class", className+"__decision-summary")), gosx.Text(summary)),
 	}

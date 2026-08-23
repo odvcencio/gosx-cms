@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"m31labs.dev/gosx"
+	gosxstudio "m31labs.dev/gosx-studio"
 )
 
 func TestRenderCommandPalette(t *testing.T) {
@@ -59,11 +60,11 @@ func TestNormalizeCommandsDedupeAndDefaults(t *testing.T) {
 
 func TestStudioCommandsBuildsDefaultBlocksAndFlows(t *testing.T) {
 	commands := StudioCommands(StudioCommandOptions{
-		Shell: Shell{
-			Modes:     []Mode{NewMode("structure", "Structure", true)},
-			Viewports: []Viewport{NewViewport("desktop", "Desktop", "100%", true)},
-			Canvas:    CanvasSurface{Zoom: "fit"},
-			Actions: []Action{
+		Shell: gosxstudio.Shell{
+			Modes:     []gosxstudio.Mode{gosxstudio.NewMode("structure", "Structure", true)},
+			Viewports: []gosxstudio.Viewport{gosxstudio.NewViewport("desktop", "Desktop", "100%", true)},
+			Canvas:    gosxstudio.CanvasSurface{Zoom: "fit"},
+			Actions: []gosxstudio.Action{
 				{Key: "public", Label: "Public site", Href: "/"},
 				{Key: "save", Label: "Save", Href: "/save"},
 			},
@@ -96,7 +97,7 @@ func TestStudioCommandsBuildsDefaultBlocksAndFlows(t *testing.T) {
 }
 
 func TestShellActionCommandsBuildLinks(t *testing.T) {
-	commands := ShellActionCommands([]Action{
+	commands := ShellActionCommands([]gosxstudio.Action{
 		{Key: "public", Label: "Public site", Href: "/"},
 		{Key: "preview", Label: "Preview storefront", Href: "/admin/storefront", Primary: true},
 		{Key: "save", Label: "Save", Href: "/save"},

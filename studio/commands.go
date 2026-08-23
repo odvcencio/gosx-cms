@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"m31labs.dev/gosx"
+	gosxstudio "m31labs.dev/gosx-studio"
 )
 
 type CommandKind string
@@ -45,12 +46,12 @@ type CommandPaletteOptions struct {
 }
 
 func RenderCommandPalette(options CommandPaletteOptions) gosx.Node {
-	className := firstNonEmpty(options.Class, "gosx-studio__command-palette")
-	launcher := firstNonEmpty(options.Launcher, "Command")
-	title := firstNonEmpty(options.Title, "Command palette")
-	searchHint := firstNonEmpty(options.SearchHint, "Search actions, blocks, routes, and modes")
-	emptyTitle := firstNonEmpty(options.EmptyTitle, "No commands")
-	emptyDetail := firstNonEmpty(options.EmptyDetail, "Try a different search.")
+	className := gosxstudio.FirstNonEmpty(options.Class, "gosx-studio__command-palette")
+	launcher := gosxstudio.FirstNonEmpty(options.Launcher, "Command")
+	title := gosxstudio.FirstNonEmpty(options.Title, "Command palette")
+	searchHint := gosxstudio.FirstNonEmpty(options.SearchHint, "Search actions, blocks, routes, and modes")
+	emptyTitle := gosxstudio.FirstNonEmpty(options.EmptyTitle, "No commands")
+	emptyDetail := gosxstudio.FirstNonEmpty(options.EmptyDetail, "Try a different search.")
 	listID := "studio-command-list"
 	commands := normalizeCommands(options.Commands)
 	commandNodes := make([]gosx.Node, 0, len(commands))
@@ -163,7 +164,7 @@ func normalizeCommands(commands []Command) []Command {
 	out := make([]Command, 0, len(commands))
 	seen := map[string]bool{}
 	for _, command := range commands {
-		command.Key = normalizeKey(command.Key)
+		command.Key = gosxstudio.NormalizeKey(command.Key)
 		command.Label = strings.TrimSpace(command.Label)
 		command.Summary = strings.TrimSpace(command.Summary)
 		command.Group = strings.TrimSpace(command.Group)
@@ -172,7 +173,7 @@ func normalizeCommands(commands []Command) []Command {
 		command.Shortcut = strings.TrimSpace(command.Shortcut)
 		command.Kind = normalizeCommandKind(command.Kind)
 		if command.Key == "" {
-			command.Key = normalizeKey(string(command.Kind) + "-" + firstNonEmpty(command.Target, command.Href, command.Label))
+			command.Key = gosxstudio.NormalizeKey(string(command.Kind) + "-" + gosxstudio.FirstNonEmpty(command.Target, command.Href, command.Label))
 		}
 		if command.Label == "" || seen[command.Key] {
 			continue

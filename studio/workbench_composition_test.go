@@ -5,17 +5,16 @@ import (
 	"testing"
 
 	"m31labs.dev/gosx"
+	gosxstudio "m31labs.dev/gosx-studio"
 )
 
 func TestComposeWorkbenchBuildsSharedEditorBundle(t *testing.T) {
-	shell := New(Options{
+	shell := gosxstudio.New(gosxstudio.Options{
 		Title:      "Test Studio",
 		PreviewURL: "/",
 		SaveAction: "/admin/editor/__actions/save",
-		Metrics: []Metric{
-			NewMetric("flows", "Flows", 2),
-		},
-		Canvas: CanvasSurface{RouteLabel: "Website map", SelectionLabel: "Home", Zoom: "fit", Focus: true},
+		Metrics:    []gosxstudio.Metric{gosxstudio.NewMetric("flows", "Flows", 2)},
+		Canvas:     gosxstudio.CanvasSurface{RouteLabel: "Website map", SelectionLabel: "Home", Zoom: "fit", Focus: true},
 	})
 	commands := []Command{{Key: "save", Label: "Save", Kind: CommandSubmit, Target: "save"}}
 	commandNode := RenderCommandPalette(CommandPaletteOptions{Class: "studio-command-palette", Commands: commands})
@@ -29,10 +28,10 @@ func TestComposeWorkbenchBuildsSharedEditorBundle(t *testing.T) {
 		},
 		SaveStatus: SaveStatusOptions{Class: "studio-save-status"},
 		Health: NewHealthReport(
-			NewHealthCheck("site", "Site", "Studio", ReadinessReady, "Ready", "Ready to publish."),
+			NewHealthCheck("site", "Site", "Studio", gosxstudio.ShellReadinessReady, "Ready", "Ready to publish."),
 		),
 		PublishReview: NewPublishReview(
-			NewPublishCheck("site", "Site", "Studio", ReadinessReady, "Ready", "Ready to publish."),
+			NewPublishCheck("site", "Site", "Studio", gosxstudio.ShellReadinessReady, "Ready", "Ready to publish."),
 		),
 		IncludeHealthPanel:        true,
 		IncludePublishReviewPanel: true,
@@ -72,13 +71,13 @@ func TestComposeWorkbenchBuildsSharedEditorBundle(t *testing.T) {
 }
 
 func TestRenderReusableWorkbenchPanels(t *testing.T) {
-	shell := New(Options{
+	shell := gosxstudio.New(gosxstudio.Options{
 		Title:      "Panel Studio",
 		PreviewURL: "/",
-		Metrics:    []Metric{NewMetric("flows", "Flows", 4)},
-		Navigation: []Section{{Key: "site", Label: "Site", Summary: "Pages"}},
-		Left:       []Panel{NewPanel("layers", "Layers", "Page layers")},
-		Right:      []Panel{NewPanel("inspector", "Inspector", "Selection fields")},
+		Metrics:    []gosxstudio.Metric{gosxstudio.NewMetric("flows", "Flows", 4)},
+		Navigation: []gosxstudio.Section{{Key: "site", Label: "Site", Summary: "Pages"}},
+		Left:       []gosxstudio.Panel{gosxstudio.NewPanel("layers", "Layers", "Page layers")},
+		Right:      []gosxstudio.Panel{gosxstudio.NewPanel("inspector", "Inspector", "Selection fields")},
 	})
 	html := gosx.RenderHTML(gosx.Fragment(
 		RenderMetricCards(shell.Metrics, MetricCardsOptions{}),

@@ -2,6 +2,7 @@ package studio
 
 import (
 	"fmt"
+	gosxstudio "m31labs.dev/gosx-studio"
 	"strings"
 	"time"
 )
@@ -18,7 +19,7 @@ type StudioDocument struct {
 	Key      string
 	Label    string
 	Summary  string
-	Status   ReadinessStatus
+	Status   gosxstudio.ShellReadinessStatus
 	Pages    []StudioPage
 	Content  []StudioContent
 	Styles   []StudioStyle
@@ -32,7 +33,7 @@ type StudioPage struct {
 	Label       string
 	Path        string
 	Summary     string
-	Status      ReadinessStatus
+	Status      gosxstudio.ShellReadinessStatus
 	ParentKey   string
 	ContentKeys []string
 	StyleKeys   []string
@@ -40,7 +41,7 @@ type StudioPage struct {
 	ReleaseKeys []string
 	Href        string
 	View        StudioDocumentNodeView
-	Metrics     []Metric
+	Metrics     []gosxstudio.Metric
 	Tags        []string
 }
 
@@ -49,10 +50,10 @@ type StudioContent struct {
 	Label   string
 	Kind    string
 	Summary string
-	Status  ReadinessStatus
+	Status  gosxstudio.ShellReadinessStatus
 	Href    string
 	View    StudioDocumentNodeView
-	Metrics []Metric
+	Metrics []gosxstudio.Metric
 	Tags    []string
 }
 
@@ -61,11 +62,11 @@ type StudioStyle struct {
 	Label   string
 	Scope   string
 	Summary string
-	Status  ReadinessStatus
+	Status  gosxstudio.ShellReadinessStatus
 	Tokens  map[string]string
 	Href    string
 	View    StudioDocumentNodeView
-	Metrics []Metric
+	Metrics []gosxstudio.Metric
 	Tags    []string
 }
 
@@ -75,12 +76,12 @@ type StudioFlow struct {
 	Trigger    string
 	Route      string
 	Summary    string
-	Status     ReadinessStatus
+	Status     gosxstudio.ShellReadinessStatus
 	StepCount  int
 	Executable bool
 	Href       string
 	View       StudioDocumentNodeView
-	Metrics    []Metric
+	Metrics    []gosxstudio.Metric
 	Tags       []string
 }
 
@@ -88,11 +89,11 @@ type StudioRelease struct {
 	Key         string
 	Label       string
 	Summary     string
-	Status      ReadinessStatus
+	Status      gosxstudio.ShellReadinessStatus
 	ScheduledAt time.Time
 	Href        string
 	View        StudioDocumentNodeView
-	Metrics     []Metric
+	Metrics     []gosxstudio.Metric
 	Tags        []string
 }
 
@@ -127,20 +128,20 @@ type StudioDocumentNode struct {
 	Kind    string
 	Label   string
 	Summary string
-	Status  ReadinessStatus
+	Status  gosxstudio.ShellReadinessStatus
 	Href    string
 	View    StudioDocumentNodeView
-	Metrics []Metric
+	Metrics []gosxstudio.Metric
 	Tags    []string
 }
 
 func NormalizeStudioDocument(document StudioDocument) StudioDocument {
-	document.Key = normalizeKey(document.Key)
+	document.Key = gosxstudio.NormalizeKey(document.Key)
 	document.Label = strings.TrimSpace(document.Label)
 	document.Summary = strings.TrimSpace(document.Summary)
-	document.Status = normalizeReadinessStatus(document.Status)
+	document.Status = gosxstudio.NormalizeShellReadinessStatus(document.Status)
 	if document.Key == "" {
-		document.Key = normalizeKey(firstNonEmpty(document.Label, "studio-document"))
+		document.Key = gosxstudio.NormalizeKey(gosxstudio.FirstNonEmpty(document.Label, "studio-document"))
 	}
 	if document.Label == "" {
 		document.Label = "Studio document"
@@ -175,7 +176,7 @@ func (document StudioDocument) ViewMaps() StudioDocumentViewMaps {
 	}
 	for _, page := range document.Pages {
 		maps.Pages[page.Key] = page
-		maps.Nodes[page.Key] = StudioDocumentNode{Key: page.Key, Kind: StudioDocumentNodePage, Label: page.Label, Summary: page.Summary, Status: page.Status, Href: firstNonEmpty(page.Href, page.Path), View: page.View, Metrics: page.Metrics, Tags: page.Tags}
+		maps.Nodes[page.Key] = StudioDocumentNode{Key: page.Key, Kind: StudioDocumentNodePage, Label: page.Label, Summary: page.Summary, Status: page.Status, Href: gosxstudio.FirstNonEmpty(page.Href, page.Path), View: page.View, Metrics: page.Metrics, Tags: page.Tags}
 	}
 	for _, content := range document.Content {
 		maps.Content[content.Key] = content
@@ -187,7 +188,7 @@ func (document StudioDocument) ViewMaps() StudioDocumentViewMaps {
 	}
 	for _, flow := range document.Flows {
 		maps.Flows[flow.Key] = flow
-		maps.Nodes[flow.Key] = StudioDocumentNode{Key: flow.Key, Kind: StudioDocumentNodeFlow, Label: flow.Label, Summary: flow.Summary, Status: flow.Status, Href: firstNonEmpty(flow.Href, flow.Route), View: flow.View, Metrics: flow.Metrics, Tags: flow.Tags}
+		maps.Nodes[flow.Key] = StudioDocumentNode{Key: flow.Key, Kind: StudioDocumentNodeFlow, Label: flow.Label, Summary: flow.Summary, Status: flow.Status, Href: gosxstudio.FirstNonEmpty(flow.Href, flow.Route), View: flow.View, Metrics: flow.Metrics, Tags: flow.Tags}
 	}
 	for _, release := range document.Releases {
 		maps.Releases[release.Key] = release
@@ -261,7 +262,7 @@ func siteCanvasNodeFromStudioNode(node StudioDocumentNode, index int) SiteCanvas
 		Kind:     node.Kind,
 		Label:    node.Label,
 		Summary:  node.Summary,
-		Status:   readinessStatusLabel(node.Status),
+		Status:   gosxstudio.ShellReadinessStatusLabel(node.Status),
 		Href:     node.Href,
 		X:        view.X,
 		Y:        view.Y,
@@ -277,22 +278,22 @@ func normalizeStudioPages(pages []StudioPage) []StudioPage {
 	out := make([]StudioPage, 0, len(pages))
 	seen := map[string]bool{}
 	for index, page := range pages {
-		page.Key = normalizeKey(firstNonEmpty(page.Key, page.Label, page.Path, fmt.Sprintf("page-%d", index+1)))
+		page.Key = gosxstudio.NormalizeKey(gosxstudio.FirstNonEmpty(page.Key, page.Label, page.Path, fmt.Sprintf("page-%d", index+1)))
 		if page.Key == "" || seen[page.Key] {
 			continue
 		}
 		seen[page.Key] = true
-		page.Label = strings.TrimSpace(firstNonEmpty(page.Label, page.Key))
+		page.Label = strings.TrimSpace(gosxstudio.FirstNonEmpty(page.Label, page.Key))
 		page.Path = strings.TrimSpace(page.Path)
 		page.Summary = strings.TrimSpace(page.Summary)
-		page.Status = normalizeReadinessStatus(page.Status)
-		page.ParentKey = normalizeKey(page.ParentKey)
+		page.Status = gosxstudio.NormalizeShellReadinessStatus(page.Status)
+		page.ParentKey = gosxstudio.NormalizeKey(page.ParentKey)
 		page.ContentKeys = normalizeStudioDocumentKeys(page.ContentKeys)
 		page.StyleKeys = normalizeStudioDocumentKeys(page.StyleKeys)
 		page.FlowKeys = normalizeStudioDocumentKeys(page.FlowKeys)
 		page.ReleaseKeys = normalizeStudioDocumentKeys(page.ReleaseKeys)
 		page.Href = strings.TrimSpace(page.Href)
-		page.Metrics = normalizeMetrics(page.Metrics)
+		page.Metrics = gosxstudio.NormalizeMetrics(page.Metrics)
 		page.Tags = normalizeStudioDocumentTags(page.Tags)
 		out = append(out, page)
 	}
@@ -303,17 +304,17 @@ func normalizeStudioContent(items []StudioContent) []StudioContent {
 	out := make([]StudioContent, 0, len(items))
 	seen := map[string]bool{}
 	for index, item := range items {
-		item.Key = normalizeKey(firstNonEmpty(item.Key, item.Label, fmt.Sprintf("content-%d", index+1)))
+		item.Key = gosxstudio.NormalizeKey(gosxstudio.FirstNonEmpty(item.Key, item.Label, fmt.Sprintf("content-%d", index+1)))
 		if item.Key == "" || seen[item.Key] {
 			continue
 		}
 		seen[item.Key] = true
-		item.Label = strings.TrimSpace(firstNonEmpty(item.Label, item.Key))
-		item.Kind = normalizeKey(firstNonEmpty(item.Kind, "content"))
+		item.Label = strings.TrimSpace(gosxstudio.FirstNonEmpty(item.Label, item.Key))
+		item.Kind = gosxstudio.NormalizeKey(gosxstudio.FirstNonEmpty(item.Kind, "content"))
 		item.Summary = strings.TrimSpace(item.Summary)
-		item.Status = normalizeReadinessStatus(item.Status)
+		item.Status = gosxstudio.NormalizeShellReadinessStatus(item.Status)
 		item.Href = strings.TrimSpace(item.Href)
-		item.Metrics = normalizeMetrics(item.Metrics)
+		item.Metrics = gosxstudio.NormalizeMetrics(item.Metrics)
 		item.Tags = normalizeStudioDocumentTags(item.Tags)
 		out = append(out, item)
 	}
@@ -324,18 +325,18 @@ func normalizeStudioStyles(styles []StudioStyle) []StudioStyle {
 	out := make([]StudioStyle, 0, len(styles))
 	seen := map[string]bool{}
 	for index, style := range styles {
-		style.Key = normalizeKey(firstNonEmpty(style.Key, style.Label, fmt.Sprintf("style-%d", index+1)))
+		style.Key = gosxstudio.NormalizeKey(gosxstudio.FirstNonEmpty(style.Key, style.Label, fmt.Sprintf("style-%d", index+1)))
 		if style.Key == "" || seen[style.Key] {
 			continue
 		}
 		seen[style.Key] = true
-		style.Label = strings.TrimSpace(firstNonEmpty(style.Label, style.Key))
-		style.Scope = normalizeKey(firstNonEmpty(style.Scope, "site"))
+		style.Label = strings.TrimSpace(gosxstudio.FirstNonEmpty(style.Label, style.Key))
+		style.Scope = gosxstudio.NormalizeKey(gosxstudio.FirstNonEmpty(style.Scope, "site"))
 		style.Summary = strings.TrimSpace(style.Summary)
-		style.Status = normalizeReadinessStatus(style.Status)
+		style.Status = gosxstudio.NormalizeShellReadinessStatus(style.Status)
 		style.Href = strings.TrimSpace(style.Href)
 		style.Tokens = normalizeStudioStyleTokens(style.Tokens)
-		style.Metrics = normalizeMetrics(style.Metrics)
+		style.Metrics = gosxstudio.NormalizeMetrics(style.Metrics)
 		style.Tags = normalizeStudioDocumentTags(style.Tags)
 		out = append(out, style)
 	}
@@ -346,21 +347,21 @@ func normalizeStudioFlows(flows []StudioFlow) []StudioFlow {
 	out := make([]StudioFlow, 0, len(flows))
 	seen := map[string]bool{}
 	for index, flow := range flows {
-		flow.Key = normalizeKey(firstNonEmpty(flow.Key, flow.Label, flow.Route, fmt.Sprintf("flow-%d", index+1)))
+		flow.Key = gosxstudio.NormalizeKey(gosxstudio.FirstNonEmpty(flow.Key, flow.Label, flow.Route, fmt.Sprintf("flow-%d", index+1)))
 		if flow.Key == "" || seen[flow.Key] {
 			continue
 		}
 		seen[flow.Key] = true
-		flow.Label = strings.TrimSpace(firstNonEmpty(flow.Label, flow.Key))
-		flow.Trigger = normalizeKey(flow.Trigger)
+		flow.Label = strings.TrimSpace(gosxstudio.FirstNonEmpty(flow.Label, flow.Key))
+		flow.Trigger = gosxstudio.NormalizeKey(flow.Trigger)
 		flow.Route = strings.TrimSpace(flow.Route)
 		flow.Summary = strings.TrimSpace(flow.Summary)
-		flow.Status = normalizeReadinessStatus(flow.Status)
+		flow.Status = gosxstudio.NormalizeShellReadinessStatus(flow.Status)
 		if flow.StepCount < 0 {
 			flow.StepCount = 0
 		}
 		flow.Href = strings.TrimSpace(flow.Href)
-		flow.Metrics = normalizeMetrics(flow.Metrics)
+		flow.Metrics = gosxstudio.NormalizeMetrics(flow.Metrics)
 		flow.Tags = normalizeStudioDocumentTags(flow.Tags)
 		out = append(out, flow)
 	}
@@ -371,16 +372,16 @@ func normalizeStudioReleases(releases []StudioRelease) []StudioRelease {
 	out := make([]StudioRelease, 0, len(releases))
 	seen := map[string]bool{}
 	for index, release := range releases {
-		release.Key = normalizeKey(firstNonEmpty(release.Key, release.Label, fmt.Sprintf("release-%d", index+1)))
+		release.Key = gosxstudio.NormalizeKey(gosxstudio.FirstNonEmpty(release.Key, release.Label, fmt.Sprintf("release-%d", index+1)))
 		if release.Key == "" || seen[release.Key] {
 			continue
 		}
 		seen[release.Key] = true
-		release.Label = strings.TrimSpace(firstNonEmpty(release.Label, release.Key))
+		release.Label = strings.TrimSpace(gosxstudio.FirstNonEmpty(release.Label, release.Key))
 		release.Summary = strings.TrimSpace(release.Summary)
-		release.Status = normalizeReadinessStatus(release.Status)
+		release.Status = gosxstudio.NormalizeShellReadinessStatus(release.Status)
 		release.Href = strings.TrimSpace(release.Href)
-		release.Metrics = normalizeMetrics(release.Metrics)
+		release.Metrics = gosxstudio.NormalizeMetrics(release.Metrics)
 		release.Tags = normalizeStudioDocumentTags(release.Tags)
 		out = append(out, release)
 	}
@@ -413,8 +414,8 @@ func normalizeStudioDocumentEdges(edges []StudioDocumentEdge, nodes map[string]S
 	out := make([]StudioDocumentEdge, 0, len(edges))
 	seen := map[string]bool{}
 	for index, edge := range edges {
-		edge.From = normalizeKey(edge.From)
-		edge.To = normalizeKey(edge.To)
+		edge.From = gosxstudio.NormalizeKey(edge.From)
+		edge.To = gosxstudio.NormalizeKey(edge.To)
 		if edge.From == "" || edge.To == "" {
 			continue
 		}
@@ -424,8 +425,8 @@ func normalizeStudioDocumentEdges(edges []StudioDocumentEdge, nodes map[string]S
 		if _, ok := nodes[edge.To]; !ok {
 			continue
 		}
-		edge.Kind = normalizeKey(firstNonEmpty(edge.Kind, "link"))
-		edge.Key = normalizeKey(firstNonEmpty(edge.Key, edge.From+"-"+edge.Kind+"-"+edge.To, fmt.Sprintf("edge-%d", index+1)))
+		edge.Kind = gosxstudio.NormalizeKey(gosxstudio.FirstNonEmpty(edge.Kind, "link"))
+		edge.Key = gosxstudio.NormalizeKey(gosxstudio.FirstNonEmpty(edge.Key, edge.From+"-"+edge.Kind+"-"+edge.To, fmt.Sprintf("edge-%d", index+1)))
 		if edge.Key == "" || seen[edge.Key] {
 			continue
 		}
@@ -440,7 +441,7 @@ func normalizeStudioDocumentKeys(keys []string) []string {
 	out := make([]string, 0, len(keys))
 	seen := map[string]bool{}
 	for _, key := range keys {
-		key = normalizeKey(key)
+		key = gosxstudio.NormalizeKey(key)
 		if key == "" || seen[key] {
 			continue
 		}

@@ -1,6 +1,9 @@
 package studio
 
-import "m31labs.dev/gosx"
+import (
+	"m31labs.dev/gosx"
+	gosxstudio "m31labs.dev/gosx-studio"
+)
 
 type StudioToolbarOptions struct {
 	Class        string
@@ -33,9 +36,9 @@ type PreviewFrameOptions struct {
 }
 
 func RenderStudioToolbar(options StudioToolbarOptions) gosx.Node {
-	className := firstNonEmpty(options.Class, "gosx-studio-toolbar")
-	actionsClass := firstNonEmpty(options.ActionsClass, "gosx-studio-toolbar__actions")
-	title := firstNonEmpty(options.Title, "Studio")
+	className := gosxstudio.FirstNonEmpty(options.Class, "gosx-studio-toolbar")
+	actionsClass := gosxstudio.FirstNonEmpty(options.ActionsClass, "gosx-studio-toolbar__actions")
+	title := gosxstudio.FirstNonEmpty(options.Title, "Studio")
 
 	children := []gosx.Node{
 		gosx.El("div", gosx.Attrs(gosx.Attr("class", "gosx-studio-toolbar__title")),
@@ -60,14 +63,14 @@ func RenderStudioToolbar(options StudioToolbarOptions) gosx.Node {
 }
 
 func RenderPreviewFrame(options PreviewFrameOptions) gosx.Node {
-	shellClass := firstNonEmpty(options.ShellClass, "gosx-studio-preview")
-	toolbarClass := firstNonEmpty(options.ToolbarClass, "gosx-studio-preview__toolbar")
-	metaClass := firstNonEmpty(options.MetaClass, "gosx-studio-preview__meta")
-	frameClass := firstNonEmpty(options.FrameClass, "gosx-studio-preview__frame")
-	statusClass := firstNonEmpty(options.StatusClass, "gosx-studio-preview__status")
-	url := firstNonEmpty(options.URL, "/")
-	title := firstNonEmpty(options.Title, "Preview")
-	iframeTitle := firstNonEmpty(options.IFrameTitle, title)
+	shellClass := gosxstudio.FirstNonEmpty(options.ShellClass, "gosx-studio-preview")
+	toolbarClass := gosxstudio.FirstNonEmpty(options.ToolbarClass, "gosx-studio-preview__toolbar")
+	metaClass := gosxstudio.FirstNonEmpty(options.MetaClass, "gosx-studio-preview__meta")
+	frameClass := gosxstudio.FirstNonEmpty(options.FrameClass, "gosx-studio-preview__frame")
+	statusClass := gosxstudio.FirstNonEmpty(options.StatusClass, "gosx-studio-preview__status")
+	url := gosxstudio.FirstNonEmpty(options.URL, "/")
+	title := gosxstudio.FirstNonEmpty(options.Title, "Preview")
+	iframeTitle := gosxstudio.FirstNonEmpty(options.IFrameTitle, title)
 
 	toolbarChildren := []gosx.Node{
 		gosx.El("div", gosx.Attrs(gosx.Attr("class", metaClass)),
@@ -138,8 +141,8 @@ func previewRoute(url string, dynamic bool) gosx.Node {
 
 func previewOpenLink(options PreviewFrameOptions) gosx.Node {
 	attrs := []any{
-		gosx.Attr("class", firstNonEmpty(options.OpenClass, "button")),
-		gosx.Attr("href", firstNonEmpty(options.URL, "/")),
+		gosx.Attr("class", gosxstudio.FirstNonEmpty(options.OpenClass, "button")),
+		gosx.Attr("href", gosxstudio.FirstNonEmpty(options.URL, "/")),
 		gosx.Attr("data-studio-open-preview", "true"),
 	}
 	if options.OpenNewTab {

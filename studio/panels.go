@@ -8,6 +8,7 @@ import (
 	"m31labs.dev/gosx-admin/calendar"
 	"m31labs.dev/gosx-admin/workbench"
 	"m31labs.dev/gosx-cms/lifecycle"
+	gosxstudio "m31labs.dev/gosx-studio"
 )
 
 type PanelHeadingOptions struct {
@@ -380,7 +381,7 @@ func CatalogFieldInspectorFields(catalog []blockstudio.Definition, options map[s
 }
 
 func BlockFieldInspectorFields(definition blockstudio.Definition, options BlockFieldInspectorOptions) []InspectorField {
-	blockKey := normalizeKey(definition.Key)
+	blockKey := gosxstudio.NormalizeKey(definition.Key)
 	if blockKey == "" {
 		return nil
 	}
@@ -397,18 +398,18 @@ func BlockFieldInspectorFields(definition blockstudio.Definition, options BlockF
 		override := options.Overrides[name]
 		field := InspectorField{
 			Kind:           firstInspectorKind(override.Kind, inspectorKindForBlockField(blockField.Kind)),
-			ID:             firstNonEmpty(override.ID, inspectorFieldID(firstNonEmpty(options.IDPrefix, blockKey), name)),
-			Name:           firstNonEmpty(override.Name, inspectorFieldName(firstNonEmpty(options.NamePrefix, blockKey), name)),
-			Label:          firstNonEmpty(override.Label, blockField.Label, name),
-			Value:          firstNonEmpty(override.Value, options.Values[name], blockFieldDefaultValue(blockField)),
-			Type:           firstNonEmpty(override.Type, inspectorInputTypeForBlockField(blockField.Kind)),
-			Placeholder:    firstNonEmpty(override.Placeholder, blockField.Placeholder, blockField.UI.Placeholder),
+			ID:             gosxstudio.FirstNonEmpty(override.ID, inspectorFieldID(gosxstudio.FirstNonEmpty(options.IDPrefix, blockKey), name)),
+			Name:           gosxstudio.FirstNonEmpty(override.Name, inspectorFieldName(gosxstudio.FirstNonEmpty(options.NamePrefix, blockKey), name)),
+			Label:          gosxstudio.FirstNonEmpty(override.Label, blockField.Label, name),
+			Value:          gosxstudio.FirstNonEmpty(override.Value, options.Values[name], blockFieldDefaultValue(blockField)),
+			Type:           gosxstudio.FirstNonEmpty(override.Type, inspectorInputTypeForBlockField(blockField.Kind)),
+			Placeholder:    gosxstudio.FirstNonEmpty(override.Placeholder, blockField.Placeholder, blockField.UI.Placeholder),
 			Required:       override.Required || blockField.Required,
 			Checked:        override.Checked,
 			Disabled:       override.Disabled,
 			Rows:           override.Rows,
 			Wide:           options.Wide || override.Wide,
-			Help:           firstNonEmpty(override.Help, blockField.Help),
+			Help:           gosxstudio.FirstNonEmpty(override.Help, blockField.Help),
 			Options:        append([]InspectorFieldOption{}, override.Options...),
 			Attrs:          append([]FieldAttribute{}, override.Attrs...),
 			ContainerAttrs: append([]FieldAttribute{}, firstFieldAttrs(override.ContainerAttrs, containerAttrs)...),
@@ -422,7 +423,7 @@ func BlockFieldInspectorFields(definition blockstudio.Definition, options BlockF
 		if field.Kind == InspectorFieldCheckbox && !field.Checked {
 			field.Checked = checkedInspectorValue(field.Value)
 		}
-		source := firstNonEmpty(override.Source, inspectorFieldSource(firstNonEmpty(options.SourcePrefix, blockKey+"."), name))
+		source := gosxstudio.FirstNonEmpty(override.Source, inspectorFieldSource(gosxstudio.FirstNonEmpty(options.SourcePrefix, blockKey+"."), name))
 		if source != "" && fieldAttributeValue(field.Attrs, "data-studio-field-source") == "" {
 			field.Attrs = append(field.Attrs, FieldAttribute{Name: "data-studio-field-source", Value: source})
 		}
@@ -451,11 +452,11 @@ func WorkbenchFieldInspectorFields(fields []workbench.Field, options WorkbenchFi
 		override := options.Overrides[name]
 		field := InspectorField{
 			Kind:           firstInspectorKind(override.Kind, inspectorKindForWorkbenchField(workbenchField.Kind)),
-			ID:             firstNonEmpty(override.ID, inspectorFieldID(options.IDPrefix, name)),
-			Name:           firstNonEmpty(override.Name, inspectorFieldName(options.NamePrefix, name)),
-			Label:          firstNonEmpty(override.Label, workbenchField.Label, name),
-			Value:          firstNonEmpty(override.Value, options.Values[name]),
-			Type:           firstNonEmpty(override.Type, inspectorInputTypeForWorkbenchField(workbenchField.Kind)),
+			ID:             gosxstudio.FirstNonEmpty(override.ID, inspectorFieldID(options.IDPrefix, name)),
+			Name:           gosxstudio.FirstNonEmpty(override.Name, inspectorFieldName(options.NamePrefix, name)),
+			Label:          gosxstudio.FirstNonEmpty(override.Label, workbenchField.Label, name),
+			Value:          gosxstudio.FirstNonEmpty(override.Value, options.Values[name]),
+			Type:           gosxstudio.FirstNonEmpty(override.Type, inspectorInputTypeForWorkbenchField(workbenchField.Kind)),
 			Placeholder:    override.Placeholder,
 			Required:       override.Required || workbenchField.Required,
 			Checked:        override.Checked,
@@ -476,7 +477,7 @@ func WorkbenchFieldInspectorFields(fields []workbench.Field, options WorkbenchFi
 		if field.Kind == InspectorFieldCheckbox && !field.Checked {
 			field.Checked = checkedInspectorValue(field.Value)
 		}
-		source := firstNonEmpty(override.Source, inspectorFieldSource(options.SourcePrefix, name))
+		source := gosxstudio.FirstNonEmpty(override.Source, inspectorFieldSource(options.SourcePrefix, name))
 		if source != "" && fieldAttributeValue(field.Attrs, "data-studio-field-source") == "" {
 			field.Attrs = append(field.Attrs, FieldAttribute{Name: "data-studio-field-source", Value: source})
 		}
@@ -582,7 +583,7 @@ func LifecycleInspectorFields(options LifecycleInspectorOptions) []InspectorFiel
 }
 
 func FlowConfigInspectorFields(flow FlowCard, options FlowConfigInspectorOptions) []InspectorField {
-	flow.Key = normalizeKey(firstNonEmpty(flow.Key, flow.Label))
+	flow.Key = gosxstudio.NormalizeKey(gosxstudio.FirstNonEmpty(flow.Key, flow.Label))
 	if flow.Key == "" {
 		return nil
 	}
@@ -590,12 +591,12 @@ func FlowConfigInspectorFields(flow FlowCard, options FlowConfigInspectorOptions
 	if len(containerAttrs) == 0 {
 		containerAttrs = SelectionScopeAttrs(flow.Key)
 	}
-	namePrefix := firstNonEmpty(options.NamePrefix, "flow"+pascalKey(flow.Key))
-	idPrefix := firstNonEmpty(options.IDPrefix, namePrefix)
-	sourcePrefix := firstNonEmpty(options.SourcePrefix, "flow."+flow.Key+".")
-	route := firstNonEmpty(options.Values["route"], flow.Route)
-	embedTarget := firstNonEmpty(options.Values["embedTarget"], flow.EmbedTarget)
-	handlerRef := firstNonEmpty(options.Values["handlerRef"], flow.PrimaryHandlerRef)
+	namePrefix := gosxstudio.FirstNonEmpty(options.NamePrefix, "flow"+pascalKey(flow.Key))
+	idPrefix := gosxstudio.FirstNonEmpty(options.IDPrefix, namePrefix)
+	sourcePrefix := gosxstudio.FirstNonEmpty(options.SourcePrefix, "flow."+flow.Key+".")
+	route := gosxstudio.FirstNonEmpty(options.Values["route"], flow.Route)
+	embedTarget := gosxstudio.FirstNonEmpty(options.Values["embedTarget"], flow.EmbedTarget)
+	handlerRef := gosxstudio.FirstNonEmpty(options.Values["handlerRef"], flow.PrimaryHandlerRef)
 	fields := []InspectorField{
 		{
 			Kind:           InspectorFieldInput,
@@ -655,8 +656,8 @@ func FlowConfigInspectorFields(flow FlowCard, options FlowConfigInspectorOptions
 	fields = append(fields, InspectorField{
 		Kind:           InspectorFieldCard,
 		Label:          "Flow publish",
-		CardTitle:      firstNonEmpty(flow.StatusLabel, "Draft"),
-		Help:           firstNonEmpty(options.PublishReview, flowPublishReview(flow)),
+		CardTitle:      gosxstudio.FirstNonEmpty(flow.StatusLabel, "Draft"),
+		Help:           gosxstudio.FirstNonEmpty(options.PublishReview, flowPublishReview(flow)),
 		Wide:           true,
 		ContainerAttrs: append([]FieldAttribute{}, containerAttrs...),
 		Attrs: []FieldAttribute{
@@ -670,7 +671,7 @@ func FlowConfigInspectorFields(flow FlowCard, options FlowConfigInspectorOptions
 }
 
 func FlowStepInspectorFields(flow FlowCard, options FlowStepInspectorOptions) []InspectorField {
-	flow.Key = normalizeKey(firstNonEmpty(flow.Key, flow.Label))
+	flow.Key = gosxstudio.NormalizeKey(gosxstudio.FirstNonEmpty(flow.Key, flow.Label))
 	if flow.Key == "" {
 		return nil
 	}
@@ -678,20 +679,20 @@ func FlowStepInspectorFields(flow FlowCard, options FlowStepInspectorOptions) []
 	if len(containerAttrs) == 0 {
 		containerAttrs = SelectionScopeAttrs(flow.Key)
 	}
-	namePrefix := firstNonEmpty(options.NamePrefix, "flow"+pascalKey(flow.Key)+"Step")
-	idPrefix := firstNonEmpty(options.IDPrefix, namePrefix)
-	sourcePrefix := firstNonEmpty(options.SourcePrefix, "flow."+flow.Key+".steps.")
+	namePrefix := gosxstudio.FirstNonEmpty(options.NamePrefix, "flow"+pascalKey(flow.Key)+"Step")
+	idPrefix := gosxstudio.FirstNonEmpty(options.IDPrefix, namePrefix)
+	sourcePrefix := gosxstudio.FirstNonEmpty(options.SourcePrefix, "flow."+flow.Key+".steps.")
 	fields := []InspectorField{}
 	for index, step := range flow.Steps {
-		step.Key = normalizeKey(firstNonEmpty(step.Key, step.Label, fmtAny(index+1)))
+		step.Key = gosxstudio.NormalizeKey(gosxstudio.FirstNonEmpty(step.Key, step.Label, gosxstudio.FmtAny(index+1)))
 		if step.Key == "" {
 			continue
 		}
-		step.Label = firstNonEmpty(step.Label, step.Key)
+		step.Label = gosxstudio.FirstNonEmpty(step.Label, step.Key)
 		stepPrefix := pascalKey(step.Key)
 		stepNamePrefix := namePrefix + stepPrefix
 		stepIDPrefix := idPrefix + stepPrefix
-		labelValue := firstNonEmpty(options.Values[step.Key+".label"], options.Values[step.Key], step.Label)
+		labelValue := gosxstudio.FirstNonEmpty(options.Values[step.Key+".label"], options.Values[step.Key], step.Label)
 		labelSource := inspectorFieldSource(sourcePrefix+step.Key+".", "label")
 		bodySource := inspectorFieldSource(sourcePrefix+step.Key+".", "body")
 		fields = append(fields, InspectorField{
@@ -712,7 +713,7 @@ func FlowStepInspectorFields(flow FlowCard, options FlowStepInspectorOptions) []
 		if step.BlockCount == 1 {
 			bodyTitle = "1 body block"
 		} else if step.BlockCount > 1 {
-			bodyTitle = fmtAny(step.BlockCount) + " body blocks"
+			bodyTitle = gosxstudio.FmtAny(step.BlockCount) + " body blocks"
 		}
 		fields = append(fields, InspectorField{
 			Kind:           InspectorFieldCard,
@@ -756,21 +757,21 @@ func CalendarWidgetInspectorFields(contract calendar.ScheduleWidgetContract, opt
 	if len(containerAttrs) == 0 {
 		containerAttrs = SelectionScopeAttrs(contract.Key)
 	}
-	namePrefix := firstNonEmpty(options.NamePrefix, contract.Key+"Widget")
-	idPrefix := firstNonEmpty(options.IDPrefix, namePrefix)
-	sourcePrefix := firstNonEmpty(options.SourcePrefix, "calendar."+contract.Key+".")
+	namePrefix := gosxstudio.FirstNonEmpty(options.NamePrefix, contract.Key+"Widget")
+	idPrefix := gosxstudio.FirstNonEmpty(options.IDPrefix, namePrefix)
+	sourcePrefix := gosxstudio.FirstNonEmpty(options.SourcePrefix, "calendar."+contract.Key+".")
 	fields := make([]InspectorField, 0, len(contract.Recipe.Controls)+2)
 	for _, control := range contract.Recipe.Controls {
 		key := strings.TrimSpace(control.Key)
 		if key == "" {
 			continue
 		}
-		value := firstNonEmpty(options.Values[key], control.Default)
+		value := gosxstudio.FirstNonEmpty(options.Values[key], control.Default)
 		field := InspectorField{
 			Kind:           InspectorFieldSelect,
 			ID:             inspectorFieldID(idPrefix, key),
 			Name:           inspectorFieldName(namePrefix, key),
-			Label:          firstNonEmpty(control.Label, labelize(key)),
+			Label:          gosxstudio.FirstNonEmpty(control.Label, labelize(key)),
 			Value:          value,
 			Required:       control.Required,
 			Disabled:       options.Disabled,
@@ -811,8 +812,8 @@ func CalendarWidgetInspectorFields(contract calendar.ScheduleWidgetContract, opt
 }
 
 func BlockInspectorField(definition blockstudio.Definition, options BlockInspectorOptions) InspectorField {
-	field := firstNonEmpty(options.Field, definition.Key+".collection")
-	editable := firstNonEmpty(options.Editable, "source")
+	field := gosxstudio.FirstNonEmpty(options.Field, definition.Key+".collection")
+	editable := gosxstudio.FirstNonEmpty(options.Editable, "source")
 	attrs := append([]FieldAttribute{}, options.Attrs...)
 	if fieldAttributeValue(attrs, "data-studio-field-source") == "" {
 		attrs = append(attrs, FieldAttribute{Name: "data-studio-field-source", Value: field})
@@ -821,7 +822,7 @@ func BlockInspectorField(definition blockstudio.Definition, options BlockInspect
 		attrs = append(attrs, FieldAttribute{Name: "data-studio-field-editable", Value: editable})
 	}
 	if fieldAttributeValue(attrs, "data-studio-field-action") == "" {
-		if actionLabel := firstNonEmpty(options.ActionLabel, primaryFieldAction(options.Actions).Label); actionLabel != "" {
+		if actionLabel := gosxstudio.FirstNonEmpty(options.ActionLabel, primaryFieldAction(options.Actions).Label); actionLabel != "" {
 			attrs = append(attrs, FieldAttribute{Name: "data-studio-field-action", Value: actionLabel})
 		}
 	}
@@ -831,8 +832,8 @@ func BlockInspectorField(definition blockstudio.Definition, options BlockInspect
 	}
 	return InspectorField{
 		Kind:           InspectorFieldCard,
-		Label:          firstNonEmpty(options.Label, definition.Label),
-		CardTitle:      firstNonEmpty(options.CardTitle, definition.Summary),
+		Label:          gosxstudio.FirstNonEmpty(options.Label, definition.Label),
+		CardTitle:      gosxstudio.FirstNonEmpty(options.CardTitle, definition.Summary),
 		Wide:           !options.Narrow,
 		Class:          options.Class,
 		Attrs:          attrs,
@@ -884,7 +885,7 @@ type RevisionHistoryOptions struct {
 }
 
 func RenderPanelHeading(options PanelHeadingOptions) gosx.Node {
-	className := firstNonEmpty(options.Class, "studio-panel-heading")
+	className := gosxstudio.FirstNonEmpty(options.Class, "studio-panel-heading")
 	kicker := strings.TrimSpace(options.Kicker)
 	title := strings.TrimSpace(options.Title)
 	nodes := []gosx.Node{}
@@ -898,10 +899,10 @@ func RenderPanelHeading(options PanelHeadingOptions) gosx.Node {
 }
 
 func RenderSiteNavigator(items []SiteNavItem, options SiteNavigatorOptions) gosx.Node {
-	className := firstNonEmpty(options.Class, "studio-nav-panel")
-	navClass := firstNonEmpty(options.NavClass, "studio-page-list")
-	label := firstNonEmpty(options.Label, "Site pages")
-	mode := firstNonEmpty(options.Mode, "structure")
+	className := gosxstudio.FirstNonEmpty(options.Class, "studio-nav-panel")
+	navClass := gosxstudio.FirstNonEmpty(options.NavClass, "studio-page-list")
+	label := gosxstudio.FirstNonEmpty(options.Label, "Site pages")
+	mode := gosxstudio.FirstNonEmpty(options.Mode, "structure")
 	links := []gosx.Node{}
 	for _, item := range normalizeSiteNavItems(items) {
 		classAttr := strings.TrimSpace(item.Class)
@@ -928,8 +929,8 @@ func RenderSiteNavigator(items []SiteNavItem, options SiteNavigatorOptions) gosx
 	),
 		RenderPanelHeading(PanelHeadingOptions{
 			Class:  options.HeadingClass,
-			Kicker: firstNonEmpty(options.Kicker, "Site"),
-			Title:  firstNonEmpty(options.Title, "Pages"),
+			Kicker: gosxstudio.FirstNonEmpty(options.Kicker, "Site"),
+			Title:  gosxstudio.FirstNonEmpty(options.Title, "Pages"),
 		}),
 		gosx.El("nav", gosx.Attrs(
 			gosx.Attr("class", navClass),
@@ -939,10 +940,10 @@ func RenderSiteNavigator(items []SiteNavItem, options SiteNavigatorOptions) gosx
 }
 
 func RenderInspectorHeader(options InspectorHeaderOptions) gosx.Node {
-	className := firstNonEmpty(options.Class, "studio-inspector-head")
-	kicker := firstNonEmpty(options.Kicker, "Properties")
-	modeLabel := firstNonEmpty(options.ModeLabel, "Structure")
-	selection := firstNonEmpty(options.SelectionLabel, "No selection")
+	className := gosxstudio.FirstNonEmpty(options.Class, "studio-inspector-head")
+	kicker := gosxstudio.FirstNonEmpty(options.Kicker, "Properties")
+	modeLabel := gosxstudio.FirstNonEmpty(options.ModeLabel, "Structure")
+	selection := gosxstudio.FirstNonEmpty(options.SelectionLabel, "No selection")
 	return gosx.El("div", gosx.Attrs(gosx.Attr("class", className)),
 		gosx.El("div", nil,
 			gosx.El("p", gosx.Attrs(gosx.Attr("class", "kicker")), gosx.Text(kicker)),
@@ -956,8 +957,8 @@ func RenderInspectorHeader(options InspectorHeaderOptions) gosx.Node {
 }
 
 func RenderScopeStrip(options ScopeStripOptions) gosx.Node {
-	className := firstNonEmpty(options.Class, "studio-scope-strip")
-	label := firstNonEmpty(options.Label, "Inspector scope")
+	className := gosxstudio.FirstNonEmpty(options.Class, "studio-scope-strip")
+	label := gosxstudio.FirstNonEmpty(options.Label, "Inspector scope")
 	crumbs := options.Crumbs
 	if len(crumbs) == 0 {
 		crumbs = []ScopeCrumb{
@@ -969,7 +970,7 @@ func RenderScopeStrip(options ScopeStripOptions) gosx.Node {
 	}
 	nodes := make([]gosx.Node, 0, len(crumbs))
 	for _, crumb := range crumbs {
-		text := firstNonEmpty(crumb.Label, "Item")
+		text := gosxstudio.FirstNonEmpty(crumb.Label, "Item")
 		if crumb.DynamicSelection {
 			nodes = append(nodes, gosx.El("output", gosx.Attrs(gosx.Attr("data-studio-selection-label", "true")), gosx.Text(text)))
 			continue
@@ -987,10 +988,10 @@ func RenderScopeStrip(options ScopeStripOptions) gosx.Node {
 }
 
 func RenderLayerList(layers []LayerItem, options LayerListOptions) gosx.Node {
-	panelClass := firstNonEmpty(options.PanelClass, "studio-nav-panel studio-nav-panel--layers")
-	listClass := firstNonEmpty(options.Class, "home-section-list editor-block-list")
-	mode := firstNonEmpty(options.Mode, "structure")
-	blockStudioKey := firstNonEmpty(options.BlockStudioKey, "homepage")
+	panelClass := gosxstudio.FirstNonEmpty(options.PanelClass, "studio-nav-panel studio-nav-panel--layers")
+	listClass := gosxstudio.FirstNonEmpty(options.Class, "home-section-list editor-block-list")
+	mode := gosxstudio.FirstNonEmpty(options.Mode, "structure")
+	blockStudioKey := gosxstudio.FirstNonEmpty(options.BlockStudioKey, "homepage")
 	layerNodes := make([]gosx.Node, 0, len(layers))
 	for _, layer := range normalizeLayerItems(layers) {
 		layerNodes = append(layerNodes, renderLayerItem(layer))
@@ -1001,8 +1002,8 @@ func RenderLayerList(layers []LayerItem, options LayerListOptions) gosx.Node {
 	),
 		RenderPanelHeading(PanelHeadingOptions{
 			Class:  options.HeadingClass,
-			Kicker: firstNonEmpty(options.Kicker, "Page"),
-			Title:  firstNonEmpty(options.Title, "Layers"),
+			Kicker: gosxstudio.FirstNonEmpty(options.Kicker, "Page"),
+			Title:  gosxstudio.FirstNonEmpty(options.Title, "Layers"),
 		}),
 		gosx.El("div", gosx.Attrs(
 			gosx.Attr("class", listClass),
@@ -1012,11 +1013,11 @@ func RenderLayerList(layers []LayerItem, options LayerListOptions) gosx.Node {
 }
 
 func RenderBlockLibrary(items []BlockLibraryItem, options BlockLibraryOptions) gosx.Node {
-	panelClass := firstNonEmpty(options.PanelClass, "editor-panel editor-panel--library")
-	panelKey := firstNonEmpty(options.PanelKey, "blocks")
-	mode := firstNonEmpty(options.Mode, "structure")
-	className := firstNonEmpty(options.Class, "editor-block-library")
-	title := firstNonEmpty(options.Title, "Blocks")
+	panelClass := gosxstudio.FirstNonEmpty(options.PanelClass, "editor-panel editor-panel--library")
+	panelKey := gosxstudio.FirstNonEmpty(options.PanelKey, "blocks")
+	mode := gosxstudio.FirstNonEmpty(options.Mode, "structure")
+	className := gosxstudio.FirstNonEmpty(options.Class, "editor-block-library")
+	title := gosxstudio.FirstNonEmpty(options.Title, "Blocks")
 	buttons := make([]gosx.Node, 0, len(items))
 	for _, item := range normalizeBlockLibraryItems(items) {
 		attrs := []any{
@@ -1042,10 +1043,10 @@ func RenderBlockLibrary(items []BlockLibraryItem, options BlockLibraryOptions) g
 }
 
 func RenderLinkGridPanel(links []PanelLink, options LinkGridOptions) gosx.Node {
-	panelClass := firstNonEmpty(options.PanelClass, "editor-panel")
-	panelKey := firstNonEmpty(options.PanelKey, "links")
-	mode := firstNonEmpty(options.Mode, "structure")
-	gridClass := firstNonEmpty(options.GridClass, "studio-commerce-grid")
+	panelClass := gosxstudio.FirstNonEmpty(options.PanelClass, "editor-panel")
+	panelKey := gosxstudio.FirstNonEmpty(options.PanelKey, "links")
+	mode := gosxstudio.FirstNonEmpty(options.Mode, "structure")
+	gridClass := gosxstudio.FirstNonEmpty(options.GridClass, "studio-commerce-grid")
 	linkNodes := make([]gosx.Node, 0, len(links))
 	for _, link := range normalizePanelLinks(links) {
 		attrs := []any{
@@ -1068,51 +1069,51 @@ func RenderLinkGridPanel(links []PanelLink, options LinkGridOptions) gosx.Node {
 }
 
 func RenderFlowLibrary(flows []FlowCard, options FlowLibraryOptions) gosx.Node {
-	panelClass := firstNonEmpty(options.PanelClass, "editor-panel editor-panel--flows")
-	panelKey := firstNonEmpty(options.PanelKey, "flows")
-	mode := firstNonEmpty(options.Mode, "flows")
-	className := firstNonEmpty(options.Class, "studio-flow-list")
+	panelClass := gosxstudio.FirstNonEmpty(options.PanelClass, "editor-panel editor-panel--flows")
+	panelKey := gosxstudio.FirstNonEmpty(options.PanelKey, "flows")
+	mode := gosxstudio.FirstNonEmpty(options.Mode, "flows")
+	className := gosxstudio.FirstNonEmpty(options.Class, "studio-flow-list")
 	flowNodes := make([]gosx.Node, 0, len(flows))
 	for _, flow := range normalizeFlowCards(flows) {
 		flowNodes = append(flowNodes, renderFlowCard(flow))
 	}
 	return gosx.El("section", panelAttrs(panelClass, panelKey, mode),
 		RenderPanelHeading(PanelHeadingOptions{
-			Kicker: firstNonEmpty(options.Kicker, "Behavior"),
-			Title:  firstNonEmpty(options.Title, "Flows"),
+			Kicker: gosxstudio.FirstNonEmpty(options.Kicker, "Behavior"),
+			Title:  gosxstudio.FirstNonEmpty(options.Title, "Flows"),
 		}),
 		gosx.El("div", gosx.Attrs(gosx.Attr("class", className)), gosx.Fragment(flowNodes...)),
 	)
 }
 
 func RenderInspectorPanel(fields []InspectorField, options InspectorPanelOptions) gosx.Node {
-	panelClass := firstNonEmpty(options.PanelClass, "editor-panel")
-	panelKey := firstNonEmpty(options.PanelKey, "inspector")
-	mode := firstNonEmpty(options.Mode, "content")
+	panelClass := gosxstudio.FirstNonEmpty(options.PanelClass, "editor-panel")
+	panelKey := gosxstudio.FirstNonEmpty(options.PanelKey, "inspector")
+	mode := gosxstudio.FirstNonEmpty(options.Mode, "content")
 	fieldNodes := make([]gosx.Node, 0, len(fields))
 	for _, field := range normalizeInspectorFields(fields) {
 		fieldNodes = append(fieldNodes, renderInspectorField(field))
 	}
 	heading := RenderPanelHeading(PanelHeadingOptions{
 		Class:  options.HeadingClass,
-		Kicker: firstNonEmpty(options.Kicker, "Content"),
-		Title:  firstNonEmpty(options.Title, "Selection"),
+		Kicker: gosxstudio.FirstNonEmpty(options.Kicker, "Content"),
+		Title:  gosxstudio.FirstNonEmpty(options.Title, "Selection"),
 	})
 	if options.DynamicTitle {
-		heading = gosx.El("div", gosx.Attrs(gosx.Attr("class", firstNonEmpty(options.HeadingClass, "studio-panel-heading"))),
-			gosx.El("p", gosx.Attrs(gosx.Attr("class", "kicker")), gosx.Text(firstNonEmpty(options.Kicker, "Content"))),
-			gosx.El("h2", gosx.Attrs(gosx.Attr("data-studio-selection-label", "true")), gosx.Text(firstNonEmpty(options.Title, "Selection"))),
+		heading = gosx.El("div", gosx.Attrs(gosx.Attr("class", gosxstudio.FirstNonEmpty(options.HeadingClass, "studio-panel-heading"))),
+			gosx.El("p", gosx.Attrs(gosx.Attr("class", "kicker")), gosx.Text(gosxstudio.FirstNonEmpty(options.Kicker, "Content"))),
+			gosx.El("h2", gosx.Attrs(gosx.Attr("data-studio-selection-label", "true")), gosx.Text(gosxstudio.FirstNonEmpty(options.Title, "Selection"))),
 		)
 	}
 	return gosx.El("section", panelAttrs(panelClass, panelKey, mode), heading, gosx.Fragment(fieldNodes...))
 }
 
 func RenderRevisionHistory(revisions []RevisionItem, options RevisionHistoryOptions) gosx.Node {
-	panelClass := firstNonEmpty(options.PanelClass, "panel")
-	panelKey := firstNonEmpty(options.PanelKey, "versions")
-	headerClass := firstNonEmpty(options.HeaderClass, "panel__header")
-	title := firstNonEmpty(options.Title, "Version history")
-	emptyText := firstNonEmpty(options.EmptyText, "No previous versions yet.")
+	panelClass := gosxstudio.FirstNonEmpty(options.PanelClass, "panel")
+	panelKey := gosxstudio.FirstNonEmpty(options.PanelKey, "versions")
+	headerClass := gosxstudio.FirstNonEmpty(options.HeaderClass, "panel__header")
+	title := gosxstudio.FirstNonEmpty(options.Title, "Version history")
+	emptyText := gosxstudio.FirstNonEmpty(options.EmptyText, "No previous versions yet.")
 	nodes := []gosx.Node{
 		gosx.El("div", gosx.Attrs(gosx.Attr("class", headerClass)),
 			gosx.El("h2", nil, gosx.Text(title)),
@@ -1215,7 +1216,7 @@ func renderFlowCard(flow FlowCard) gosx.Node {
 	}
 	metaNodes := []gosx.Node{
 		gosx.El("span", nil, gosx.Text(flow.Summary)),
-		gosx.El("span", nil, gosx.Text(fmtAny(flow.RequiredFieldCount)+" required")),
+		gosx.El("span", nil, gosx.Text(gosxstudio.FmtAny(flow.RequiredFieldCount)+" required")),
 	}
 	if flow.HasPrimaryAction {
 		metaNodes = append(metaNodes, gosx.El("span", nil, gosx.Text(flow.PrimaryHandlerRef)))
@@ -1239,7 +1240,7 @@ func renderFlowCard(flow FlowCard) gosx.Node {
 	return gosx.El("article", gosx.Attrs(
 		gosx.Attr("class", flow.CardClass),
 		gosx.Attr("data-editor-flow", flow.Key),
-		gosx.Attr("data-studio-flow-executable", boolAttr(flow.CanExecute)),
+		gosx.Attr("data-studio-flow-executable", gosxstudio.BoolAttr(flow.CanExecute)),
 	),
 		gosx.El("div", gosx.Attrs(gosx.Attr("class", "studio-flow-card__head")),
 			gosx.El("div", nil,
@@ -1319,7 +1320,7 @@ func renderInspectorField(field InspectorField) gosx.Node {
 			if option.Selected || option.Value == field.Value {
 				attrs = append(attrs, gosx.BoolAttr("selected"))
 			}
-			optionNodes = append(optionNodes, gosx.El("option", gosx.Attrs(attrs...), gosx.Text(firstNonEmpty(option.Label, option.Value))))
+			optionNodes = append(optionNodes, gosx.El("option", gosx.Attrs(attrs...), gosx.Text(gosxstudio.FirstNonEmpty(option.Label, option.Value))))
 		}
 		control = gosx.El("select", controlAttrs, gosx.Fragment(optionNodes...))
 	}
@@ -1424,8 +1425,8 @@ func renderRevisionItem(revision RevisionItem, options RevisionHistoryOptions) g
 		gosx.El("button", gosx.Attrs(
 			gosx.Attr("class", "button button--secondary"),
 			gosx.Attr("type", "submit"),
-			gosx.Attr("data-admin-confirm", firstNonEmpty(options.Confirm, "Restore these editor settings? Current look and feel will be saved in history first.")),
-		), gosx.Text(firstNonEmpty(options.ButtonLabel, "Restore this version"))),
+			gosx.Attr("data-admin-confirm", gosxstudio.FirstNonEmpty(options.Confirm, "Restore these editor settings? Current look and feel will be saved in history first.")),
+		), gosx.Text(gosxstudio.FirstNonEmpty(options.ButtonLabel, "Restore this version"))),
 	)
 	nodes = append(nodes, gosx.El("form", gosx.Attrs(
 		gosx.Attr("class", "inline-form"),
@@ -1441,10 +1442,10 @@ func renderLayerPreview(layer LayerItem) gosx.Node {
 		if strings.TrimSpace(action.Label) == "" {
 			continue
 		}
-		actionNodes = append(actionNodes, gosx.El("span", layerPreviewAttrs(firstNonEmpty(action.Class, "button button--secondary"), action.Source), gosx.Text(action.Label)))
+		actionNodes = append(actionNodes, gosx.El("span", layerPreviewAttrs(gosxstudio.FirstNonEmpty(action.Class, "button button--secondary"), action.Source), gosx.Text(action.Label)))
 	}
 	nodes := []gosx.Node{
-		gosx.El("p", gosx.Attrs(gosx.Attr("class", "kicker")), gosx.Text(firstNonEmpty(layer.Preview.Kicker, layer.Label))),
+		gosx.El("p", gosx.Attrs(gosx.Attr("class", "kicker")), gosx.Text(gosxstudio.FirstNonEmpty(layer.Preview.Kicker, layer.Label))),
 		gosx.El("h2", layerPreviewAttrs("", layer.Preview.TitleSource), gosx.Text(layer.Preview.Title)),
 		gosx.El("p", layerPreviewAttrs("", layer.Preview.BodySource), gosx.Text(layer.Preview.Body)),
 	}
@@ -1491,7 +1492,7 @@ func inspectorControlAttrs(field InspectorField) gosx.AttrList {
 	}
 	switch field.Kind {
 	case InspectorFieldInput:
-		attrs = append(attrs, gosx.Attr("type", firstNonEmpty(field.Type, "text")))
+		attrs = append(attrs, gosx.Attr("type", gosxstudio.FirstNonEmpty(field.Type, "text")))
 		attrs = append(attrs, gosx.Attr("value", field.Value))
 	case InspectorFieldArea:
 		if field.Rows > 0 {
@@ -1653,7 +1654,7 @@ func inspectorOptionsForBlockField(field blockstudio.FieldDefinition, value stri
 		}
 		options = append(options, InspectorFieldOption{
 			Value:    optionValue,
-			Label:    firstNonEmpty(option.Label, optionValue),
+			Label:    gosxstudio.FirstNonEmpty(option.Label, optionValue),
 			Selected: optionValue == value,
 		})
 	}
@@ -1685,7 +1686,7 @@ func calendarControlOptions(options []calendar.WidgetOption, value string) []Ins
 		}
 		out = append(out, InspectorFieldOption{
 			Value:    optionValue,
-			Label:    firstNonEmpty(option.Label, labelize(optionValue)),
+			Label:    gosxstudio.FirstNonEmpty(option.Label, labelize(optionValue)),
 			Selected: optionValue == value,
 		})
 	}
@@ -1743,11 +1744,11 @@ func pluralize(count int, singular, plural string) string {
 	if count == 1 {
 		label = singular
 	}
-	return fmtAny(count) + " " + label
+	return gosxstudio.FmtAny(count) + " " + label
 }
 
 func pascalKey(value string) string {
-	value = normalizeKey(value)
+	value = gosxstudio.NormalizeKey(value)
 	if value == "" {
 		return ""
 	}
@@ -1784,7 +1785,7 @@ func panelAttrs(className, panelKey, mode string) gosx.AttrList {
 func normalizeSiteNavItems(items []SiteNavItem) []SiteNavItem {
 	out := make([]SiteNavItem, 0, len(items))
 	for _, item := range items {
-		item.Key = normalizeKey(firstNonEmpty(item.Key, item.Label))
+		item.Key = gosxstudio.NormalizeKey(gosxstudio.FirstNonEmpty(item.Key, item.Label))
 		item.Label = strings.TrimSpace(item.Label)
 		item.Href = strings.TrimSpace(item.Href)
 		item.Summary = strings.TrimSpace(item.Summary)
@@ -1800,12 +1801,12 @@ func normalizeSiteNavItems(items []SiteNavItem) []SiteNavItem {
 func normalizeBlockLibraryItems(items []BlockLibraryItem) []BlockLibraryItem {
 	out := make([]BlockLibraryItem, 0, len(items))
 	for _, item := range items {
-		item.Key = normalizeKey(firstNonEmpty(item.Key, item.Label))
+		item.Key = gosxstudio.NormalizeKey(gosxstudio.FirstNonEmpty(item.Key, item.Label))
 		item.Label = strings.TrimSpace(item.Label)
 		item.Summary = strings.TrimSpace(item.Summary)
-		item.Target = normalizeKey(firstNonEmpty(item.Target, item.Key))
-		item.ButtonLabel = firstNonEmpty(item.ButtonLabel, "Add")
-		item.ButtonClass = firstNonEmpty(item.ButtonClass, "button button--secondary")
+		item.Target = gosxstudio.NormalizeKey(gosxstudio.FirstNonEmpty(item.Target, item.Key))
+		item.ButtonLabel = gosxstudio.FirstNonEmpty(item.ButtonLabel, "Add")
+		item.ButtonClass = gosxstudio.FirstNonEmpty(item.ButtonClass, "button button--secondary")
 		item.ButtonBaseClass = strings.TrimSpace(item.ButtonBaseClass)
 		if item.Key == "" || item.Label == "" || item.Target == "" {
 			continue
@@ -1818,7 +1819,7 @@ func normalizeBlockLibraryItems(items []BlockLibraryItem) []BlockLibraryItem {
 func normalizePanelLinks(links []PanelLink) []PanelLink {
 	out := make([]PanelLink, 0, len(links))
 	for _, link := range links {
-		link.Key = normalizeKey(firstNonEmpty(link.Key, link.Label))
+		link.Key = gosxstudio.NormalizeKey(gosxstudio.FirstNonEmpty(link.Key, link.Label))
 		link.Label = strings.TrimSpace(link.Label)
 		link.Summary = strings.TrimSpace(link.Summary)
 		link.Href = strings.TrimSpace(link.Href)
@@ -1834,17 +1835,17 @@ func normalizePanelLinks(links []PanelLink) []PanelLink {
 func normalizeFlowCards(flows []FlowCard) []FlowCard {
 	out := make([]FlowCard, 0, len(flows))
 	for _, flow := range flows {
-		flow.Key = normalizeKey(firstNonEmpty(flow.Key, flow.Label))
+		flow.Key = gosxstudio.NormalizeKey(gosxstudio.FirstNonEmpty(flow.Key, flow.Label))
 		flow.Label = strings.TrimSpace(flow.Label)
 		if flow.Key == "" || flow.Label == "" {
 			continue
 		}
-		flow.CardClass = firstNonEmpty(flow.CardClass, "studio-flow-card")
-		flow.StatusClass = firstNonEmpty(flow.StatusClass, "status")
-		flow.StatusLabel = firstNonEmpty(flow.StatusLabel, "Draft")
+		flow.CardClass = gosxstudio.FirstNonEmpty(flow.CardClass, "studio-flow-card")
+		flow.StatusClass = gosxstudio.FirstNonEmpty(flow.StatusClass, "status")
+		flow.StatusLabel = gosxstudio.FirstNonEmpty(flow.StatusLabel, "Draft")
 		flow.Summary = strings.TrimSpace(flow.Summary)
 		flow.Route = strings.TrimSpace(flow.Route)
-		flow.EmbedTarget = normalizeKey(flow.EmbedTarget)
+		flow.EmbedTarget = gosxstudio.NormalizeKey(flow.EmbedTarget)
 		flow.PrimaryHandlerRef = strings.TrimSpace(flow.PrimaryHandlerRef)
 		if !flow.CanExecute && flow.PrimaryHandlerRef != "" {
 			flow.CanExecute = true
@@ -1873,7 +1874,7 @@ func normalizeInspectorFields(fields []InspectorField) []InspectorField {
 			field.Rows = 4
 		}
 		if field.Kind == InspectorFieldCard {
-			field.CardTitle = firstNonEmpty(field.CardTitle, field.Value)
+			field.CardTitle = gosxstudio.FirstNonEmpty(field.CardTitle, field.Value)
 		}
 		out = append(out, field)
 	}
@@ -1884,8 +1885,8 @@ func normalizeRevisionItems(revisions []RevisionItem) []RevisionItem {
 	out := make([]RevisionItem, 0, len(revisions))
 	for _, revision := range revisions {
 		revision.ID = strings.TrimSpace(revision.ID)
-		revision.Title = firstNonEmpty(revision.Title, "Previous version")
-		revision.ActionLabel = firstNonEmpty(revision.ActionLabel, "saved")
+		revision.Title = gosxstudio.FirstNonEmpty(revision.Title, "Previous version")
+		revision.ActionLabel = gosxstudio.FirstNonEmpty(revision.ActionLabel, "saved")
 		revision.CreatedLabel = strings.TrimSpace(revision.CreatedLabel)
 		revision.CreatedMachine = strings.TrimSpace(revision.CreatedMachine)
 		if revision.ID == "" {
@@ -1899,27 +1900,27 @@ func normalizeRevisionItems(revisions []RevisionItem) []RevisionItem {
 func normalizeLayerItems(layers []LayerItem) []LayerItem {
 	out := make([]LayerItem, 0, len(layers))
 	for _, layer := range layers {
-		layer.Key = normalizeKey(layer.Key)
+		layer.Key = gosxstudio.NormalizeKey(layer.Key)
 		layer.Label = strings.TrimSpace(layer.Label)
 		if layer.Key == "" || layer.Label == "" {
 			continue
 		}
-		layer.CardClass = firstNonEmpty(layer.CardClass, "home-section-row editor-block editor-block--"+layer.Key)
-		layer.StatusClass = firstNonEmpty(layer.StatusClass, "status")
-		layer.StatusLabel = firstNonEmpty(layer.StatusLabel, "Hidden")
-		layer.DragLabel = firstNonEmpty(layer.DragLabel, "Reorder "+layer.Label)
-		layer.MoveUpLabel = firstNonEmpty(layer.MoveUpLabel, "Move "+layer.Label+" up")
-		layer.MoveDownLabel = firstNonEmpty(layer.MoveDownLabel, "Move "+layer.Label+" down")
+		layer.CardClass = gosxstudio.FirstNonEmpty(layer.CardClass, "home-section-row editor-block editor-block--"+layer.Key)
+		layer.StatusClass = gosxstudio.FirstNonEmpty(layer.StatusClass, "status")
+		layer.StatusLabel = gosxstudio.FirstNonEmpty(layer.StatusLabel, "Hidden")
+		layer.DragLabel = gosxstudio.FirstNonEmpty(layer.DragLabel, "Reorder "+layer.Label)
+		layer.MoveUpLabel = gosxstudio.FirstNonEmpty(layer.MoveUpLabel, "Move "+layer.Label+" up")
+		layer.MoveDownLabel = gosxstudio.FirstNonEmpty(layer.MoveDownLabel, "Move "+layer.Label+" down")
 		if layer.Order <= 0 {
 			layer.Order = len(out) + 1
 		}
-		formIndex := strings.TrimSpace(fmtAny(layer.Order - 1))
-		layer.KeyName = firstNonEmpty(layer.KeyName, "homeSectionKey"+formIndex)
-		layer.OrderName = firstNonEmpty(layer.OrderName, "homeSectionOrder"+formIndex)
-		layer.EnabledName = firstNonEmpty(layer.EnabledName, "homeSectionEnabled"+formIndex)
-		layer.Preview.VisualClass = firstNonEmpty(layer.Preview.VisualClass, "editor-block__visual editor-block__visual--"+layer.Key)
-		layer.Preview.Kicker = firstNonEmpty(layer.Preview.Kicker, layer.Label)
-		layer.Preview.Title = firstNonEmpty(layer.Preview.Title, layer.Label)
+		formIndex := strings.TrimSpace(gosxstudio.FmtAny(layer.Order - 1))
+		layer.KeyName = gosxstudio.FirstNonEmpty(layer.KeyName, "homeSectionKey"+formIndex)
+		layer.OrderName = gosxstudio.FirstNonEmpty(layer.OrderName, "homeSectionOrder"+formIndex)
+		layer.EnabledName = gosxstudio.FirstNonEmpty(layer.EnabledName, "homeSectionEnabled"+formIndex)
+		layer.Preview.VisualClass = gosxstudio.FirstNonEmpty(layer.Preview.VisualClass, "editor-block__visual editor-block__visual--"+layer.Key)
+		layer.Preview.Kicker = gosxstudio.FirstNonEmpty(layer.Preview.Kicker, layer.Label)
+		layer.Preview.Title = gosxstudio.FirstNonEmpty(layer.Preview.Title, layer.Label)
 		out = append(out, layer)
 	}
 	return out

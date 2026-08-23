@@ -5,12 +5,13 @@ import (
 	"testing"
 
 	"m31labs.dev/gosx"
+	gosxstudio "m31labs.dev/gosx-studio"
 )
 
 func TestHealthReportView(t *testing.T) {
 	report := NewHealthReport(
-		NewHealthCheck("media-alt", "Media alt text", "Media", ReadinessWatch, "2 assets missing alt", "Add alt text before publishing.").WithHref("/admin/media"),
-		NewHealthCheck("flows", "Flow handlers", "Forms", ReadinessReady, "4 executable", "All public forms have handlers."),
+		NewHealthCheck("media-alt", "Media alt text", "Media", gosxstudio.ShellReadinessWatch, "2 assets missing alt", "Add alt text before publishing.").WithHref("/admin/media"),
+		NewHealthCheck("flows", "Flow handlers", "Forms", gosxstudio.ShellReadinessReady, "4 executable", "All public forms have handlers."),
 		HealthCheck{Key: "skip"},
 	)
 	view := HealthReportView(report)
@@ -25,8 +26,8 @@ func TestHealthReportView(t *testing.T) {
 
 func TestRenderHealthPanel(t *testing.T) {
 	html := gosx.RenderHTML(RenderHealthPanel(NewHealthReport(
-		NewHealthCheck("copy", "Required copy", "Content", ReadinessReady, "Homepage copy present", "Title, tagline, and hero fields are filled."),
-		NewHealthCheck("preview", "Preview secret", "Deployment", ReadinessNext, "Missing secret", "Set a preview signing secret."),
+		NewHealthCheck("copy", "Required copy", "Content", gosxstudio.ShellReadinessReady, "Homepage copy present", "Title, tagline, and hero fields are filled."),
+		NewHealthCheck("preview", "Preview secret", "Deployment", gosxstudio.ShellReadinessNext, "Missing secret", "Set a preview signing secret."),
 	), HealthPanelOptions{Class: "studio-health"}))
 	for _, want := range []string{
 		`data-studio-health="true"`,
@@ -65,7 +66,7 @@ func TestNormalizeHealthReportDefaults(t *testing.T) {
 		t.Fatalf("unexpected checks: %#v", report.Checks)
 	}
 	check := report.Checks[0]
-	if check.Key != "flow-handlers" || check.Label != "Flow handlers" || check.Scope != "Site" || check.Value != "Watch" || check.Status != ReadinessWatch {
+	if check.Key != "flow-handlers" || check.Label != "Flow handlers" || check.Scope != "Site" || check.Value != "Watch" || check.Status != gosxstudio.ShellReadinessWatch {
 		t.Fatalf("unexpected normalized check: %#v", check)
 	}
 }

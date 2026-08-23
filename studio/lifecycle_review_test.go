@@ -7,6 +7,7 @@ import (
 
 	"m31labs.dev/gosx-cms/lifecycle"
 	lifecyclesql "m31labs.dev/gosx-cms/lifecycle/sqlstore"
+	gosxstudio "m31labs.dev/gosx-studio"
 )
 
 func TestLifecycleReviewStateLoadsLedgerData(t *testing.T) {
@@ -75,7 +76,7 @@ func TestLifecyclePublishApprovalMapsDecisionStatuses(t *testing.T) {
 		},
 		HasDecision: true,
 	}, LifecycleApprovalOptions{Required: true, Reviewer: "Owner"})
-	if !approval.Approved || approval.Status != ReadinessReady || approval.Summary != "Approved by owner@example.com" || approval.Detail != "Looks ready." {
+	if !approval.Approved || approval.Status != gosxstudio.ShellReadinessReady || approval.Summary != "Approved by owner@example.com" || approval.Detail != "Looks ready." {
 		t.Fatalf("unexpected approved state: %#v", approval)
 	}
 
@@ -83,7 +84,7 @@ func TestLifecyclePublishApprovalMapsDecisionStatuses(t *testing.T) {
 		Decision:    lifecycle.PublishDecision{Status: lifecycle.DecisionRejected, ActorID: "owner", Created: base},
 		HasDecision: true,
 	}, LifecycleApprovalOptions{Required: true})
-	if rejected.Approved || rejected.Status != ReadinessNext || rejected.Summary != "Rejected by owner" {
+	if rejected.Approved || rejected.Status != gosxstudio.ShellReadinessNext || rejected.Summary != "Rejected by owner" {
 		t.Fatalf("unexpected rejected state: %#v", rejected)
 	}
 

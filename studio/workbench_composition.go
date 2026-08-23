@@ -1,6 +1,9 @@
 package studio
 
-import "m31labs.dev/gosx"
+import (
+	"m31labs.dev/gosx"
+	gosxstudio "m31labs.dev/gosx-studio"
+)
 
 type WorkbenchCompositionOptions struct {
 	Commands                  []Command
@@ -31,7 +34,7 @@ type WorkbenchComposition struct {
 	WorkbenchNode          gosx.Node
 }
 
-func ComposeWorkbench(shell Shell, options WorkbenchCompositionOptions) WorkbenchComposition {
+func ComposeWorkbench(shell gosxstudio.Shell, options WorkbenchCompositionOptions) WorkbenchComposition {
 	commands := normalizeCommands(append([]Command{}, options.Commands...))
 	commandPaletteOptions := options.CommandPalette
 	if len(commandPaletteOptions.Commands) == 0 {

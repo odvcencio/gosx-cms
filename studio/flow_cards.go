@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	cmsflows "m31labs.dev/gosx-cms/flows"
+	gosxstudio "m31labs.dev/gosx-studio"
 )
 
 type FlowCardBuildOptions struct {
@@ -90,14 +91,14 @@ func FlowFieldsFromStudioFields(fields []cmsflows.StudioField, options FlowCardB
 
 func FlowEditorCommandsFromStudioFlows(flows []cmsflows.StudioFlow, options FlowEditorCommandOptions) []Command {
 	commands := make([]Command, 0, len(flows)*2)
-	editPrefix := firstNonEmpty(strings.TrimSpace(options.EditHrefPrefix), "#flow=")
-	editGroup := firstNonEmpty(strings.TrimSpace(options.EditGroup), "Flows")
-	editItemName := firstNonEmpty(strings.TrimSpace(options.EditItemName), "flow")
-	editSummary := firstNonEmpty(strings.TrimSpace(options.EditSummary), "Configure handler refs and flow step labels.")
-	previewGroup := firstNonEmpty(strings.TrimSpace(options.PreviewGroup), "Preview")
-	previewSummary := firstNonEmpty(strings.TrimSpace(options.PreviewSummary), "Open the public route that can host this flow.")
+	editPrefix := gosxstudio.FirstNonEmpty(strings.TrimSpace(options.EditHrefPrefix), "#flow=")
+	editGroup := gosxstudio.FirstNonEmpty(strings.TrimSpace(options.EditGroup), "Flows")
+	editItemName := gosxstudio.FirstNonEmpty(strings.TrimSpace(options.EditItemName), "flow")
+	editSummary := gosxstudio.FirstNonEmpty(strings.TrimSpace(options.EditSummary), "Configure handler refs and flow step labels.")
+	previewGroup := gosxstudio.FirstNonEmpty(strings.TrimSpace(options.PreviewGroup), "Preview")
+	previewSummary := gosxstudio.FirstNonEmpty(strings.TrimSpace(options.PreviewSummary), "Open the public route that can host this flow.")
 	for _, flow := range flows {
-		key := normalizeKey(flow.Key)
+		key := gosxstudio.NormalizeKey(flow.Key)
 		label := strings.TrimSpace(flow.Label)
 		if key == "" || label == "" {
 			continue
@@ -156,22 +157,22 @@ func ExecutableStudioFlowCount(flows []cmsflows.StudioFlow) int {
 func flowCardStatusClass(status string, options FlowCardBuildOptions) string {
 	switch strings.TrimSpace(status) {
 	case "ready":
-		return firstNonEmpty(options.ReadyStatusClass, "status status--ready")
+		return gosxstudio.FirstNonEmpty(options.ReadyStatusClass, "status status--ready")
 	case "watch":
-		return firstNonEmpty(options.WatchStatusClass, "status status--request")
+		return gosxstudio.FirstNonEmpty(options.WatchStatusClass, "status status--request")
 	default:
-		return firstNonEmpty(options.DefaultStatusClass, "status")
+		return gosxstudio.FirstNonEmpty(options.DefaultStatusClass, "status")
 	}
 }
 
 func flowCardClass(status string, options FlowCardBuildOptions) string {
-	prefix := firstNonEmpty(options.CardClassPrefix, "studio-flow-card studio-flow-card--")
+	prefix := gosxstudio.FirstNonEmpty(options.CardClassPrefix, "studio-flow-card studio-flow-card--")
 	return prefix + strings.TrimSpace(status)
 }
 
 func flowFieldRequiredLabel(required bool, options FlowCardBuildOptions) string {
 	if required {
-		return firstNonEmpty(options.RequiredLabel, "Required")
+		return gosxstudio.FirstNonEmpty(options.RequiredLabel, "Required")
 	}
-	return firstNonEmpty(options.OptionalLabel, "Optional")
+	return gosxstudio.FirstNonEmpty(options.OptionalLabel, "Optional")
 }

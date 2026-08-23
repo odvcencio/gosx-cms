@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"m31labs.dev/gosx"
+	gosxstudio "m31labs.dev/gosx-studio"
 )
 
 type StudioOption struct {
@@ -97,10 +98,10 @@ type StyleSettingsPanelOptions struct {
 }
 
 func RenderBrandPanel(options BrandPanelOptions) gosx.Node {
-	panelClass := firstNonEmpty(options.PanelClass, "editor-panel")
-	panelKey := firstNonEmpty(options.PanelKey, "brand")
-	mode := firstNonEmpty(options.Mode, "brand")
-	nodes := []gosx.Node{gosx.El("h2", nil, gosx.Text(firstNonEmpty(options.Title, "Brand")))}
+	panelClass := gosxstudio.FirstNonEmpty(options.PanelClass, "editor-panel")
+	panelKey := gosxstudio.FirstNonEmpty(options.PanelKey, "brand")
+	mode := gosxstudio.FirstNonEmpty(options.Mode, "brand")
+	nodes := []gosx.Node{gosx.El("h2", nil, gosx.Text(gosxstudio.FirstNonEmpty(options.Title, "Brand")))}
 	for _, field := range normalizeInspectorFields(options.Fields) {
 		nodes = append(nodes, renderInspectorField(field))
 	}
@@ -115,19 +116,19 @@ func RenderBrandPanel(options BrandPanelOptions) gosx.Node {
 	nodes = append(nodes, renderBrandTools(options), renderBrandPreview(options))
 	if strings.TrimSpace(options.MediaHref) != "" {
 		nodes = append(nodes, gosx.El("a", gosx.Attrs(
-			gosx.Attr("class", firstNonEmpty(options.MediaButtonClass, "button button--secondary")),
+			gosx.Attr("class", gosxstudio.FirstNonEmpty(options.MediaButtonClass, "button button--secondary")),
 			gosx.Attr("href", options.MediaHref),
 			gosx.Attr("data-gosx-link", "true"),
-		), gosx.Text(firstNonEmpty(options.MediaLabel, "Upload brand assets"))))
+		), gosx.Text(gosxstudio.FirstNonEmpty(options.MediaLabel, "Upload brand assets"))))
 	}
 	return gosx.El("section", panelAttrs(panelClass, panelKey, mode), gosx.Fragment(nodes...))
 }
 
 func RenderStyleSettingsPanel(options StyleSettingsPanelOptions) gosx.Node {
-	panelClass := firstNonEmpty(options.PanelClass, "editor-panel")
-	panelKey := firstNonEmpty(options.PanelKey, "style")
-	mode := firstNonEmpty(options.Mode, "style")
-	nodes := []gosx.Node{gosx.El("h2", nil, gosx.Text(firstNonEmpty(options.Title, "Style")))}
+	panelClass := gosxstudio.FirstNonEmpty(options.PanelClass, "editor-panel")
+	panelKey := gosxstudio.FirstNonEmpty(options.PanelKey, "style")
+	mode := gosxstudio.FirstNonEmpty(options.Mode, "style")
+	nodes := []gosx.Node{gosx.El("h2", nil, gosx.Text(gosxstudio.FirstNonEmpty(options.Title, "Style")))}
 	if strings.TrimSpace(options.WorkbenchHTML) != "" {
 		nodes = append(nodes, gosx.RawHTML(options.WorkbenchHTML))
 	}
@@ -175,7 +176,7 @@ func renderBrandTools(options BrandPanelOptions) gosx.Node {
 			gosx.El("span", nil, gosx.Text("Snap")),
 		),
 		gosx.El("div", gosx.Attrs(gosx.Attr("class", "field-row field-row--compact")),
-			gosx.El("label", gosx.Attrs(gosx.Attr("for", "logoSnapSize")), gosx.Text(firstNonEmpty(options.GridLabel, "Grid"))),
+			gosx.El("label", gosx.Attrs(gosx.Attr("for", "logoSnapSize")), gosx.Text(gosxstudio.FirstNonEmpty(options.GridLabel, "Grid"))),
 			gosx.El("input", gosx.Attrs(
 				gosx.Attr("id", "logoSnapSize"),
 				gosx.Attr("type", "number"),
@@ -189,7 +190,7 @@ func renderBrandTools(options BrandPanelOptions) gosx.Node {
 			gosx.Attr("class", "home-section-move"),
 			gosx.Attr("type", "button"),
 			gosx.Attr("data-editor-logo-reset", "true"),
-		), gosx.Text(firstNonEmpty(options.ResetLabel, "Reset"))),
+		), gosx.Text(gosxstudio.FirstNonEmpty(options.ResetLabel, "Reset"))),
 	)
 }
 
@@ -198,16 +199,16 @@ func renderBrandPreview(options BrandPanelOptions) gosx.Node {
 		gosx.Attr("class", "editor-brand-preview"),
 		gosx.Attr("data-editor-brand-preview", "true"),
 	),
-		gosx.El("span", gosx.Attrs(gosx.Attr("class", "editor-brand-preview__corner")), gosx.Text(firstNonEmpty(options.PreviewLabel, "Top left"))),
+		gosx.El("span", gosx.Attrs(gosx.Attr("class", "editor-brand-preview__corner")), gosx.Text(gosxstudio.FirstNonEmpty(options.PreviewLabel, "Top left"))),
 		gosx.El("button", gosx.Attrs(
 			gosx.Attr("class", "editor-brand-handle"),
 			gosx.Attr("type", "button"),
-			gosx.Attr("aria-label", firstNonEmpty(options.LogoButtonLabel, "Position logo")),
+			gosx.Attr("aria-label", gosxstudio.FirstNonEmpty(options.LogoButtonLabel, "Position logo")),
 			gosx.Attr("data-editor-brand-handle", "true"),
 		),
 			gosx.El("img", gosx.Attrs(
 				gosx.Attr("src", options.LogoURL),
-				gosx.Attr("alt", firstNonEmpty(options.LogoAlt, "Site logo")),
+				gosx.Attr("alt", gosxstudio.FirstNonEmpty(options.LogoAlt, "Site logo")),
 				gosx.Attr("data-editor-brand-logo", "true"),
 			)),
 		),
@@ -225,9 +226,9 @@ func renderChoiceGroup(group ChoiceGroup) gosx.Node {
 	for _, card := range cards {
 		cardNodes = append(cardNodes, renderChoiceCard(card))
 	}
-	return gosx.El("fieldset", gosx.Attrs(gosx.Attr("class", firstNonEmpty(group.Class, "template-picker"))),
+	return gosx.El("fieldset", gosx.Attrs(gosx.Attr("class", gosxstudio.FirstNonEmpty(group.Class, "template-picker"))),
 		gosx.El("legend", nil, gosx.Text(group.Legend)),
-		gosx.El("div", gosx.Attrs(gosx.Attr("class", firstNonEmpty(group.GridClass, "template-picker__grid"))), gosx.Fragment(cardNodes...)),
+		gosx.El("div", gosx.Attrs(gosx.Attr("class", gosxstudio.FirstNonEmpty(group.GridClass, "template-picker__grid"))), gosx.Fragment(cardNodes...)),
 	)
 }
 
@@ -241,7 +242,7 @@ func renderChoiceCard(card ChoiceCard) gosx.Node {
 		inputAttrs = append(inputAttrs, gosx.BoolAttr("checked"))
 	}
 	inputAttrs = appendFieldAttributes(inputAttrs, card.InputAttrs)
-	cardAttrs := []any{gosx.Attr("class", firstNonEmpty(card.Class, "template-card"))}
+	cardAttrs := []any{gosx.Attr("class", gosxstudio.FirstNonEmpty(card.Class, "template-card"))}
 	cardAttrs = appendFieldAttributes(cardAttrs, card.CardAttrs)
 	return gosx.El("label", gosx.Attrs(cardAttrs...),
 		gosx.El("input", gosx.Attrs(inputAttrs...)),
@@ -269,7 +270,7 @@ func renderCustomTemplateBuilder(options StyleSettingsPanelOptions) gosx.Node {
 		return gosx.Fragment()
 	}
 	return gosx.El("div", gosx.Attrs(
-		gosx.Attr("class", firstNonEmpty(options.CustomBuilderClass, "custom-template-builder")),
+		gosx.Attr("class", gosxstudio.FirstNonEmpty(options.CustomBuilderClass, "custom-template-builder")),
 		gosx.Attr("data-custom-template-builder", "true"),
 	), gosx.Fragment(controlNodes...))
 }
@@ -338,7 +339,7 @@ func renderRadioControlGroup(group RadioControlGroup) gosx.Node {
 			gosx.Text(" "+option.Label),
 		))
 	}
-	fieldsetAttrs := []any{gosx.Attr("class", firstNonEmpty(group.Class, "radio-row"))}
+	fieldsetAttrs := []any{gosx.Attr("class", gosxstudio.FirstNonEmpty(group.Class, "radio-row"))}
 	fieldsetAttrs = appendFieldAttributes(fieldsetAttrs, group.Attrs)
 	return gosx.El("fieldset", gosx.Attrs(fieldsetAttrs...),
 		gosx.El("legend", nil, gosx.Text(group.Legend)),
@@ -372,7 +373,7 @@ func renderColorTokenGrid(tokens []ColorTokenControl) gosx.Node {
 }
 
 func selectFieldClass(control SelectControl) string {
-	className := firstNonEmpty(control.Class, "field-row")
+	className := gosxstudio.FirstNonEmpty(control.Class, "field-row")
 	if control.Wide && !strings.Contains(" "+className+" ", " field-row--wide ") {
 		className += " field-row--wide"
 	}

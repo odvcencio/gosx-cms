@@ -1,6 +1,9 @@
 package studio
 
-import "testing"
+import (
+	gosxstudio "m31labs.dev/gosx-studio"
+	"testing"
+)
 
 func TestNormalizeStudioDocumentBuildsCanonicalViewMaps(t *testing.T) {
 	document := NormalizeStudioDocument(StudioDocument{
@@ -10,7 +13,7 @@ func TestNormalizeStudioDocumentBuildsCanonicalViewMaps(t *testing.T) {
 				Key:         " Home Page ",
 				Label:       " Home ",
 				Path:        " / ",
-				Status:      ReadinessReady,
+				Status:      gosxstudio.ShellReadinessReady,
 				ContentKeys: []string{"Hero Copy", "hero-copy", " "},
 				StyleKeys:   []string{"Theme"},
 				FlowKeys:    []string{"Checkout"},
@@ -19,13 +22,13 @@ func TestNormalizeStudioDocumentBuildsCanonicalViewMaps(t *testing.T) {
 			},
 			{Key: "home-page", Label: "Duplicate"},
 		},
-		Content: []StudioContent{{Key: "Hero Copy", Label: " Hero copy ", Kind: "Rich Text", Status: ReadinessNext}},
+		Content: []StudioContent{{Key: "Hero Copy", Label: " Hero copy ", Kind: "Rich Text", Status: gosxstudio.ShellReadinessNext}},
 		Styles:  []StudioStyle{{Key: "Theme", Label: "Theme", Tokens: map[string]string{" color.primary ": " #111 ", "empty": " "}}},
 		Flows:   []StudioFlow{{Key: "Checkout", Label: "Checkout", StepCount: -1, Executable: true}},
 		Releases: []StudioRelease{{
 			Key:    "Spring Launch",
 			Label:  "Spring launch",
-			Status: ReadinessReady,
+			Status: gosxstudio.ShellReadinessReady,
 		}},
 		Edges: []StudioDocumentEdge{
 			{From: "Theme", To: "missing", Kind: "style"},
@@ -76,13 +79,13 @@ func TestStudioDocumentSiteCanvasIncludesInferredAndExplicitEdges(t *testing.T) 
 			Key:         "home",
 			Label:       "Home",
 			Path:        "/",
-			Status:      ReadinessReady,
+			Status:      gosxstudio.ShellReadinessReady,
 			ContentKeys: []string{"hero"},
 			StyleKeys:   []string{"theme"},
 			FlowKeys:    []string{"checkout"},
 			ReleaseKeys: []string{"launch"},
 			View:        StudioDocumentNodeView{X: 12, Y: 34, Width: 300, Height: 140, Selected: true},
-			Metrics:     []Metric{NewMetric("sections", "sections", 6)},
+			Metrics:     []gosxstudio.Metric{gosxstudio.NewMetric("sections", "sections", 6)},
 		}},
 		Content:  []StudioContent{{Key: "hero", Label: "Hero copy", Summary: "Landing content"}},
 		Styles:   []StudioStyle{{Key: "theme", Label: "Theme"}},

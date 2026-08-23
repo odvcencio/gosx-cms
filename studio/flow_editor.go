@@ -5,6 +5,7 @@ import (
 
 	"m31labs.dev/gosx"
 	cmsflows "m31labs.dev/gosx-cms/flows"
+	gosxstudio "m31labs.dev/gosx-studio"
 )
 
 type FlowEditorOptions struct {
@@ -39,7 +40,7 @@ func RenderFlowEditorLibrary(flows []cmsflows.StudioFlow, options FlowEditorOpti
 	cards := make([]gosx.Node, 0, len(flowViews))
 	for index, flow := range flowViews {
 		selected := index == 0
-		className := firstNonEmpty(options.SummaryCardClass, "list-card studio-flow-summary")
+		className := gosxstudio.FirstNonEmpty(options.SummaryCardClass, "list-card studio-flow-summary")
 		if selected && !strings.Contains(className, "is-selected") {
 			className += " is-selected"
 		}
@@ -69,15 +70,15 @@ func RenderFlowEditorLibrary(flows []cmsflows.StudioFlow, options FlowEditorOpti
 		))
 	}
 	if len(cards) == 0 {
-		cards = append(cards, gosx.El("p", gosx.Attrs(gosx.Attr("class", "empty")), gosx.Text(firstNonEmpty(options.EmptyText, "No flows registered yet."))))
+		cards = append(cards, gosx.El("p", gosx.Attrs(gosx.Attr("class", "empty")), gosx.Text(gosxstudio.FirstNonEmpty(options.EmptyText, "No flows registered yet."))))
 	}
 	return gosx.El("section", gosx.Attrs(
-		gosx.Attr("class", firstNonEmpty(options.LibraryClass, "studio-panel studio-flow-library")),
-		gosx.Attr("aria-label", firstNonEmpty(options.LibraryLabel, "Flows")),
+		gosx.Attr("class", gosxstudio.FirstNonEmpty(options.LibraryClass, "studio-panel studio-flow-library")),
+		gosx.Attr("aria-label", gosxstudio.FirstNonEmpty(options.LibraryLabel, "Flows")),
 	),
-		gosx.El("h2", nil, gosx.Text(firstNonEmpty(options.LibraryTitle, "Flows"))),
+		gosx.El("h2", nil, gosx.Text(gosxstudio.FirstNonEmpty(options.LibraryTitle, "Flows"))),
 		gosx.El("div", gosx.Attrs(
-			gosx.Attr("class", firstNonEmpty(options.TablistClass, "studio-flow-tablist")),
+			gosx.Attr("class", gosxstudio.FirstNonEmpty(options.TablistClass, "studio-flow-tablist")),
 			gosx.Attr("data-studio-flow-library", "true"),
 			gosx.Attr("role", "tablist"),
 			gosx.Attr("aria-label", "Flow editor selection"),
@@ -92,14 +93,14 @@ func RenderFlowEditorFields(flows []cmsflows.StudioFlow, options FlowEditorOptio
 		editors = append(editors, renderFlowEditorFieldset(flow, index == 0, options))
 	}
 	if len(editors) == 0 {
-		editors = append(editors, gosx.El("p", gosx.Attrs(gosx.Attr("class", "empty")), gosx.Text(firstNonEmpty(options.EmptyText, "No flows registered yet."))))
+		editors = append(editors, gosx.El("p", gosx.Attrs(gosx.Attr("class", "empty")), gosx.Text(gosxstudio.FirstNonEmpty(options.EmptyText, "No flows registered yet."))))
 	}
 	return gosx.El("section", gosx.Attrs(
-		gosx.Attr("class", firstNonEmpty(options.FieldsClass, "studio-panel studio-flow-fields")),
+		gosx.Attr("class", gosxstudio.FirstNonEmpty(options.FieldsClass, "studio-panel studio-flow-fields")),
 		gosx.Attr("data-studio-flow-fields", "true"),
-		gosx.Attr("aria-label", firstNonEmpty(options.FieldsLabel, "Flow fields")),
+		gosx.Attr("aria-label", gosxstudio.FirstNonEmpty(options.FieldsLabel, "Flow fields")),
 	),
-		gosx.El("h2", nil, gosx.Text(firstNonEmpty(options.FieldsTitle, "Flow fields"))),
+		gosx.El("h2", nil, gosx.Text(gosxstudio.FirstNonEmpty(options.FieldsTitle, "Flow fields"))),
 		gosx.Fragment(editors...),
 	)
 }
@@ -113,7 +114,7 @@ func FlowStepLabelInputName(flowKey, stepKey string) string {
 }
 
 func renderFlowEditorFieldset(flow cmsflows.StudioFlow, selected bool, options FlowEditorOptions) gosx.Node {
-	className := firstNonEmpty(options.EditorCardClass, "list-card studio-flow-editor")
+	className := gosxstudio.FirstNonEmpty(options.EditorCardClass, "list-card studio-flow-editor")
 	if selected && !strings.Contains(className, "is-selected") {
 		className += " is-selected"
 	}
@@ -156,7 +157,7 @@ func renderFlowEditorFieldset(flow cmsflows.StudioFlow, selected bool, options F
 			gosx.Attr("class", "field"),
 			gosx.Attr("for", DOMID("studio-flow-handler", flow.Key)),
 		),
-			gosx.El("span", nil, gosx.Text(firstNonEmpty(options.HandlerRefLabel, "Handler ref"))),
+			gosx.El("span", nil, gosx.Text(gosxstudio.FirstNonEmpty(options.HandlerRefLabel, "Handler ref"))),
 			gosx.El("input", gosx.Attrs(handlerAttrs...)),
 		))
 	}
@@ -177,20 +178,20 @@ func renderFlowEditorFieldset(flow cmsflows.StudioFlow, selected bool, options F
 	buttons := []gosx.Node{}
 	if flow.HasRoute || strings.TrimSpace(flow.Route) != "" {
 		buttons = append(buttons, gosx.El("button", gosx.Attrs(
-			gosx.Attr("class", firstNonEmpty(options.PreviewButtonClass, "button button--secondary")),
+			gosx.Attr("class", gosxstudio.FirstNonEmpty(options.PreviewButtonClass, "button button--secondary")),
 			gosx.Attr("id", DOMID("studio-flow-preview", flow.Key)),
 			gosx.Attr("type", "button"),
 			gosx.Attr("data-studio-preview-flow", flow.Route),
-		), gosx.Text(firstNonEmpty(options.PreviewButtonLabel, "Preview route"))))
+		), gosx.Text(gosxstudio.FirstNonEmpty(options.PreviewButtonLabel, "Preview route"))))
 	}
 	if strings.TrimSpace(options.PublishAction) != "" {
 		buttons = append(buttons, gosx.El("button", gosx.Attrs(
-			gosx.Attr("class", firstNonEmpty(options.PublishButtonClass, "button button--secondary")),
+			gosx.Attr("class", gosxstudio.FirstNonEmpty(options.PublishButtonClass, "button button--secondary")),
 			gosx.Attr("type", "submit"),
 			gosx.Attr("formaction", options.PublishAction),
 			gosx.Attr("name", "flowKey"),
 			gosx.Attr("value", flow.Key),
-		), gosx.Text(firstNonEmpty(options.PublishButtonLabel, "Publish flow"))))
+		), gosx.Text(gosxstudio.FirstNonEmpty(options.PublishButtonLabel, "Publish flow"))))
 	}
 	children = append(children, gosx.El("div", gosx.Attrs(gosx.Attr("class", "button-row")), gosx.Fragment(buttons...)))
 	return gosx.El("article", gosx.Attrs(attrs...), gosx.Fragment(children...))
@@ -199,13 +200,13 @@ func renderFlowEditorFieldset(flow cmsflows.StudioFlow, selected bool, options F
 func normalizeFlowEditorViews(flows []cmsflows.StudioFlow) []cmsflows.StudioFlow {
 	out := make([]cmsflows.StudioFlow, 0, len(flows))
 	for _, flow := range flows {
-		flow.Key = normalizeKey(firstNonEmpty(flow.Key, flow.Label))
+		flow.Key = gosxstudio.NormalizeKey(gosxstudio.FirstNonEmpty(flow.Key, flow.Label))
 		flow.Label = strings.TrimSpace(flow.Label)
 		if flow.Key == "" || flow.Label == "" {
 			continue
 		}
 		flow.Summary = strings.TrimSpace(flow.Summary)
-		flow.StatusLabel = firstNonEmpty(flow.StatusLabel, "Draft")
+		flow.StatusLabel = gosxstudio.FirstNonEmpty(flow.StatusLabel, "Draft")
 		flow.Route = strings.TrimSpace(flow.Route)
 		out = append(out, flow)
 	}

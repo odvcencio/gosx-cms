@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"m31labs.dev/gosx"
+	gosxstudio "m31labs.dev/gosx-studio"
 )
 
 type SiteCanvasNode struct {
@@ -23,7 +24,7 @@ type SiteCanvasNode struct {
 	Selected   bool
 	XInputName string
 	YInputName string
-	Metrics    []Metric
+	Metrics    []gosxstudio.Metric
 	Tags       []string
 }
 
@@ -72,14 +73,14 @@ func RenderSiteCanvas(options SiteCanvasOptions) gosx.Node {
 	if keyboardNudge <= 0 {
 		keyboardNudge = 8
 	}
-	className := firstNonEmpty(options.Class, "gosx-studio-site-canvas")
-	toolbarClass := firstNonEmpty(options.ToolbarClass, "gosx-studio-site-canvas__toolbar")
-	controlsClass := firstNonEmpty(options.ControlsClass, "gosx-studio-site-canvas__controls")
-	viewportClass := firstNonEmpty(options.ViewportClass, "gosx-studio-site-canvas__viewport")
-	surfaceClass := firstNonEmpty(options.SurfaceClass, "gosx-studio-site-canvas__surface")
-	edgesClass := firstNonEmpty(options.EdgesClass, "gosx-studio-site-canvas__edges")
-	nodesClass := firstNonEmpty(options.NodesClass, "gosx-studio-site-canvas__nodes")
-	label := firstNonEmpty(options.Label, options.Title, "Site canvas")
+	className := gosxstudio.FirstNonEmpty(options.Class, "gosx-studio-site-canvas")
+	toolbarClass := gosxstudio.FirstNonEmpty(options.ToolbarClass, "gosx-studio-site-canvas__toolbar")
+	controlsClass := gosxstudio.FirstNonEmpty(options.ControlsClass, "gosx-studio-site-canvas__controls")
+	viewportClass := gosxstudio.FirstNonEmpty(options.ViewportClass, "gosx-studio-site-canvas__viewport")
+	surfaceClass := gosxstudio.FirstNonEmpty(options.SurfaceClass, "gosx-studio-site-canvas__surface")
+	edgesClass := gosxstudio.FirstNonEmpty(options.EdgesClass, "gosx-studio-site-canvas__edges")
+	nodesClass := gosxstudio.FirstNonEmpty(options.NodesClass, "gosx-studio-site-canvas__nodes")
+	label := gosxstudio.FirstNonEmpty(options.Label, options.Title, "Site canvas")
 
 	return gosx.El("section", gosx.Attrs(
 		gosx.Attr("class", className),
@@ -141,8 +142,8 @@ func SiteCanvasPositionsFromForm(form map[string]string, nodes []SiteCanvasNode,
 	}
 	nodes = normalizeSiteCanvasNodes(nodes)
 	for _, node := range nodes {
-		xName := firstNonEmpty(node.XInputName, SiteCanvasPositionInputName(options.NamePrefix, node.Key, "x"))
-		yName := firstNonEmpty(node.YInputName, SiteCanvasPositionInputName(options.NamePrefix, node.Key, "y"))
+		xName := gosxstudio.FirstNonEmpty(node.XInputName, SiteCanvasPositionInputName(options.NamePrefix, node.Key, "x"))
+		yName := gosxstudio.FirstNonEmpty(node.YInputName, SiteCanvasPositionInputName(options.NamePrefix, node.Key, "y"))
 		xValue, hasX := form[xName]
 		yValue, hasY := form[yName]
 		if !hasX && !hasY {
@@ -174,7 +175,7 @@ func ApplySiteCanvasPositions(nodes []SiteCanvasNode, positions map[string]SiteC
 	}
 	out := make([]SiteCanvasNode, 0, len(nodes))
 	for _, node := range nodes {
-		key := normalizeKey(firstNonEmpty(node.Key, node.Label))
+		key := gosxstudio.NormalizeKey(gosxstudio.FirstNonEmpty(node.Key, node.Label))
 		if position, ok := positions[key]; ok {
 			node.X = position.X
 			node.Y = position.Y
@@ -188,7 +189,7 @@ func renderSiteCanvasToolbar(className, controlsClass string, options SiteCanvas
 	children := []gosx.Node{
 		gosx.El("div", nil,
 			optionalText("p", "kicker", options.Kicker),
-			gosx.El("strong", nil, gosx.Text(firstNonEmpty(options.Title, "Site canvas"))),
+			gosx.El("strong", nil, gosx.Text(gosxstudio.FirstNonEmpty(options.Title, "Site canvas"))),
 			optionalText("span", "", options.Summary),
 		),
 		gosx.El("div", gosx.Attrs(
@@ -224,7 +225,7 @@ func renderSiteCanvasEdges(className string, width, height float64, nodes []Site
 			gosx.Attr("data-gosx-studio-canvas-edge-kind", edge.Kind),
 			gosx.Attr("data-gosx-studio-canvas-edge-from", edge.From),
 			gosx.Attr("data-gosx-studio-canvas-edge-to", edge.To),
-			gosx.Attr("aria-label", firstNonEmpty(edge.Label, edge.From+" to "+edge.To)),
+			gosx.Attr("aria-label", gosxstudio.FirstNonEmpty(edge.Label, edge.From+" to "+edge.To)),
 			gosx.Attr("d", fmt.Sprintf("M %s %s C %s %s, %s %s, %s %s", fmtFloat(x1), fmtFloat(y1), fmtFloat(x1+80), fmtFloat(y1), fmtFloat(x2-80), fmtFloat(y2), fmtFloat(x2), fmtFloat(y2))),
 		)))
 	}
@@ -271,10 +272,10 @@ func renderSiteCanvasPositionInput(node SiteCanvasNode, axis, name string, value
 }
 
 func renderSiteCanvasNode(className string, node SiteCanvasNode) gosx.Node {
-	kind := firstNonEmpty(node.Kind, "surface")
-	baseClass := firstNonEmpty(className, "gosx-studio-site-canvas__node")
+	kind := gosxstudio.FirstNonEmpty(node.Kind, "surface")
+	baseClass := gosxstudio.FirstNonEmpty(className, "gosx-studio-site-canvas__node")
 	baseToken := firstClass(baseClass)
-	classes := strings.TrimSpace(baseClass + " " + baseToken + "--" + normalizeKey(kind))
+	classes := strings.TrimSpace(baseClass + " " + baseToken + "--" + gosxstudio.NormalizeKey(kind))
 	if node.Selected {
 		classes += " is-selected"
 	}
@@ -286,9 +287,9 @@ func renderSiteCanvasNode(className string, node SiteCanvasNode) gosx.Node {
 	}
 	if len(node.Metrics) > 0 {
 		metrics := make([]gosx.Node, 0, len(node.Metrics))
-		for _, metric := range normalizeMetrics(node.Metrics) {
+		for _, metric := range gosxstudio.NormalizeMetrics(node.Metrics) {
 			metrics = append(metrics, gosx.El("span", nil,
-				gosx.El("strong", nil, gosx.Text(fmtAny(metric.Value))),
+				gosx.El("strong", nil, gosx.Text(gosxstudio.FmtAny(metric.Value))),
 				gosx.Text(" "+metric.Label),
 			))
 		}
@@ -301,7 +302,7 @@ func renderSiteCanvasNode(className string, node SiteCanvasNode) gosx.Node {
 		gosx.Attr("data-gosx-studio-canvas-node-kind", kind),
 		gosx.Attr("data-gosx-studio-canvas-node-label", node.Label),
 		gosx.Attr("data-gosx-studio-canvas-node-href", node.Href),
-		gosx.Attr("aria-pressed", boolAttr(node.Selected)),
+		gosx.Attr("aria-pressed", gosxstudio.BoolAttr(node.Selected)),
 		gosx.Attr("style", canvasNodeStyle(node)),
 	), gosx.Fragment(children...))
 }
@@ -317,9 +318,9 @@ func firstClass(className string) string {
 func normalizeSiteCanvasNodes(nodes []SiteCanvasNode) []SiteCanvasNode {
 	out := make([]SiteCanvasNode, 0, len(nodes))
 	for index, node := range nodes {
-		node.Key = normalizeKey(firstNonEmpty(node.Key, node.Label, fmt.Sprintf("node-%d", index+1)))
-		node.Kind = normalizeKey(firstNonEmpty(node.Kind, "surface"))
-		node.Label = strings.TrimSpace(firstNonEmpty(node.Label, node.Key))
+		node.Key = gosxstudio.NormalizeKey(gosxstudio.FirstNonEmpty(node.Key, node.Label, fmt.Sprintf("node-%d", index+1)))
+		node.Kind = gosxstudio.NormalizeKey(gosxstudio.FirstNonEmpty(node.Kind, "surface"))
+		node.Label = strings.TrimSpace(gosxstudio.FirstNonEmpty(node.Label, node.Key))
 		node.Summary = strings.TrimSpace(node.Summary)
 		node.Status = strings.TrimSpace(node.Status)
 		node.Href = strings.TrimSpace(node.Href)
@@ -361,13 +362,13 @@ func normalizeSiteCanvasEdges(edges []SiteCanvasEdge, nodes []SiteCanvasNode) []
 	}
 	out := make([]SiteCanvasEdge, 0, len(edges))
 	for index, edge := range edges {
-		edge.From = normalizeKey(edge.From)
-		edge.To = normalizeKey(edge.To)
+		edge.From = gosxstudio.NormalizeKey(edge.From)
+		edge.To = gosxstudio.NormalizeKey(edge.To)
 		if !exists[edge.From] || !exists[edge.To] {
 			continue
 		}
-		edge.Kind = normalizeKey(firstNonEmpty(edge.Kind, "link"))
-		edge.Key = normalizeKey(firstNonEmpty(edge.Key, edge.From+"-"+edge.To, fmt.Sprintf("edge-%d", index+1)))
+		edge.Kind = gosxstudio.NormalizeKey(gosxstudio.FirstNonEmpty(edge.Kind, "link"))
+		edge.Key = gosxstudio.NormalizeKey(gosxstudio.FirstNonEmpty(edge.Key, edge.From+"-"+edge.To, fmt.Sprintf("edge-%d", index+1)))
 		edge.Label = strings.TrimSpace(edge.Label)
 		out = append(out, edge)
 	}

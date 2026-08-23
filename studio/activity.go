@@ -5,6 +5,7 @@ import (
 
 	"m31labs.dev/gosx"
 	studiocollab "m31labs.dev/gosx-cms/studio/collab"
+	gosxstudio "m31labs.dev/gosx-studio"
 )
 
 type ActivityOptions struct {
@@ -16,9 +17,9 @@ type ActivityOptions struct {
 	Collapsed       bool
 }
 
-func RenderActivityPanel(readiness Readiness, proposals studiocollab.Snapshot, options ActivityOptions) gosx.Node {
-	className := firstNonEmpty(options.Class, "studio-activity-drawer")
-	readiness = NormalizeReadiness(readiness)
+func RenderActivityPanel(readiness gosxstudio.ShellReadiness, proposals studiocollab.Snapshot, options ActivityOptions) gosx.Node {
+	className := gosxstudio.FirstNonEmpty(options.Class, "studio-activity-drawer")
+	readiness = gosxstudio.NormalizeShellReadiness(readiness)
 	score := readiness.Summary()
 	if len(readiness.Items) == 0 {
 		score = "0/0 ready"
@@ -28,13 +29,13 @@ func RenderActivityPanel(readiness Readiness, proposals studiocollab.Snapshot, o
 		gosx.El("div", gosx.Attrs(gosx.Attr("class", "studio-activity-head")),
 			gosx.El("div", nil,
 				gosx.El("p", gosx.Attrs(gosx.Attr("class", "kicker")), gosx.Text("Activity")),
-				gosx.El("h2", nil, gosx.Text(firstNonEmpty(options.ReadinessLabel, "Readiness"))),
+				gosx.El("h2", nil, gosx.Text(gosxstudio.FirstNonEmpty(options.ReadinessLabel, "Readiness"))),
 			),
 			gosx.El("output", gosx.Attrs(gosx.Attr("class", "studio-readiness-score")), gosx.Text(score)),
 			gosx.El("button", gosx.Attrs(
 				gosx.Attr("type", "button"),
 				gosx.Attr("data-studio-activity-toggle", "true"),
-				gosx.Attr("aria-pressed", boolAttr(!options.Collapsed)),
+				gosx.Attr("aria-pressed", gosxstudio.BoolAttr(!options.Collapsed)),
 			), gosx.Text(activityToggleLabel(options.Collapsed))),
 		),
 		gosx.El("div", gosx.Attrs(
@@ -59,8 +60,8 @@ func RenderActivityPanel(readiness Readiness, proposals studiocollab.Snapshot, o
 	), gosx.Fragment(children...))
 }
 
-func renderReadinessList(readiness Readiness) gosx.Node {
-	readiness = NormalizeReadiness(readiness)
+func renderReadinessList(readiness gosxstudio.ShellReadiness) gosx.Node {
+	readiness = gosxstudio.NormalizeShellReadiness(readiness)
 	items := make([]gosx.Node, 0, len(readiness.Items))
 	for _, item := range readiness.Items {
 		children := []gosx.Node{
@@ -69,7 +70,7 @@ func renderReadinessList(readiness Readiness) gosx.Node {
 					gosx.El("strong", nil, gosx.Text(item.Label)),
 					gosx.El("span", nil, gosx.Text(item.Summary)),
 				),
-				gosx.El("output", nil, gosx.Text(readinessStatusLabel(item.Status))),
+				gosx.El("output", nil, gosx.Text(gosxstudio.ShellReadinessStatusLabel(item.Status))),
 			),
 		}
 		if item.Detail != "" {

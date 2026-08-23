@@ -5,12 +5,13 @@ import (
 	"testing"
 
 	"m31labs.dev/gosx"
+	gosxstudio "m31labs.dev/gosx-studio"
 )
 
 func TestRenderPerformancePanel(t *testing.T) {
 	html := gosx.RenderHTML(RenderPerformancePanel([]PerformanceSignal{
-		NewPerformanceSignal("frame-batching", "Frame batching", "rAF", "preview writes <= 1 per frame", ReadinessReady, "Typing and dragging coalesce DOM work."),
-		NewPerformanceSignal("media", "Media picker", "210 assets", "<= 250 assets before virtualized picker", ReadinessWatch, "Large libraries should graduate to async search."),
+		NewPerformanceSignal("frame-batching", "Frame batching", "rAF", "preview writes <= 1 per frame", gosxstudio.ShellReadinessReady, "Typing and dragging coalesce DOM work."),
+		NewPerformanceSignal("media", "Media picker", "210 assets", "<= 250 assets before virtualized picker", gosxstudio.ShellReadinessWatch, "Large libraries should graduate to async search."),
 	}, PerformancePanelOptions{Class: "studio-performance"}))
 	for _, want := range []string{
 		`data-studio-performance="true"`,
@@ -48,7 +49,7 @@ func TestNormalizePerformanceSignalsSkipsMissingLabels(t *testing.T) {
 	if len(signals) != 1 {
 		t.Fatalf("unexpected normalized signals: %#v", signals)
 	}
-	if signals[0].Key != "custom-key" || signals[0].Label != "Frame" || signals[0].Value != "Tracked" || signals[0].Status != ReadinessWatch {
+	if signals[0].Key != "custom-key" || signals[0].Label != "Frame" || signals[0].Value != "Tracked" || signals[0].Status != gosxstudio.ShellReadinessWatch {
 		t.Fatalf("unexpected signal: %#v", signals[0])
 	}
 }

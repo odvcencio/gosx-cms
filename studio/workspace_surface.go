@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"m31labs.dev/gosx-admin/workbench"
+	gosxstudio "m31labs.dev/gosx-studio"
 )
 
 type WorkspaceSurface struct {
@@ -29,10 +30,10 @@ type WorkspaceSurfaceOptions struct {
 }
 
 func BuildWorkspaceSurface(workspace workbench.Workspace, options WorkspaceSurfaceOptions) WorkspaceSurface {
-	homeKey := normalizeKey(firstNonEmpty(options.HomeKey, "home"))
-	homeLabel := firstNonEmpty(strings.TrimSpace(options.HomeLabel), "Home")
-	homeHref := firstNonEmpty(strings.TrimSpace(options.HomeHref), "/admin/editor")
-	homeSummary := firstNonEmpty(strings.TrimSpace(options.HomeSummary), "Live canvas and site structure.")
+	homeKey := gosxstudio.NormalizeKey(gosxstudio.FirstNonEmpty(options.HomeKey, "home"))
+	homeLabel := gosxstudio.FirstNonEmpty(strings.TrimSpace(options.HomeLabel), "Home")
+	homeHref := gosxstudio.FirstNonEmpty(strings.TrimSpace(options.HomeHref), "/admin/editor")
+	homeSummary := gosxstudio.FirstNonEmpty(strings.TrimSpace(options.HomeSummary), "Live canvas and site structure.")
 	surface := WorkspaceSurface{
 		SiteNav: []SiteNavItem{{
 			Key:     homeKey,
@@ -46,7 +47,7 @@ func BuildWorkspaceSurface(workspace workbench.Workspace, options WorkspaceSurfa
 			Key:      "open-" + homeKey,
 			Label:    "Open " + lowerFirst(homeLabel),
 			Summary:  homeSummary,
-			Group:    firstNonEmpty(strings.TrimSpace(options.ResourceGroup), "Resources"),
+			Group:    gosxstudio.FirstNonEmpty(strings.TrimSpace(options.ResourceGroup), "Resources"),
 			Href:     homeHref,
 			Keywords: []string{homeKey, homeLabel},
 		}},
@@ -75,7 +76,7 @@ func BuildWorkspaceSurface(workspace workbench.Workspace, options WorkspaceSurfa
 			Key:      "open-" + resource.Slug,
 			Label:    "Open " + resource.Label,
 			Summary:  summary,
-			Group:    firstNonEmpty(strings.TrimSpace(options.ResourceGroup), "Resources"),
+			Group:    gosxstudio.FirstNonEmpty(strings.TrimSpace(options.ResourceGroup), "Resources"),
 			Href:     resource.Route,
 			Keywords: workspaceResourceKeywords(resource),
 		})
@@ -99,7 +100,7 @@ func BuildWorkspaceSurface(workspace workbench.Workspace, options WorkspaceSurfa
 			Key:      "open-tool-" + tool.Slug,
 			Label:    "Open " + tool.Label,
 			Summary:  summary,
-			Group:    firstNonEmpty(strings.TrimSpace(options.ToolGroup), "Tools"),
+			Group:    gosxstudio.FirstNonEmpty(strings.TrimSpace(options.ToolGroup), "Tools"),
 			Href:     tool.Route,
 			Keywords: workspaceToolKeywords(tool),
 		})

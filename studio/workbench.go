@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"m31labs.dev/gosx"
+	gosxstudio "m31labs.dev/gosx-studio"
 )
 
 type WorkbenchOptions struct {
@@ -61,7 +62,7 @@ type WorkbenchOptions struct {
 	IncludeFlowRuntime      bool
 }
 
-func RenderWorkbench(shell Shell, options WorkbenchOptions) gosx.Node {
+func RenderWorkbench(shell gosxstudio.Shell, options WorkbenchOptions) gosx.Node {
 	formAttrs := workbenchFormAttrs(shell, options)
 	formChildren := make([]gosx.Node, 0, 8)
 	formChildren = append(formChildren, workbenchCSRFInput(options), gosx.Fragment(options.Statuses...))
@@ -74,31 +75,31 @@ func RenderWorkbench(shell Shell, options WorkbenchOptions) gosx.Node {
 	}
 	if scripts := renderWorkbenchScripts(options); len(scripts) > 0 {
 		children = append(children, gosx.El("div", gosx.Attrs(
-			gosx.Attr("class", firstNonEmpty(options.ScriptsClass, "gosx-studio-workbench__scripts")),
+			gosx.Attr("class", gosxstudio.FirstNonEmpty(options.ScriptsClass, "gosx-studio-workbench__scripts")),
 			gosx.Attr("data-gosx-studio-scripts", "true"),
 		), gosx.Fragment(scripts...)))
 	}
 
 	return gosx.El("div", gosx.Attrs(
-		gosx.Attr("class", firstNonEmpty(options.Class, "gosx-studio-workbench")),
+		gosx.Attr("class", gosxstudio.FirstNonEmpty(options.Class, "gosx-studio-workbench")),
 		gosx.Attr("data-gosx-studio-workbench", "true"),
 	), gosx.Fragment(children...))
 }
 
-func RenderStudioWorkbench(shell Shell, options WorkbenchOptions) gosx.Node {
+func RenderStudioWorkbench(shell gosxstudio.Shell, options WorkbenchOptions) gosx.Node {
 	return RenderWorkbench(shell, options)
 }
 
-func workbenchFormAttrs(shell Shell, options WorkbenchOptions) []any {
-	action := firstNonEmpty(options.Action, shell.SaveAction)
-	method := firstNonEmpty(options.Method, "post")
+func workbenchFormAttrs(shell gosxstudio.Shell, options WorkbenchOptions) []any {
+	action := gosxstudio.FirstNonEmpty(options.Action, shell.SaveAction)
+	method := gosxstudio.FirstNonEmpty(options.Method, "post")
 	attrs := []any{
-		gosx.Attr("class", firstNonEmpty(options.FormClass, "gosx-studio-workbench__form gosx-studio")),
+		gosx.Attr("class", gosxstudio.FirstNonEmpty(options.FormClass, "gosx-studio-workbench__form gosx-studio")),
 		gosx.Attr("method", method),
 		gosx.Attr("data-studio-workbench", "true"),
 		gosx.Attr("data-editor-workbench", "true"),
 		gosx.Attr("data-gosx-studio-state", "true"),
-		gosx.Attr("data-studio-shell", normalizeKey(shell.Title)),
+		gosx.Attr("data-studio-shell", gosxstudio.NormalizeKey(shell.Title)),
 		gosx.Attr("data-studio-block-count", strconv.Itoa(shell.BlockCount)),
 		gosx.Attr("data-studio-media-count", strconv.Itoa(shell.MediaCount)),
 		gosx.Attr("data-studio-revision-count", strconv.Itoa(shell.RevisionCount)),
@@ -117,7 +118,7 @@ func workbenchFormAttrs(shell Shell, options WorkbenchOptions) []any {
 		attrs = append(attrs,
 			gosx.Attr("data-gosx-studio-autosave", "true"),
 			gosx.Attr("data-gosx-studio-autosave-delay", strconv.Itoa(delay)),
-			gosx.Attr("data-gosx-studio-autosave-url", firstNonEmpty(options.AutosaveURL, action)),
+			gosx.Attr("data-gosx-studio-autosave-url", gosxstudio.FirstNonEmpty(options.AutosaveURL, action)),
 		)
 	}
 	return appendFieldAttributes(attrs, options.FormAttrs)
@@ -129,12 +130,12 @@ func workbenchCSRFInput(options WorkbenchOptions) gosx.Node {
 	}
 	return gosx.El("input", gosx.Attrs(
 		gosx.Attr("type", "hidden"),
-		gosx.Attr("name", firstNonEmpty(options.CSRFName, "csrf_token")),
+		gosx.Attr("name", gosxstudio.FirstNonEmpty(options.CSRFName, "csrf_token")),
 		gosx.Attr("value", options.CSRFToken),
 	))
 }
 
-func renderWorkbenchToolbar(shell Shell, options WorkbenchOptions) gosx.Node {
+func renderWorkbenchToolbar(shell gosxstudio.Shell, options WorkbenchOptions) gosx.Node {
 	if len(options.Toolbar) > 0 {
 		return gosx.Fragment(options.Toolbar...)
 	}
@@ -146,7 +147,7 @@ func renderWorkbenchToolbar(shell Shell, options WorkbenchOptions) gosx.Node {
 		controls = append(controls, RenderCommandPalette(CommandPaletteOptions{
 			Class:      "studio-command-palette",
 			Launcher:   "Commands",
-			Title:      firstNonEmpty(options.ToolbarTitle, shell.Title) + " commands",
+			Title:      gosxstudio.FirstNonEmpty(options.ToolbarTitle, shell.Title) + " commands",
 			SearchHint: "Search modes, routes, blocks, styling, and publish actions",
 			Commands:   options.Commands,
 		}))
@@ -167,29 +168,29 @@ func renderWorkbenchToolbar(shell Shell, options WorkbenchOptions) gosx.Node {
 	}
 	actions = append(actions, renderWorkbenchActionLinks(shell.Actions)...)
 	actions = append(actions, options.ToolbarActions...)
-	if firstNonEmpty(options.Action, shell.SaveAction) != "" {
+	if gosxstudio.FirstNonEmpty(options.Action, shell.SaveAction) != "" {
 		actions = append(actions, gosx.El("button", gosx.Attrs(
 			gosx.Attr("class", "button button--primary"),
 			gosx.Attr("type", "submit"),
 			gosx.Attr("data-gosx-studio-save-button", "true"),
-		), gosx.Text(firstNonEmpty(options.SaveButtonLabel, "Save changes"))))
+		), gosx.Text(gosxstudio.FirstNonEmpty(options.SaveButtonLabel, "Save changes"))))
 	}
 
 	return RenderStudioToolbar(StudioToolbarOptions{
-		Class:        firstNonEmpty(options.ToolbarClass, "editor-toolbar"),
-		ActionsClass: firstNonEmpty(options.ToolbarActionsClass, "button-row"),
-		Kicker:       firstNonEmpty(options.ToolbarKicker, shell.Canvas.RouteLabel),
-		Title:        firstNonEmpty(options.ToolbarTitle, shell.Title),
+		Class:        gosxstudio.FirstNonEmpty(options.ToolbarClass, "editor-toolbar"),
+		ActionsClass: gosxstudio.FirstNonEmpty(options.ToolbarActionsClass, "button-row"),
+		Kicker:       gosxstudio.FirstNonEmpty(options.ToolbarKicker, shell.Canvas.RouteLabel),
+		Title:        gosxstudio.FirstNonEmpty(options.ToolbarTitle, shell.Title),
 		Summary:      options.ToolbarSummary,
 		Controls:     controls,
 		Actions:      actions,
 	})
 }
 
-func renderWorkbenchActionLinks(actions []Action) []gosx.Node {
+func renderWorkbenchActionLinks(actions []gosxstudio.Action) []gosx.Node {
 	nodes := make([]gosx.Node, 0, len(actions))
 	for _, action := range actions {
-		if normalizeKey(action.Key) == "save" || strings.TrimSpace(action.Href) == "" {
+		if gosxstudio.NormalizeKey(action.Key) == "save" || strings.TrimSpace(action.Href) == "" {
 			continue
 		}
 		className := "button button--secondary"
@@ -206,9 +207,9 @@ func renderWorkbenchActionLinks(actions []Action) []gosx.Node {
 	return nodes
 }
 
-func renderWorkbenchStage(shell Shell, options WorkbenchOptions) gosx.Node {
+func renderWorkbenchStage(shell gosxstudio.Shell, options WorkbenchOptions) gosx.Node {
 	children := []gosx.Node{
-		renderWorkbenchRail("aside", firstNonEmpty(options.LeftRailClass, "studio-left-rail"), "left", options.Left, shell.Left),
+		renderWorkbenchRail("aside", gosxstudio.FirstNonEmpty(options.LeftRailClass, "studio-left-rail"), "left", options.Left, shell.Left),
 	}
 	if options.ResizableRails {
 		children = append(children, renderWorkbenchRailResizer("left"))
@@ -217,9 +218,9 @@ func renderWorkbenchStage(shell Shell, options WorkbenchOptions) gosx.Node {
 	if options.ResizableRails {
 		children = append(children, renderWorkbenchRailResizer("right"))
 	}
-	children = append(children, renderWorkbenchRail("aside", firstNonEmpty(options.RightRailClass, "editor-sidebar"), "right", options.Right, shell.Right))
+	children = append(children, renderWorkbenchRail("aside", gosxstudio.FirstNonEmpty(options.RightRailClass, "editor-sidebar"), "right", options.Right, shell.Right))
 	return gosx.El("div", gosx.Attrs(
-		gosx.Attr("class", firstNonEmpty(options.StageClass, "editor-stage")),
+		gosx.Attr("class", gosxstudio.FirstNonEmpty(options.StageClass, "editor-stage")),
 		gosx.Attr("data-studio-layout", "true"),
 	), gosx.Fragment(children...))
 }
@@ -251,7 +252,7 @@ func renderWorkbenchRailResizer(side string) gosx.Node {
 	))
 }
 
-func renderWorkbenchRail(tag, className, side string, nodes []gosx.Node, panels []Panel) gosx.Node {
+func renderWorkbenchRail(tag, className, side string, nodes []gosx.Node, panels []gosxstudio.Panel) gosx.Node {
 	children := nodes
 	if len(children) == 0 {
 		children = renderWorkbenchPanels(panels)
@@ -262,7 +263,7 @@ func renderWorkbenchRail(tag, className, side string, nodes []gosx.Node, panels 
 	), gosx.Fragment(children...))
 }
 
-func renderWorkbenchPanels(panels []Panel) []gosx.Node {
+func renderWorkbenchPanels(panels []gosxstudio.Panel) []gosx.Node {
 	nodes := make([]gosx.Node, 0, len(panels))
 	for _, panel := range panels {
 		children := []gosx.Node{gosx.El("h2", nil, gosx.Text(panel.Label))}
@@ -278,19 +279,19 @@ func renderWorkbenchPanels(panels []Panel) []gosx.Node {
 	return nodes
 }
 
-func renderWorkbenchMain(shell Shell, options WorkbenchOptions) gosx.Node {
+func renderWorkbenchMain(shell gosxstudio.Shell, options WorkbenchOptions) gosx.Node {
 	children := options.Main
 	if len(children) == 0 {
 		children = []gosx.Node{renderWorkbenchCanvasShell(shell, options)}
 	}
 	return gosx.El("section", gosx.Attrs(
-		gosx.Attr("class", firstNonEmpty(options.MainClass, "editor-canvas")),
-		gosx.Attr("aria-label", firstNonEmpty(shell.Canvas.RouteLabel, shell.Title, "Studio canvas")),
-		gosx.Attr("data-panel-key", normalizeKey(firstNonEmpty(shell.Canvas.RouteLabel, "canvas"))),
+		gosx.Attr("class", gosxstudio.FirstNonEmpty(options.MainClass, "editor-canvas")),
+		gosx.Attr("aria-label", gosxstudio.FirstNonEmpty(shell.Canvas.RouteLabel, shell.Title, "Studio canvas")),
+		gosx.Attr("data-panel-key", gosxstudio.NormalizeKey(gosxstudio.FirstNonEmpty(shell.Canvas.RouteLabel, "canvas"))),
 	), gosx.Fragment(children...))
 }
 
-func renderWorkbenchCanvasShell(shell Shell, options WorkbenchOptions) gosx.Node {
+func renderWorkbenchCanvasShell(shell gosxstudio.Shell, options WorkbenchOptions) gosx.Node {
 	children := []gosx.Node{
 		renderWorkbenchCanvasBar(shell, options),
 		renderWorkbenchBoard(shell, options),
@@ -305,35 +306,35 @@ func renderWorkbenchCanvasShell(shell Shell, options WorkbenchOptions) gosx.Node
 	}
 	children = append(children, options.CanvasFooter...)
 	return gosx.El("div", gosx.Attrs(
-		gosx.Attr("class", firstNonEmpty(options.CanvasShellClass, "studio-canvas-shell")),
+		gosx.Attr("class", gosxstudio.FirstNonEmpty(options.CanvasShellClass, "studio-canvas-shell")),
 		gosx.Attr("data-studio-canvas", "true"),
-		gosx.Attr("data-studio-canvas-zoom", firstNonEmpty(shell.Canvas.Zoom, "fit")),
+		gosx.Attr("data-studio-canvas-zoom", gosxstudio.FirstNonEmpty(shell.Canvas.Zoom, "fit")),
 	), gosx.Fragment(children...))
 }
 
-func renderWorkbenchCanvasBar(shell Shell, options WorkbenchOptions) gosx.Node {
+func renderWorkbenchCanvasBar(shell gosxstudio.Shell, options WorkbenchOptions) gosx.Node {
 	if len(options.CanvasBar) > 0 {
-		return gosx.El("div", gosx.Attrs(gosx.Attr("class", firstNonEmpty(options.CanvasBarClass, "studio-canvas-bar"))), gosx.Fragment(options.CanvasBar...))
+		return gosx.El("div", gosx.Attrs(gosx.Attr("class", gosxstudio.FirstNonEmpty(options.CanvasBarClass, "studio-canvas-bar"))), gosx.Fragment(options.CanvasBar...))
 	}
-	return gosx.El("div", gosx.Attrs(gosx.Attr("class", firstNonEmpty(options.CanvasBarClass, "studio-canvas-bar"))),
+	return gosx.El("div", gosx.Attrs(gosx.Attr("class", gosxstudio.FirstNonEmpty(options.CanvasBarClass, "studio-canvas-bar"))),
 		gosx.El("div", nil,
 			gosx.El("p", gosx.Attrs(gosx.Attr("class", "kicker")), gosx.Text("Canvas")),
-			gosx.El("strong", nil, gosx.Text(firstNonEmpty(shell.Canvas.RouteLabel, shell.Title, "Preview"))),
+			gosx.El("strong", nil, gosx.Text(gosxstudio.FirstNonEmpty(shell.Canvas.RouteLabel, shell.Title, "Preview"))),
 		),
 		gosx.El("nav", gosx.Attrs(
 			gosx.Attr("class", "studio-breadcrumbs"),
 			gosx.Attr("aria-label", "Canvas selection"),
 		),
 			gosx.El("span", nil, gosx.Text("Site")),
-			gosx.El("span", nil, gosx.Text(firstNonEmpty(shell.Canvas.RouteLabel, "Preview"))),
-			gosx.El("output", gosx.Attrs(gosx.Attr("data-studio-selection-label", "true")), gosx.Text(firstNonEmpty(shell.Canvas.SelectionLabel, "No selection"))),
+			gosx.El("span", nil, gosx.Text(gosxstudio.FirstNonEmpty(shell.Canvas.RouteLabel, "Preview"))),
+			gosx.El("output", gosx.Attrs(gosx.Attr("data-studio-selection-label", "true")), gosx.Text(gosxstudio.FirstNonEmpty(shell.Canvas.SelectionLabel, "No selection"))),
 		),
 		RenderCanvasTools(CanvasToolsOptions{Class: "studio-canvas-tools", FocusActive: shell.Canvas.Focus}),
 		RenderZoomControls(ZoomControlsOptions{Class: "studio-zoombar", Active: shell.Canvas.Zoom}),
 	)
 }
 
-func renderWorkbenchBoard(shell Shell, options WorkbenchOptions) gosx.Node {
+func renderWorkbenchBoard(shell gosxstudio.Shell, options WorkbenchOptions) gosx.Node {
 	children := options.Board
 	if len(children) == 0 {
 		if len(options.Insertions) > 0 {
@@ -346,27 +347,27 @@ func renderWorkbenchBoard(shell Shell, options WorkbenchOptions) gosx.Node {
 				Commands:       options.SelectionCommands,
 			}))
 		}
-		children = append(children, gosx.El("div", gosx.Attrs(gosx.Attr("class", firstNonEmpty(options.FrameWrapClass, "studio-frame-wrap"))),
+		children = append(children, gosx.El("div", gosx.Attrs(gosx.Attr("class", gosxstudio.FirstNonEmpty(options.FrameWrapClass, "studio-frame-wrap"))),
 			RenderPreviewFrame(PreviewFrameOptions{
 				ShellClass:   "editor-preview-shell",
 				ToolbarClass: "storefront-frame-toolbar",
 				MetaClass:    "studio-preview-toolbar__flow",
 				FrameClass:   "storefront-frame editor-preview-frame",
-				Title:        firstNonEmpty(shell.Canvas.RouteLabel, shell.Title, "Preview"),
+				Title:        gosxstudio.FirstNonEmpty(shell.Canvas.RouteLabel, shell.Title, "Preview"),
 				URL:          shell.PreviewURL,
-				IFrameTitle:  firstNonEmpty(shell.Title, "Studio") + " preview",
+				IFrameTitle:  gosxstudio.FirstNonEmpty(shell.Title, "Studio") + " preview",
 				Controls: []gosx.Node{
 					RenderViewportSwitcher(shell.Viewports, ViewportSwitcherOptions{Class: "studio-viewport-switcher", Label: "Preview viewport"}),
 					gosx.El("output", gosx.Attrs(
 						gosx.Attr("class", "studio-selection-readout"),
 						gosx.Attr("data-studio-selection-label", "true"),
 						gosx.Attr("aria-live", "polite"),
-					), gosx.Text(firstNonEmpty(shell.Canvas.SelectionLabel, "No selection"))),
+					), gosx.Text(gosxstudio.FirstNonEmpty(shell.Canvas.SelectionLabel, "No selection"))),
 				},
 			}),
 		))
 	}
-	return gosx.El("div", gosx.Attrs(gosx.Attr("class", firstNonEmpty(options.BoardClass, "studio-canvas-board"))), gosx.Fragment(children...))
+	return gosx.El("div", gosx.Attrs(gosx.Attr("class", gosxstudio.FirstNonEmpty(options.BoardClass, "studio-canvas-board"))), gosx.Fragment(children...))
 }
 
 func renderWorkbenchScripts(options WorkbenchOptions) []gosx.Node {
@@ -390,8 +391,8 @@ func renderWorkbenchScripts(options WorkbenchOptions) []gosx.Node {
 	return scripts
 }
 
-func activeWorkbenchViewportLabel(viewports []Viewport) string {
-	for _, viewport := range normalizeViewports(viewports) {
+func activeWorkbenchViewportLabel(viewports []gosxstudio.Viewport) string {
+	for _, viewport := range gosxstudio.NormalizeViewports(viewports) {
 		if viewport.Active {
 			return viewport.Label
 		}

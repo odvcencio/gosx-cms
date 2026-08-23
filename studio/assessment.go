@@ -2,11 +2,12 @@ package studio
 
 import (
 	"fmt"
+	gosxstudio "m31labs.dev/gosx-studio"
 	"strings"
 )
 
 type Assessment struct {
-	Status       ReadinessStatus
+	Status       gosxstudio.ShellReadinessStatus
 	Summary      string
 	Detail       string
 	Value        string
@@ -24,7 +25,7 @@ type RequiredField struct {
 type RequiredFieldOptions struct {
 	ReadySummary        string
 	ReadyDetail         string
-	MissingStatus       ReadinessStatus
+	MissingStatus       gosxstudio.ShellReadinessStatus
 	MissingSummary      string
 	MissingDetailPrefix string
 }
@@ -37,13 +38,13 @@ type FlowExecutionOptions struct {
 
 func AssessRequiredFields(fields []RequiredField, options RequiredFieldOptions) Assessment {
 	missing := MissingRequiredFields(fields)
-	status := ReadinessReady
-	summary := firstNonEmpty(options.ReadySummary, "Required fields present")
-	detail := firstNonEmpty(options.ReadyDetail, "Required fields are filled.")
+	status := gosxstudio.ShellReadinessReady
+	summary := gosxstudio.FirstNonEmpty(options.ReadySummary, "Required fields present")
+	detail := gosxstudio.FirstNonEmpty(options.ReadyDetail, "Required fields are filled.")
 	if len(missing) > 0 {
-		status = normalizeReadinessStatus(options.MissingStatus)
-		summary = firstNonEmpty(options.MissingSummary, fmt.Sprintf("%d missing fields", len(missing)))
-		prefix := firstNonEmpty(options.MissingDetailPrefix, "Missing")
+		status = gosxstudio.NormalizeShellReadinessStatus(options.MissingStatus)
+		summary = gosxstudio.FirstNonEmpty(options.MissingSummary, fmt.Sprintf("%d missing fields", len(missing)))
+		prefix := gosxstudio.FirstNonEmpty(options.MissingDetailPrefix, "Missing")
 		detail = strings.TrimSpace(prefix) + " " + strings.Join(missing, ", ") + "."
 	}
 	return Assessment{
@@ -82,14 +83,14 @@ func AssessExecutableFlows(total, executable int, options FlowExecutionOptions) 
 	if executable > total {
 		executable = total
 	}
-	status := ReadinessReady
-	detail := firstNonEmpty(options.ReadyDetail, "Registered flows have executable handler refs.")
+	status := gosxstudio.ShellReadinessReady
+	detail := gosxstudio.FirstNonEmpty(options.ReadyDetail, "Registered flows have executable handler refs.")
 	if total == 0 || executable == 0 {
-		status = ReadinessNext
-		detail = firstNonEmpty(options.EmptyDetail, "Register executable flows before publishing public forms.")
+		status = gosxstudio.ShellReadinessNext
+		detail = gosxstudio.FirstNonEmpty(options.EmptyDetail, "Register executable flows before publishing public forms.")
 	} else if executable < total {
-		status = ReadinessWatch
-		detail = firstNonEmpty(options.PartialDetail, "Some registered flows still need handler refs.")
+		status = gosxstudio.ShellReadinessWatch
+		detail = gosxstudio.FirstNonEmpty(options.PartialDetail, "Some registered flows still need handler refs.")
 	}
 	summary := fmt.Sprintf("%d/%d executable", executable, total)
 	return Assessment{

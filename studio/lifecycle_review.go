@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"m31labs.dev/gosx-cms/lifecycle"
+	gosxstudio "m31labs.dev/gosx-studio"
 )
 
 type LifecycleReviewQuery struct {
@@ -102,47 +103,47 @@ func LifecyclePublishStateFromDecision(state LifecycleReviewState) lifecycle.Pub
 func LifecyclePublishApproval(state LifecycleReviewState, options LifecycleApprovalOptions) PublishApproval {
 	approval := PublishApproval{
 		Required:    options.Required,
-		Label:       firstNonEmpty(options.Label, "Owner approval"),
+		Label:       gosxstudio.FirstNonEmpty(options.Label, "Owner approval"),
 		Reviewer:    strings.TrimSpace(options.Reviewer),
 		Summary:     "Approval pending",
-		Detail:      firstNonEmpty(options.EmptyDetail, "Publish decisions are persisted in the lifecycle ledger."),
-		Status:      ReadinessWatch,
+		Detail:      gosxstudio.FirstNonEmpty(options.EmptyDetail, "Publish decisions are persisted in the lifecycle ledger."),
+		Status:      gosxstudio.ShellReadinessWatch,
 		Href:        strings.TrimSpace(options.Href),
 		ActionLabel: strings.TrimSpace(options.ActionLabel),
 	}
 	if !state.HasDecision {
 		return approval
 	}
-	actor := firstNonEmpty(state.Decision.ActorID, options.DefaultActor, "studio")
+	actor := gosxstudio.FirstNonEmpty(state.Decision.ActorID, options.DefaultActor, "studio")
 	when := LifecycleTimeLabel(state.Decision.Created, options.Location)
 	note := strings.TrimSpace(state.Decision.Note)
 	switch state.Decision.Status {
 	case lifecycle.DecisionApproved:
 		approval.Approved = true
 		approval.Summary = "Approved by " + actor
-		approval.Detail = firstNonEmpty(note, "Approved "+when+".")
-		approval.Status = ReadinessReady
+		approval.Detail = gosxstudio.FirstNonEmpty(note, "Approved "+when+".")
+		approval.Status = gosxstudio.ShellReadinessReady
 	case lifecycle.DecisionRejected:
 		approval.Summary = "Rejected by " + actor
-		approval.Detail = firstNonEmpty(note, "Rejected "+when+".")
-		approval.Status = ReadinessNext
+		approval.Detail = gosxstudio.FirstNonEmpty(note, "Rejected "+when+".")
+		approval.Status = gosxstudio.ShellReadinessNext
 	case lifecycle.DecisionChangesRequested:
 		approval.Summary = "Changes requested by " + actor
-		approval.Detail = firstNonEmpty(note, "Changes requested "+when+".")
-		approval.Status = ReadinessWatch
+		approval.Detail = gosxstudio.FirstNonEmpty(note, "Changes requested "+when+".")
+		approval.Status = gosxstudio.ShellReadinessWatch
 	default:
 		approval.Summary = "Review pending by " + actor
-		approval.Detail = firstNonEmpty(note, "Review opened "+when+".")
+		approval.Detail = gosxstudio.FirstNonEmpty(note, "Review opened "+when+".")
 	}
 	return approval
 }
 
 func LifecyclePublishSchedule(state LifecycleReviewState, options LifecycleScheduleOptions) PublishSchedule {
 	schedule := PublishSchedule{
-		Label:       firstNonEmpty(options.Label, "Publish timing"),
-		Summary:     firstNonEmpty(options.ManualSummary, "Manual publish"),
-		Detail:      firstNonEmpty(options.ManualDetail, "No future publish time is set; this draft goes live only through the explicit publish action."),
-		Status:      ReadinessReady,
+		Label:       gosxstudio.FirstNonEmpty(options.Label, "Publish timing"),
+		Summary:     gosxstudio.FirstNonEmpty(options.ManualSummary, "Manual publish"),
+		Detail:      gosxstudio.FirstNonEmpty(options.ManualDetail, "No future publish time is set; this draft goes live only through the explicit publish action."),
+		Status:      gosxstudio.ShellReadinessReady,
 		Href:        strings.TrimSpace(options.Href),
 		ActionLabel: strings.TrimSpace(options.ActionLabel),
 	}
@@ -154,8 +155,8 @@ func LifecyclePublishSchedule(state LifecycleReviewState, options LifecycleSched
 	schedule.PublishAt = pending.DueAt
 	schedule.Timezone = pending.Timezone
 	schedule.Summary = "Scheduled for " + LifecycleTimeLabel(pending.DueAt, options.Location)
-	schedule.Detail = firstNonEmpty(strings.TrimSpace(pending.Note), "A pending publish schedule is stored in the lifecycle ledger.")
-	schedule.Status = ReadinessReady
+	schedule.Detail = gosxstudio.FirstNonEmpty(strings.TrimSpace(pending.Note), "A pending publish schedule is stored in the lifecycle ledger.")
+	schedule.Status = gosxstudio.ShellReadinessReady
 	return schedule
 }
 

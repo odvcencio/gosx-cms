@@ -7,6 +7,7 @@ import (
 
 	"m31labs.dev/gosx"
 	"m31labs.dev/gosx-cms/lifecycle"
+	gosxstudio "m31labs.dev/gosx-studio"
 )
 
 type PreviewShareOptions struct {
@@ -23,9 +24,9 @@ type PreviewShareOptions struct {
 }
 
 func RenderPreviewSharePanel(link lifecycle.PreviewLink, href string, options PreviewShareOptions) gosx.Node {
-	className := firstNonEmpty(options.Class, "gosx-studio-preview-share")
-	title := firstNonEmpty(options.Title, "Share preview")
-	detail := firstNonEmpty(options.Detail, "Send a signed draft preview without giving editor access.")
+	className := gosxstudio.FirstNonEmpty(options.Class, "gosx-studio-preview-share")
+	title := gosxstudio.FirstNonEmpty(options.Title, "Share preview")
+	detail := gosxstudio.FirstNonEmpty(options.Detail, "Send a signed draft preview without giving editor access.")
 	if strings.TrimSpace(href) == "" {
 		return gosx.El("section", gosx.Attrs(
 			gosx.Attr("class", className+" "+className+"--disabled"),
@@ -34,8 +35,8 @@ func RenderPreviewSharePanel(link lifecycle.PreviewLink, href string, options Pr
 		),
 			renderPreviewShareHead(className, options.Kicker, title, "Unavailable"),
 			gosx.El("article", gosx.Attrs(gosx.Attr("class", className+"__empty")),
-				gosx.El("strong", nil, gosx.Text(firstNonEmpty(options.EmptyTitle, "Preview sharing unavailable"))),
-				gosx.El("p", nil, gosx.Text(firstNonEmpty(options.EmptyDetail, "Configure a preview signing secret before sharing drafts outside the editor."))),
+				gosx.El("strong", nil, gosx.Text(gosxstudio.FirstNonEmpty(options.EmptyTitle, "Preview sharing unavailable"))),
+				gosx.El("p", nil, gosx.Text(gosxstudio.FirstNonEmpty(options.EmptyDetail, "Configure a preview signing secret before sharing drafts outside the editor."))),
 			),
 		)
 	}
@@ -48,29 +49,29 @@ func RenderPreviewSharePanel(link lifecycle.PreviewLink, href string, options Pr
 		renderPreviewShareHead(className, options.Kicker, title, meta),
 		gosx.El("p", gosx.Attrs(gosx.Attr("class", className+"__detail")), gosx.Text(detail)),
 		gosx.El("label", gosx.Attrs(gosx.Attr("class", className+"__field")),
-			gosx.El("span", nil, gosx.Text(firstNonEmpty(options.InputLabel, "Preview URL"))),
+			gosx.El("span", nil, gosx.Text(gosxstudio.FirstNonEmpty(options.InputLabel, "Preview URL"))),
 			gosx.El("input", gosx.Attrs(
 				gosx.Attr("type", "url"),
 				gosx.Attr("readonly", "readonly"),
 				gosx.Attr("value", href),
 				gosx.Attr("data-studio-preview-url", "true"),
-				gosx.Attr("aria-label", firstNonEmpty(options.InputLabel, "Preview URL")),
+				gosx.Attr("aria-label", gosxstudio.FirstNonEmpty(options.InputLabel, "Preview URL")),
 			)),
 		),
 		gosx.El("div", gosx.Attrs(gosx.Attr("class", className+"__actions")),
 			gosx.El("button", gosx.Attrs(
 				gosx.Attr("type", "button"),
 				gosx.Attr("data-studio-copy-target", "[data-studio-preview-url]"),
-			), gosx.Text(firstNonEmpty(options.CopyLabel, "Copy link"))),
+			), gosx.Text(gosxstudio.FirstNonEmpty(options.CopyLabel, "Copy link"))),
 			gosx.El("a", gosx.Attrs(
 				gosx.Attr("href", href),
 				gosx.Attr("target", "_blank"),
 				gosx.Attr("rel", "noreferrer"),
-			), gosx.Text(firstNonEmpty(options.OpenLabel, "Open"))),
+			), gosx.Text(gosxstudio.FirstNonEmpty(options.OpenLabel, "Open"))),
 		),
 		gosx.El("dl", gosx.Attrs(gosx.Attr("class", className+"__meta")),
 			previewMetaPair("Resource", link.ResourceKind+"/"+link.ResourceID),
-			previewMetaPair("Audience", firstNonEmpty(link.Audience, "reviewer")),
+			previewMetaPair("Audience", gosxstudio.FirstNonEmpty(link.Audience, "reviewer")),
 			previewMetaPair("Expires", previewTimeLabel(link.Expires, options.Now)),
 		),
 	)
@@ -79,7 +80,7 @@ func RenderPreviewSharePanel(link lifecycle.PreviewLink, href string, options Pr
 func renderPreviewShareHead(className, kicker, title, status string) gosx.Node {
 	return gosx.El("div", gosx.Attrs(gosx.Attr("class", className+"__head")),
 		gosx.El("div", nil,
-			gosx.El("p", gosx.Attrs(gosx.Attr("class", className+"__kicker")), gosx.Text(firstNonEmpty(kicker, "Preview"))),
+			gosx.El("p", gosx.Attrs(gosx.Attr("class", className+"__kicker")), gosx.Text(gosxstudio.FirstNonEmpty(kicker, "Preview"))),
 			gosx.El("h2", nil, gosx.Text(title)),
 		),
 		gosx.El("output", nil, gosx.Text(status)),

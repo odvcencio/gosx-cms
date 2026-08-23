@@ -5,12 +5,13 @@ import (
 	"testing"
 
 	"m31labs.dev/gosx"
+	gosxstudio "m31labs.dev/gosx-studio"
 )
 
 func TestRenderModebarMetricStripAndViewports(t *testing.T) {
-	modes := []Mode{NewMode("Structure", "Structure", true), NewMode("Style", "Style", false)}
-	metrics := []Metric{NewMetric("Blocks", "Blocks", 4), NewMetric("Media", "Media", 2)}
-	viewports := []Viewport{NewViewport("Desktop", "Desktop", "100%", true), NewViewport("Mobile", "Mobile", "24rem", false)}
+	modes := []gosxstudio.Mode{gosxstudio.NewMode("Structure", "Structure", true), gosxstudio.NewMode("Style", "Style", false)}
+	metrics := []gosxstudio.Metric{gosxstudio.NewMetric("Blocks", "Blocks", 4), gosxstudio.NewMetric("Media", "Media", 2)}
+	viewports := []gosxstudio.Viewport{gosxstudio.NewViewport("Desktop", "Desktop", "100%", true), gosxstudio.NewViewport("Mobile", "Mobile", "24rem", false)}
 
 	modebar := gosx.RenderHTML(RenderModebar(modes, ModebarOptions{Class: "studio-modebar"}))
 	if !strings.Contains(modebar, `class="studio-modebar"`) || !strings.Contains(modebar, `data-studio-mode-control="structure"`) || !strings.Contains(modebar, `aria-pressed="true"`) {

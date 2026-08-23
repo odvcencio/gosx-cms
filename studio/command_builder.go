@@ -1,6 +1,9 @@
 package studio
 
-import "strings"
+import (
+	gosxstudio "m31labs.dev/gosx-studio"
+	"strings"
+)
 
 type CommandBlock struct {
 	Key          string
@@ -21,7 +24,7 @@ type CommandFlow struct {
 }
 
 type StudioCommandOptions struct {
-	Shell        Shell
+	Shell        gosxstudio.Shell
 	Blocks       []CommandBlock
 	Flows        []CommandFlow
 	Extra        []Command
@@ -36,8 +39,8 @@ func StudioCommands(options StudioCommandOptions) []Command {
 		{
 			Kind:     CommandSubmit,
 			Key:      "save",
-			Label:    firstNonEmpty(options.SaveLabel, "Save changes"),
-			Summary:  firstNonEmpty(options.SaveSummary, "Persist the current draft."),
+			Label:    gosxstudio.FirstNonEmpty(options.SaveLabel, "Save changes"),
+			Summary:  gosxstudio.FirstNonEmpty(options.SaveSummary, "Persist the current draft."),
 			Group:    "Save",
 			Target:   "save",
 			Shortcut: "Ctrl S",
@@ -106,7 +109,7 @@ func StudioCommands(options StudioCommandOptions) []Command {
 	}
 	for _, block := range options.Blocks {
 		label := strings.TrimSpace(block.Label)
-		target := normalizeKey(firstNonEmpty(block.Target, block.Key))
+		target := gosxstudio.NormalizeKey(gosxstudio.FirstNonEmpty(block.Target, block.Key))
 		if label == "" || target == "" {
 			continue
 		}
@@ -122,11 +125,11 @@ func StudioCommands(options StudioCommandOptions) []Command {
 	}
 	commands = append(commands, options.Extra...)
 	for _, flow := range options.Flows {
-		flow.Key = normalizeKey(flow.Key)
+		flow.Key = gosxstudio.NormalizeKey(flow.Key)
 		flow.Label = strings.TrimSpace(flow.Label)
 		flow.Description = strings.TrimSpace(flow.Description)
 		flow.Route = strings.TrimSpace(flow.Route)
-		flow.EmbedTarget = normalizeKey(flow.EmbedTarget)
+		flow.EmbedTarget = gosxstudio.NormalizeKey(flow.EmbedTarget)
 		if flow.Key == "" || flow.Label == "" {
 			continue
 		}
@@ -156,10 +159,10 @@ func StudioCommands(options StudioCommandOptions) []Command {
 	return normalizeCommands(commands)
 }
 
-func ShellActionCommands(actions []Action) []Command {
+func ShellActionCommands(actions []gosxstudio.Action) []Command {
 	commands := make([]Command, 0, len(actions))
 	for _, action := range actions {
-		key := normalizeKey(action.Key)
+		key := gosxstudio.NormalizeKey(action.Key)
 		label := strings.TrimSpace(action.Label)
 		href := strings.TrimSpace(action.Href)
 		if key == "" || key == "save" || label == "" || href == "" {

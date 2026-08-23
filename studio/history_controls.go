@@ -1,6 +1,9 @@
 package studio
 
-import "m31labs.dev/gosx"
+import (
+	"m31labs.dev/gosx"
+	gosxstudio "m31labs.dev/gosx-studio"
+)
 
 type HistoryControlsOptions struct {
 	Class         string
@@ -15,10 +18,10 @@ type HistoryControlsOptions struct {
 }
 
 func RenderHistoryControls(options HistoryControlsOptions) gosx.Node {
-	className := firstNonEmpty(options.Class, "gosx-studio-history-controls")
-	buttonClass := firstNonEmpty(options.ButtonClass, "button button--secondary")
-	undoTitle := firstNonEmpty(options.UndoTitle, "Undo last change")
-	redoTitle := firstNonEmpty(options.RedoTitle, "Redo last undone change")
+	className := gosxstudio.FirstNonEmpty(options.Class, "gosx-studio-history-controls")
+	buttonClass := gosxstudio.FirstNonEmpty(options.ButtonClass, "button button--secondary")
+	undoTitle := gosxstudio.FirstNonEmpty(options.UndoTitle, "Undo last change")
+	redoTitle := gosxstudio.FirstNonEmpty(options.RedoTitle, "Redo last undone change")
 	children := []gosx.Node{
 		gosx.El("button", gosx.Attrs(
 			gosx.Attr("class", buttonClass),
@@ -27,7 +30,7 @@ func RenderHistoryControls(options HistoryControlsOptions) gosx.Node {
 			gosx.Attr("aria-label", undoTitle),
 			gosx.Attr("title", undoTitle),
 			gosx.Attr("disabled", "disabled"),
-		), gosx.Text(firstNonEmpty(options.UndoLabel, "Undo"))),
+		), gosx.Text(gosxstudio.FirstNonEmpty(options.UndoLabel, "Undo"))),
 		gosx.El("button", gosx.Attrs(
 			gosx.Attr("class", buttonClass),
 			gosx.Attr("type", "button"),
@@ -35,14 +38,14 @@ func RenderHistoryControls(options HistoryControlsOptions) gosx.Node {
 			gosx.Attr("aria-label", redoTitle),
 			gosx.Attr("title", redoTitle),
 			gosx.Attr("disabled", "disabled"),
-		), gosx.Text(firstNonEmpty(options.RedoLabel, "Redo"))),
+		), gosx.Text(gosxstudio.FirstNonEmpty(options.RedoLabel, "Redo"))),
 	}
 	if options.IncludeStatus {
 		children = append(children, gosx.El("output", gosx.Attrs(
-			gosx.Attr("class", firstNonEmpty(options.StatusClass, className+"__status")),
+			gosx.Attr("class", gosxstudio.FirstNonEmpty(options.StatusClass, className+"__status")),
 			gosx.Attr("data-gosx-studio-history-status", "true"),
 			gosx.Attr("aria-live", "polite"),
-		), gosx.Text(firstNonEmpty(options.StatusLabel, "No local edits"))))
+		), gosx.Text(gosxstudio.FirstNonEmpty(options.StatusLabel, "No local edits"))))
 	}
 	return gosx.El("div", gosx.Attrs(
 		gosx.Attr("class", className),

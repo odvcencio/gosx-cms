@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"m31labs.dev/gosx"
+	gosxstudio "m31labs.dev/gosx-studio"
 )
 
 func TestRenderSiteCanvasMapsWebsiteObjects(t *testing.T) {
@@ -16,7 +17,7 @@ func TestRenderSiteCanvasMapsWebsiteObjects(t *testing.T) {
 		Title:         "Website map",
 		Summary:       "Pages, flows, content, and style",
 		Nodes: []SiteCanvasNode{
-			{Key: "home", Kind: "page", Label: "Home", Summary: "Landing page", Href: "/", X: 120, Y: 120, Selected: true, Metrics: []Metric{NewMetric("sections", "sections", 6)}},
+			{Key: "home", Kind: "page", Label: "Home", Summary: "Landing page", Href: "/", X: 120, Y: 120, Selected: true, Metrics: []gosxstudio.Metric{gosxstudio.NewMetric("sections", "sections", 6)}},
 			{Key: "checkout", Kind: "flow", Label: "Checkout", Summary: "Purchase path", Href: "/shop", X: 480, Y: 180},
 			{Key: "theme", Kind: "style", Label: "Theme", Summary: "Palette and type", X: 120, Y: 360},
 		},

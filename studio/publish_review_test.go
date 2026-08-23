@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"m31labs.dev/gosx"
+	gosxstudio "m31labs.dev/gosx-studio"
 )
 
 func TestPublishReviewView(t *testing.T) {
@@ -25,12 +26,12 @@ func TestPublishReviewView(t *testing.T) {
 			Timezone:  "America/Los_Angeles",
 		},
 		Checks: []PublishCheck{
-			NewPublishCheck("approval", "Owner approval", "Governance", ReadinessReady, "Approved", "The owner approved the release."),
-			NewPublishCheck("forms", "Flow handlers", "Forms", ReadinessWatch, "1 flow needs review", "Confirm lead capture before release.").WithHref("/admin/flows"),
+			NewPublishCheck("approval", "Owner approval", "Governance", gosxstudio.ShellReadinessReady, "Approved", "The owner approved the release."),
+			NewPublishCheck("forms", "Flow handlers", "Forms", gosxstudio.ShellReadinessWatch, "1 flow needs review", "Confirm lead capture before release.").WithHref("/admin/flows"),
 			{Key: "skip"},
 		},
 		Impacts: []PublishImpact{
-			NewPublishImpact("copy", "Copy changes", "Homepage", "3 fields", "Hero and guarantee copy changed.", ReadinessReady),
+			NewPublishImpact("copy", "Copy changes", "Homepage", "3 fields", "Hero and guarantee copy changed.", gosxstudio.ShellReadinessReady),
 		},
 		PrimaryHref: "/admin/publish",
 	}
@@ -77,11 +78,11 @@ func TestRenderPublishReviewPanel(t *testing.T) {
 			Summary: "Publish time required",
 		},
 		Checks: []PublishCheck{
-			NewPublishCheck("copy", "Required copy", "Content", ReadinessReady, "Ready to publish", "Title, tagline, and hero fields are filled."),
-			NewPublishCheck("approval", "Owner approval", "Governance", ReadinessNext, "Needs approval", "Collect approval before the public release."),
+			NewPublishCheck("copy", "Required copy", "Content", gosxstudio.ShellReadinessReady, "Ready to publish", "Title, tagline, and hero fields are filled."),
+			NewPublishCheck("approval", "Owner approval", "Governance", gosxstudio.ShellReadinessNext, "Needs approval", "Collect approval before the public release."),
 		},
 		Impacts: []PublishImpact{
-			NewPublishImpact("navigation", "Navigation", "Site shell", "Updated", "Header and footer links remain stable.", ReadinessReady),
+			NewPublishImpact("navigation", "Navigation", "Site shell", "Updated", "Header and footer links remain stable.", gosxstudio.ShellReadinessReady),
 		},
 		PrimaryHref:        "/admin/publish",
 		PrimaryActionLabel: "Open release",
@@ -142,10 +143,10 @@ func TestNormalizePublishReviewDefaults(t *testing.T) {
 	if len(review.Impacts) != 1 || review.Impacts[0].Key != "routes" || review.Impacts[0].Value != "Tracked" {
 		t.Fatalf("unexpected impacts: %#v", review.Impacts)
 	}
-	if review.Approval.Status != ReadinessNext || review.Approval.Summary != "Approval required" {
+	if review.Approval.Status != gosxstudio.ShellReadinessNext || review.Approval.Summary != "Approval required" {
 		t.Fatalf("unexpected approval defaults: %#v", review.Approval)
 	}
-	if review.Schedule.Status != ReadinessNext || review.Schedule.Summary != "Publish time required" {
+	if review.Schedule.Status != gosxstudio.ShellReadinessNext || review.Schedule.Summary != "Publish time required" {
 		t.Fatalf("unexpected schedule defaults: %#v", review.Schedule)
 	}
 }

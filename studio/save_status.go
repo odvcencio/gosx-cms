@@ -1,6 +1,9 @@
 package studio
 
-import "m31labs.dev/gosx"
+import (
+	"m31labs.dev/gosx"
+	gosxstudio "m31labs.dev/gosx-studio"
+)
 
 type SaveStatusOptions struct {
 	Class           string
@@ -14,14 +17,14 @@ type SaveStatusOptions struct {
 }
 
 func RenderSaveStatus(options SaveStatusOptions) gosx.Node {
-	className := firstNonEmpty(options.Class, "gosx-studio-save-status")
-	stateClass := firstNonEmpty(options.StateClass, "gosx-studio-save-status__state")
-	detailClass := firstNonEmpty(options.DetailClass, "gosx-studio-save-status__detail")
-	lastSavedClass := firstNonEmpty(options.LastSavedClass, "gosx-studio-save-status__last-saved")
-	dirtyCountClass := firstNonEmpty(options.DirtyCountClass, "gosx-studio-save-status__dirty-count")
-	stateLabel := firstNonEmpty(options.StateLabel, "Saved")
-	detailLabel := firstNonEmpty(options.DetailLabel, "Ready")
-	lastSavedLabel := firstNonEmpty(options.LastSavedLabel, "Not saved this session")
+	className := gosxstudio.FirstNonEmpty(options.Class, "gosx-studio-save-status")
+	stateClass := gosxstudio.FirstNonEmpty(options.StateClass, "gosx-studio-save-status__state")
+	detailClass := gosxstudio.FirstNonEmpty(options.DetailClass, "gosx-studio-save-status__detail")
+	lastSavedClass := gosxstudio.FirstNonEmpty(options.LastSavedClass, "gosx-studio-save-status__last-saved")
+	dirtyCountClass := gosxstudio.FirstNonEmpty(options.DirtyCountClass, "gosx-studio-save-status__dirty-count")
+	stateLabel := gosxstudio.FirstNonEmpty(options.StateLabel, "Saved")
+	detailLabel := gosxstudio.FirstNonEmpty(options.DetailLabel, "Ready")
+	lastSavedLabel := gosxstudio.FirstNonEmpty(options.LastSavedLabel, "Not saved this session")
 
 	return gosx.El("div", gosx.Attrs(
 		gosx.Attr("class", className),

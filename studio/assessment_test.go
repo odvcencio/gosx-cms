@@ -1,6 +1,9 @@
 package studio
 
-import "testing"
+import (
+	gosxstudio "m31labs.dev/gosx-studio"
+	"testing"
+)
 
 func TestFieldNamePrefixAndDOMIDNormalizeStudioKeys(t *testing.T) {
 	if got := FieldNamePrefix("flow", "schedule-tour", "request.label"); got != "FlowScheduleTourRequestLabel" {
@@ -23,7 +26,7 @@ func TestAssessRequiredFieldsReportsMissingFields(t *testing.T) {
 		ReadySummary:        "Copy ready",
 		MissingDetailPrefix: "Missing required",
 	})
-	if assessment.Status != ReadinessWatch || assessment.Summary != "2 missing fields" {
+	if assessment.Status != gosxstudio.ShellReadinessWatch || assessment.Summary != "2 missing fields" {
 		t.Fatalf("unexpected missing assessment: %#v", assessment)
 	}
 	if assessment.Detail != "Missing required tagline, hero headline." || assessment.Count != 1 || assessment.Total != 3 {
@@ -35,22 +38,22 @@ func TestAssessRequiredFieldsReportsReadyFields(t *testing.T) {
 	assessment := AssessRequiredFields([]RequiredField{
 		{Label: "site title", Value: "Muddy Noni"},
 	}, RequiredFieldOptions{ReadySummary: "Copy ready", ReadyDetail: "All copy fields are filled."})
-	if assessment.Status != ReadinessReady || assessment.Summary != "Copy ready" || assessment.Detail != "All copy fields are filled." {
+	if assessment.Status != gosxstudio.ShellReadinessReady || assessment.Summary != "Copy ready" || assessment.Detail != "All copy fields are filled." {
 		t.Fatalf("unexpected ready assessment: %#v", assessment)
 	}
 }
 
 func TestAssessExecutableFlows(t *testing.T) {
 	empty := AssessExecutableFlows(0, 0, FlowExecutionOptions{})
-	if empty.Status != ReadinessNext || empty.Summary != "0/0 executable" {
+	if empty.Status != gosxstudio.ShellReadinessNext || empty.Summary != "0/0 executable" {
 		t.Fatalf("unexpected empty flow assessment: %#v", empty)
 	}
 	partial := AssessExecutableFlows(3, 1, FlowExecutionOptions{})
-	if partial.Status != ReadinessWatch || partial.Summary != "1/3 executable" {
+	if partial.Status != gosxstudio.ShellReadinessWatch || partial.Summary != "1/3 executable" {
 		t.Fatalf("unexpected partial flow assessment: %#v", partial)
 	}
 	ready := AssessExecutableFlows(2, 4, FlowExecutionOptions{ReadyDetail: "Ready"})
-	if ready.Status != ReadinessReady || ready.Summary != "2/2 executable" || ready.Detail != "Ready" {
+	if ready.Status != gosxstudio.ShellReadinessReady || ready.Summary != "2/2 executable" || ready.Detail != "Ready" {
 		t.Fatalf("unexpected ready flow assessment: %#v", ready)
 	}
 }

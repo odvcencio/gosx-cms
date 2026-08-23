@@ -5,24 +5,19 @@ import (
 	"testing"
 
 	"m31labs.dev/gosx"
+	gosxstudio "m31labs.dev/gosx-studio"
 )
 
 func TestRenderWorkbenchComposesBrowserEditorShell(t *testing.T) {
-	shell := New(Options{
+	shell := gosxstudio.New(gosxstudio.Options{
 		Title:      "Commerce Studio",
 		PreviewURL: "/preview",
 		SaveAction: "/admin/editor/__actions/save",
-		Actions: []Action{
-			LinkAction("preview", "Preview storefront", "/admin/storefront"),
-		},
-		Metrics: []Metric{NewMetric("blocks", "Blocks", 4)},
-		Canvas:  CanvasSurface{RouteLabel: "Home", SelectionLabel: "Hero", Zoom: "fit", Focus: true},
-		Left: []Panel{
-			NewPanel("layers", "Layers", "Page sections."),
-		},
-		Right: []Panel{
-			NewPanel("inspector", "Inspector", "Selected controls."),
-		},
+		Actions:    []gosxstudio.Action{gosxstudio.LinkAction("preview", "Preview storefront", "/admin/storefront")},
+		Metrics:    []gosxstudio.Metric{gosxstudio.NewMetric("blocks", "Blocks", 4)},
+		Canvas:     gosxstudio.CanvasSurface{RouteLabel: "Home", SelectionLabel: "Hero", Zoom: "fit", Focus: true},
+		Left:       []gosxstudio.Panel{gosxstudio.NewPanel("layers", "Layers", "Page sections.")},
+		Right:      []gosxstudio.Panel{gosxstudio.NewPanel("inspector", "Inspector", "Selected controls.")},
 	})
 
 	html := gosx.RenderHTML(RenderWorkbench(shell, WorkbenchOptions{
@@ -100,10 +95,10 @@ func TestRenderWorkbenchComposesBrowserEditorShell(t *testing.T) {
 }
 
 func TestRenderWorkbenchAcceptsAppOwnedMainAndSlots(t *testing.T) {
-	shell := New(Options{
+	shell := gosxstudio.New(gosxstudio.Options{
 		Title:      "School Studio",
 		SaveAction: "/save",
-		Canvas:     CanvasSurface{RouteLabel: "Website map"},
+		Canvas:     gosxstudio.CanvasSurface{RouteLabel: "Website map"},
 	})
 
 	html := gosx.RenderHTML(RenderWorkbench(shell, WorkbenchOptions{

@@ -5,6 +5,7 @@ import (
 
 	"m31labs.dev/gosx"
 	cmsstyle "m31labs.dev/gosx-cms/style"
+	gosxstudio "m31labs.dev/gosx-studio"
 )
 
 type StyleState struct {
@@ -75,14 +76,14 @@ type StyleRadioControlOptions struct {
 }
 
 func RenderStyleScope(options StyleScopeOptions) gosx.Node {
-	className := firstNonEmpty(options.Class, "gosx-studio__style-scope")
+	className := gosxstudio.FirstNonEmpty(options.Class, "gosx-studio__style-scope")
 	states := normalizeStyleStates(options.States)
 	stateNodes := make([]gosx.Node, 0, len(states)+1)
 	for _, state := range states {
 		stateNodes = append(stateNodes, gosx.El("button", gosx.Attrs(
 			gosx.Attr("type", "button"),
 			gosx.Attr("data-studio-style-state", state.Key),
-			gosx.Attr("aria-pressed", boolAttr(state.Active)),
+			gosx.Attr("aria-pressed", gosxstudio.BoolAttr(state.Active)),
 		), gosx.Text(state.Label)))
 	}
 	stateNodes = append(stateNodes, gosx.El("output", gosx.Attrs(
@@ -96,15 +97,15 @@ func RenderStyleScope(options StyleScopeOptions) gosx.Node {
 		gosx.El("div", gosx.Attrs(gosx.Attr("class", "studio-style-scope__head")),
 			gosx.El("div", nil,
 				gosx.El("p", gosx.Attrs(gosx.Attr("class", "kicker")), gosx.Text("Scope")),
-				gosx.El("strong", gosx.Attrs(gosx.Attr("data-studio-style-scope-block", "true")), gosx.Text(firstNonEmpty(options.BlockLabel, "Block"))),
+				gosx.El("strong", gosx.Attrs(gosx.Attr("data-studio-style-scope-block", "true")), gosx.Text(gosxstudio.FirstNonEmpty(options.BlockLabel, "Block"))),
 			),
-			gosx.El("output", gosx.Attrs(gosx.Attr("data-studio-style-validity", "true")), gosx.Text(firstNonEmpty(options.ValidityLabel, "Ready"))),
+			gosx.El("output", gosx.Attrs(gosx.Attr("data-studio-style-validity", "true")), gosx.Text(gosxstudio.FirstNonEmpty(options.ValidityLabel, "Ready"))),
 		),
 		gosx.El("div", gosx.Attrs(gosx.Attr("class", "studio-style-scope__grid")),
-			styleScopeCell("System", firstNonEmpty(options.SystemID, "site"), "data-studio-style-system-label"),
-			styleScopeCell("Page", firstNonEmpty(options.PageLabel, "Home"), ""),
-			styleScopeCell("Field", firstNonEmpty(options.FieldLabel, "Block"), "data-studio-style-scope-field"),
-			styleScopeCell("Breakpoint", firstNonEmpty(options.BreakpointLabel, "Desktop"), "data-studio-style-breakpoint-label"),
+			styleScopeCell("System", gosxstudio.FirstNonEmpty(options.SystemID, "site"), "data-studio-style-system-label"),
+			styleScopeCell("Page", gosxstudio.FirstNonEmpty(options.PageLabel, "Home"), ""),
+			styleScopeCell("Field", gosxstudio.FirstNonEmpty(options.FieldLabel, "Block"), "data-studio-style-scope-field"),
+			styleScopeCell("Breakpoint", gosxstudio.FirstNonEmpty(options.BreakpointLabel, "Desktop"), "data-studio-style-breakpoint-label"),
 		),
 		gosx.El("div", gosx.Attrs(
 			gosx.Attr("class", "studio-style-statebar"),
@@ -115,14 +116,14 @@ func RenderStyleScope(options StyleScopeOptions) gosx.Node {
 }
 
 func RenderStyleWorkbench(recipes []cmsstyle.RecipeView, options StyleWorkbenchOptions) gosx.Node {
-	className := firstNonEmpty(options.Class, "gosx-studio__style-workbench")
+	className := gosxstudio.FirstNonEmpty(options.Class, "gosx-studio__style-workbench")
 	groups := normalizeStyleRecipeGroups(options.Groups, recipes)
 	controlViews := styleControlViews(recipes)
 	groupNodes := make([]gosx.Node, 0, len(groups))
 	for _, group := range groups {
 		controlNodes := make([]gosx.Node, 0, len(group.Controls))
 		for _, binding := range group.Controls {
-			control, ok := controlViews[normalizeKey(binding.ControlKey)]
+			control, ok := controlViews[gosxstudio.NormalizeKey(binding.ControlKey)]
 			if !ok {
 				continue
 			}
@@ -138,8 +139,8 @@ func RenderStyleWorkbench(recipes []cmsstyle.RecipeView, options StyleWorkbenchO
 		gosx.Attr("data-studio-style-workbench", "true"),
 	),
 		gosx.El("div", gosx.Attrs(gosx.Attr("class", "studio-panel-heading")),
-			gosx.El("p", gosx.Attrs(gosx.Attr("class", "kicker")), gosx.Text(firstNonEmpty(options.Kicker, "Recipes"))),
-			gosx.El("h3", nil, gosx.Text(firstNonEmpty(options.Title, "Visual system"))),
+			gosx.El("p", gosx.Attrs(gosx.Attr("class", "kicker")), gosx.Text(gosxstudio.FirstNonEmpty(options.Kicker, "Recipes"))),
+			gosx.El("h3", nil, gosx.Text(gosxstudio.FirstNonEmpty(options.Title, "Visual system"))),
 		),
 		renderStyleImpact(options.Impact),
 		gosx.El("div", gosx.Attrs(gosx.Attr("class", "studio-style-recipe-grid")), gosx.Fragment(groupNodes...)),
@@ -163,9 +164,9 @@ func StyleSelectControls(recipes []cmsstyle.RecipeView, bindings []StyleControlB
 		if !ok || len(control.Options) == 0 {
 			continue
 		}
-		fieldName := firstNonEmpty(binding.FieldName, control.Key)
-		label := firstNonEmpty(binding.Label, control.Label)
-		value := firstNonEmpty(values[fieldName], control.Default)
+		fieldName := gosxstudio.FirstNonEmpty(binding.FieldName, control.Key)
+		label := gosxstudio.FirstNonEmpty(binding.Label, control.Label)
+		value := gosxstudio.FirstNonEmpty(values[fieldName], control.Default)
 		attrs := append([]FieldAttribute{}, options.Attrs...)
 		attrs = append(attrs, binding.Attrs...)
 		attrs = appendStyleSourceAttr(attrs, options.SourcePrefix, fieldName)
@@ -192,14 +193,14 @@ func StyleRadioControlGroup(recipes []cmsstyle.RecipeView, binding StyleControlB
 	if !ok || len(control.Options) == 0 {
 		return RadioControlGroup{}
 	}
-	fieldName := firstNonEmpty(options.Name, binding.FieldName, control.Key)
-	value := firstNonEmpty(values[fieldName], control.Default)
+	fieldName := gosxstudio.FirstNonEmpty(options.Name, binding.FieldName, control.Key)
+	value := gosxstudio.FirstNonEmpty(values[fieldName], control.Default)
 	attrs := append([]FieldAttribute{}, options.Attrs...)
 	attrs = append(attrs, binding.Attrs...)
 	attrs = appendStyleSourceAttr(attrs, options.SourcePrefix, fieldName)
 	return RadioControlGroup{
 		Class:   options.Class,
-		Legend:  firstNonEmpty(options.Legend, binding.Label, control.Label),
+		Legend:  gosxstudio.FirstNonEmpty(options.Legend, binding.Label, control.Label),
 		Name:    fieldName,
 		Attrs:   attrs,
 		Options: styleStudioOptions(control, value),
@@ -224,14 +225,14 @@ func renderStyleImpact(options StyleImpactOptions) gosx.Node {
 		gosx.Attr("aria-live", "polite"),
 	),
 		gosx.El("div", nil,
-			gosx.El("p", gosx.Attrs(gosx.Attr("class", "kicker")), gosx.Text(firstNonEmpty(options.Kicker, "Preview impact"))),
-			gosx.El("strong", gosx.Attrs(gosx.Attr("data-studio-style-impact-label", "true")), gosx.Text(firstNonEmpty(options.Label, "No active recipe"))),
-			gosx.El("p", gosx.Attrs(gosx.Attr("data-studio-style-impact-summary", "true")), gosx.Text(firstNonEmpty(options.Summary, "Awaiting scoped change."))),
+			gosx.El("p", gosx.Attrs(gosx.Attr("class", "kicker")), gosx.Text(gosxstudio.FirstNonEmpty(options.Kicker, "Preview impact"))),
+			gosx.El("strong", gosx.Attrs(gosx.Attr("data-studio-style-impact-label", "true")), gosx.Text(gosxstudio.FirstNonEmpty(options.Label, "No active recipe"))),
+			gosx.El("p", gosx.Attrs(gosx.Attr("data-studio-style-impact-summary", "true")), gosx.Text(gosxstudio.FirstNonEmpty(options.Summary, "Awaiting scoped change."))),
 		),
 		gosx.El("div", gosx.Attrs(gosx.Attr("class", "studio-style-impact__meta")),
-			gosx.El("output", gosx.Attrs(gosx.Attr("data-studio-style-impact-count", "true")), gosx.Text(firstNonEmpty(options.CountLabel, "0 affected"))),
-			gosx.El("span", gosx.Attrs(gosx.Attr("data-studio-style-impact-scope", "true")), gosx.Text(firstNonEmpty(options.ScopeLabel, "site > home"))),
-			gosx.El("span", gosx.Attrs(gosx.Attr("data-studio-style-impact-state", "true")), gosx.Text(firstNonEmpty(options.StateLabel, "default / desktop"))),
+			gosx.El("output", gosx.Attrs(gosx.Attr("data-studio-style-impact-count", "true")), gosx.Text(gosxstudio.FirstNonEmpty(options.CountLabel, "0 affected"))),
+			gosx.El("span", gosx.Attrs(gosx.Attr("data-studio-style-impact-scope", "true")), gosx.Text(gosxstudio.FirstNonEmpty(options.ScopeLabel, "site > home"))),
+			gosx.El("span", gosx.Attrs(gosx.Attr("data-studio-style-impact-state", "true")), gosx.Text(gosxstudio.FirstNonEmpty(options.StateLabel, "default / desktop"))),
 		),
 	)
 }
@@ -240,7 +241,7 @@ func renderStyleRecipeGroup(group StyleRecipeGroup, controls map[string]cmsstyle
 	readoutField := styleReadoutField(group, controls)
 	readoutControl := styleReadoutControl(group, controls)
 	readoutLabel := styleReadoutLabel(readoutControl, values[readoutField])
-	visualClass := firstNonEmpty(group.VisualClass, "studio-style-visual--"+group.Key)
+	visualClass := gosxstudio.FirstNonEmpty(group.VisualClass, "studio-style-visual--"+group.Key)
 	return gosx.El("section", gosx.Attrs(
 		gosx.Attr("class", "studio-style-recipe-card"),
 		gosx.Attr("data-studio-style-recipe", group.Key),
@@ -258,8 +259,8 @@ func renderStyleRecipeGroup(group StyleRecipeGroup, controls map[string]cmsstyle
 }
 
 func renderStyleControlGroup(control cmsstyle.ControlView, binding StyleControlBinding, values map[string]string) gosx.Node {
-	fieldName := firstNonEmpty(binding.FieldName, control.Key)
-	label := firstNonEmpty(binding.Label, control.Label)
+	fieldName := gosxstudio.FirstNonEmpty(binding.FieldName, control.Key)
+	label := gosxstudio.FirstNonEmpty(binding.Label, control.Label)
 	optionNodes := make([]gosx.Node, 0, len(control.Options))
 	for _, option := range control.Options {
 		optionNodes = append(optionNodes, gosx.El("button", gosx.Attrs(
@@ -287,7 +288,7 @@ func normalizeStyleStates(states []StyleState) []StyleState {
 	out := make([]StyleState, 0, len(states))
 	hasActive := false
 	for _, state := range states {
-		state.Key = normalizeKey(state.Key)
+		state.Key = gosxstudio.NormalizeKey(state.Key)
 		state.Label = strings.TrimSpace(state.Label)
 		if state.Key == "" || state.Label == "" {
 			continue
@@ -324,10 +325,10 @@ func normalizeStyleRecipeGroups(groups []StyleRecipeGroup, recipes []cmsstyle.Re
 	}
 	out := make([]StyleRecipeGroup, 0, len(groups))
 	for _, group := range groups {
-		group.Key = normalizeKey(group.Key)
+		group.Key = gosxstudio.NormalizeKey(group.Key)
 		group.Label = strings.TrimSpace(group.Label)
 		group.VisualClass = strings.TrimSpace(group.VisualClass)
-		group.ReadoutControlKey = normalizeKey(group.ReadoutControlKey)
+		group.ReadoutControlKey = gosxstudio.NormalizeKey(group.ReadoutControlKey)
 		if group.VisualMarks <= 0 {
 			group.VisualMarks = 3
 		}
@@ -343,7 +344,7 @@ func normalizeStyleRecipeGroups(groups []StyleRecipeGroup, recipes []cmsstyle.Re
 func normalizeStyleControlBindings(bindings []StyleControlBinding) []StyleControlBinding {
 	out := make([]StyleControlBinding, 0, len(bindings))
 	for _, binding := range bindings {
-		binding.ControlKey = normalizeKey(binding.ControlKey)
+		binding.ControlKey = gosxstudio.NormalizeKey(binding.ControlKey)
 		binding.FieldName = strings.TrimSpace(binding.FieldName)
 		binding.Label = strings.TrimSpace(binding.Label)
 		if binding.ControlKey == "" {
@@ -358,7 +359,7 @@ func styleControlViews(recipes []cmsstyle.RecipeView) map[string]cmsstyle.Contro
 	out := map[string]cmsstyle.ControlView{}
 	for _, recipe := range recipes {
 		for _, control := range recipe.Controls {
-			key := normalizeKey(control.Key)
+			key := gosxstudio.NormalizeKey(control.Key)
 			if key != "" {
 				out[key] = control
 			}
@@ -368,17 +369,17 @@ func styleControlViews(recipes []cmsstyle.RecipeView) map[string]cmsstyle.Contro
 }
 
 func styleReadoutField(group StyleRecipeGroup, controls map[string]cmsstyle.ControlView) string {
-	controlKey := firstNonEmpty(group.ReadoutControlKey, firstGroupControlKey(group))
+	controlKey := gosxstudio.FirstNonEmpty(group.ReadoutControlKey, firstGroupControlKey(group))
 	for _, binding := range group.Controls {
 		if binding.ControlKey == controlKey {
-			return firstNonEmpty(binding.FieldName, binding.ControlKey)
+			return gosxstudio.FirstNonEmpty(binding.FieldName, binding.ControlKey)
 		}
 	}
 	return controlKey
 }
 
 func styleReadoutControl(group StyleRecipeGroup, controls map[string]cmsstyle.ControlView) cmsstyle.ControlView {
-	controlKey := firstNonEmpty(group.ReadoutControlKey, firstGroupControlKey(group))
+	controlKey := gosxstudio.FirstNonEmpty(group.ReadoutControlKey, firstGroupControlKey(group))
 	return controls[controlKey]
 }
 
@@ -455,7 +456,7 @@ func styleStudioOptions(control cmsstyle.ControlView, value string) []StudioOpti
 			Value:    option.Value,
 			Label:    styleLabel(option.Label, option.Value),
 			Selected: selected,
-			Attrs:    []FieldAttribute{{Name: "data-studio-style-css", Value: firstNonEmpty(option.CSS, option.Value)}},
+			Attrs:    []FieldAttribute{{Name: "data-studio-style-css", Value: gosxstudio.FirstNonEmpty(option.CSS, option.Value)}},
 		})
 	}
 	if !hasSelected && control.Default != "" {

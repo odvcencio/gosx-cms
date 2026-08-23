@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"m31labs.dev/gosx"
+	gosxstudio "m31labs.dev/gosx-studio"
 )
 
 type ModebarOptions struct {
@@ -86,16 +87,16 @@ type CanvasStatusOptions struct {
 	SelectionLabel string
 }
 
-func RenderModebar(modes []Mode, options ModebarOptions) gosx.Node {
-	className := firstNonEmpty(options.Class, "gosx-studio__modebar")
-	label := firstNonEmpty(options.Label, "Editor mode")
-	modes = normalizeModes(modes)
+func RenderModebar(modes []gosxstudio.Mode, options ModebarOptions) gosx.Node {
+	className := gosxstudio.FirstNonEmpty(options.Class, "gosx-studio__modebar")
+	label := gosxstudio.FirstNonEmpty(options.Label, "Editor mode")
+	modes = gosxstudio.NormalizeModes(modes)
 	nodes := make([]gosx.Node, 0, len(modes))
 	for _, mode := range modes {
 		nodes = append(nodes, gosx.El("button", gosx.Attrs(
 			gosx.Attr("type", "button"),
 			gosx.Attr("data-studio-mode-control", mode.Key),
-			gosx.Attr("aria-pressed", boolAttr(mode.Active)),
+			gosx.Attr("aria-pressed", gosxstudio.BoolAttr(mode.Active)),
 		), gosx.Text(mode.Label)))
 	}
 	return gosx.El("div", gosx.Attrs(
@@ -105,16 +106,16 @@ func RenderModebar(modes []Mode, options ModebarOptions) gosx.Node {
 	), gosx.Fragment(nodes...))
 }
 
-func RenderMetricStrip(metrics []Metric, options MetricStripOptions) gosx.Node {
-	className := firstNonEmpty(options.Class, "gosx-studio__metrics")
-	label := firstNonEmpty(options.Label, "Workspace metrics")
-	metrics = normalizeMetrics(metrics)
+func RenderMetricStrip(metrics []gosxstudio.Metric, options MetricStripOptions) gosx.Node {
+	className := gosxstudio.FirstNonEmpty(options.Class, "gosx-studio__metrics")
+	label := gosxstudio.FirstNonEmpty(options.Label, "Workspace metrics")
+	metrics = gosxstudio.NormalizeMetrics(metrics)
 	nodes := make([]gosx.Node, 0, len(metrics))
 	for _, metric := range metrics {
 		nodes = append(nodes, gosx.El("span", gosx.Attrs(
 			gosx.Attr("data-studio-metric", metric.Key),
 		),
-			gosx.El("strong", nil, gosx.Text(fmtAny(metric.Value))),
+			gosx.El("strong", nil, gosx.Text(gosxstudio.FmtAny(metric.Value))),
 			gosx.Text(" "+metric.Label),
 		))
 	}
@@ -124,17 +125,17 @@ func RenderMetricStrip(metrics []Metric, options MetricStripOptions) gosx.Node {
 	), gosx.Fragment(nodes...))
 }
 
-func RenderViewportSwitcher(viewports []Viewport, options ViewportSwitcherOptions) gosx.Node {
-	className := firstNonEmpty(options.Class, "gosx-studio__viewports")
-	label := firstNonEmpty(options.Label, "Preview viewport")
-	viewports = normalizeViewports(viewports)
+func RenderViewportSwitcher(viewports []gosxstudio.Viewport, options ViewportSwitcherOptions) gosx.Node {
+	className := gosxstudio.FirstNonEmpty(options.Class, "gosx-studio__viewports")
+	label := gosxstudio.FirstNonEmpty(options.Label, "Preview viewport")
+	viewports = gosxstudio.NormalizeViewports(viewports)
 	nodes := make([]gosx.Node, 0, len(viewports))
 	for _, viewport := range viewports {
 		nodes = append(nodes, gosx.El("button", gosx.Attrs(
 			gosx.Attr("type", "button"),
 			gosx.Attr("data-studio-viewport", viewport.Key),
 			gosx.Attr("data-studio-viewport-width", viewport.Width),
-			gosx.Attr("aria-pressed", boolAttr(viewport.Active)),
+			gosx.Attr("aria-pressed", gosxstudio.BoolAttr(viewport.Active)),
 		), gosx.Text(viewport.Label)))
 	}
 	return gosx.El("div", gosx.Attrs(
@@ -145,17 +146,17 @@ func RenderViewportSwitcher(viewports []Viewport, options ViewportSwitcherOption
 }
 
 func RenderCanvasTools(options CanvasToolsOptions) gosx.Node {
-	className := firstNonEmpty(options.Class, "gosx-studio__canvas-tools")
-	label := firstNonEmpty(options.Label, "Canvas tools")
+	className := gosxstudio.FirstNonEmpty(options.Class, "gosx-studio__canvas-tools")
+	label := gosxstudio.FirstNonEmpty(options.Label, "Canvas tools")
 	nodes := []gosx.Node{
-		canvasToolButton("data-studio-rail-toggle", "left", firstNonEmpty(options.LeftLabel, "Layers"), !options.LeftCollapsed),
-		canvasToolButton("data-studio-rail-toggle", "right", firstNonEmpty(options.RightLabel, "Inspector"), !options.RightCollapsed),
+		canvasToolButton("data-studio-rail-toggle", "left", gosxstudio.FirstNonEmpty(options.LeftLabel, "Layers"), !options.LeftCollapsed),
+		canvasToolButton("data-studio-rail-toggle", "right", gosxstudio.FirstNonEmpty(options.RightLabel, "Inspector"), !options.RightCollapsed),
 	}
 	if !options.HideActivity {
-		nodes = append(nodes, canvasToolButton("data-studio-activity-toggle", "true", firstNonEmpty(options.ActivityLabel, "Activity"), !options.ActivityClosed))
+		nodes = append(nodes, canvasToolButton("data-studio-activity-toggle", "true", gosxstudio.FirstNonEmpty(options.ActivityLabel, "Activity"), !options.ActivityClosed))
 	}
 	if !options.HideFocus {
-		nodes = append(nodes, canvasToolButton("data-studio-focus-toggle", "true", firstNonEmpty(options.FocusLabel, "Focus"), options.FocusActive))
+		nodes = append(nodes, canvasToolButton("data-studio-focus-toggle", "true", gosxstudio.FirstNonEmpty(options.FocusLabel, "Focus"), options.FocusActive))
 	}
 	return gosx.El("div", gosx.Attrs(
 		gosx.Attr("class", className),
@@ -165,15 +166,15 @@ func RenderCanvasTools(options CanvasToolsOptions) gosx.Node {
 }
 
 func RenderZoomControls(options ZoomControlsOptions) gosx.Node {
-	className := firstNonEmpty(options.Class, "gosx-studio__zoom")
-	label := firstNonEmpty(options.Label, "Canvas zoom")
+	className := gosxstudio.FirstNonEmpty(options.Class, "gosx-studio__zoom")
+	label := gosxstudio.FirstNonEmpty(options.Label, "Canvas zoom")
 	levels := normalizeZoomLevels(options.Levels, options.Active)
 	nodes := make([]gosx.Node, 0, len(levels))
 	for _, level := range levels {
 		nodes = append(nodes, gosx.El("button", gosx.Attrs(
 			gosx.Attr("type", "button"),
 			gosx.Attr("data-studio-zoom", level.Key),
-			gosx.Attr("aria-pressed", boolAttr(level.Active)),
+			gosx.Attr("aria-pressed", gosxstudio.BoolAttr(level.Active)),
 		), gosx.Text(level.Label)))
 	}
 	return gosx.El("div", gosx.Attrs(
@@ -184,15 +185,15 @@ func RenderZoomControls(options ZoomControlsOptions) gosx.Node {
 }
 
 func RenderInsertShelf(options []InsertOption, renderOptions InsertShelfOptions) gosx.Node {
-	className := firstNonEmpty(renderOptions.Class, "gosx-studio__insert-shelf")
-	kicker := firstNonEmpty(renderOptions.Kicker, "Add block")
-	title := firstNonEmpty(renderOptions.Title, "Insert")
+	className := gosxstudio.FirstNonEmpty(renderOptions.Class, "gosx-studio__insert-shelf")
+	kicker := gosxstudio.FirstNonEmpty(renderOptions.Kicker, "Add block")
+	title := gosxstudio.FirstNonEmpty(renderOptions.Title, "Insert")
 	insertions := normalizeInsertOptions(options)
 	buttons := make([]gosx.Node, 0, len(insertions))
 	for _, option := range insertions {
-		baseClass := firstNonEmpty(option.ButtonBaseClass, option.ButtonClass, "button")
-		classAttr := firstNonEmpty(option.ButtonClass, baseClass+" button--secondary")
-		target := firstNonEmpty(option.Target, option.Key)
+		baseClass := gosxstudio.FirstNonEmpty(option.ButtonBaseClass, option.ButtonClass, "button")
+		classAttr := gosxstudio.FirstNonEmpty(option.ButtonClass, baseClass+" button--secondary")
+		target := gosxstudio.FirstNonEmpty(option.Target, option.Key)
 		buttons = append(buttons, gosx.El("button", gosx.Attrs(
 			gosx.Attr("class", classAttr),
 			gosx.Attr("type", "button"),
@@ -201,7 +202,7 @@ func RenderInsertShelf(options []InsertOption, renderOptions InsertShelfOptions)
 			gosx.Attr("data-editor-button-base", baseClass),
 		),
 			gosx.El("span", nil, gosx.Text(option.Label)),
-			gosx.El("small", nil, gosx.Text(firstNonEmpty(option.ButtonLabel, "Add"))),
+			gosx.El("small", nil, gosx.Text(gosxstudio.FirstNonEmpty(option.ButtonLabel, "Add"))),
 		))
 	}
 	return gosx.El("div", gosx.Attrs(
@@ -217,11 +218,11 @@ func RenderInsertShelf(options []InsertOption, renderOptions InsertShelfOptions)
 }
 
 func RenderSelectionCommandbar(options SelectionCommandOptions) gosx.Node {
-	className := firstNonEmpty(options.Class, "gosx-studio__selection-commandbar")
-	kicker := firstNonEmpty(options.Kicker, "Selection")
-	selectionLabel := firstNonEmpty(options.SelectionLabel, "No selection")
-	statusLabel := firstNonEmpty(options.StatusLabel, "Visible")
-	fieldLabel := firstNonEmpty(options.FieldLabel, "Block")
+	className := gosxstudio.FirstNonEmpty(options.Class, "gosx-studio__selection-commandbar")
+	kicker := gosxstudio.FirstNonEmpty(options.Kicker, "Selection")
+	selectionLabel := gosxstudio.FirstNonEmpty(options.SelectionLabel, "No selection")
+	statusLabel := gosxstudio.FirstNonEmpty(options.StatusLabel, "Visible")
+	fieldLabel := gosxstudio.FirstNonEmpty(options.FieldLabel, "Block")
 	commands := normalizeSelectionCommands(options.Commands)
 	commandNodes := make([]gosx.Node, 0, len(commands))
 	for _, command := range commands {
@@ -255,10 +256,10 @@ func RenderSelectionCommandbar(options SelectionCommandOptions) gosx.Node {
 }
 
 func RenderCanvasStatus(options CanvasStatusOptions) gosx.Node {
-	className := firstNonEmpty(options.Class, "gosx-studio__canvas-status")
-	route := firstNonEmpty(options.RouteLabel, "Preview")
-	viewport := firstNonEmpty(options.ViewportLabel, "Desktop")
-	selection := firstNonEmpty(options.SelectionLabel, "No selection")
+	className := gosxstudio.FirstNonEmpty(options.Class, "gosx-studio__canvas-status")
+	route := gosxstudio.FirstNonEmpty(options.RouteLabel, "Preview")
+	viewport := gosxstudio.FirstNonEmpty(options.ViewportLabel, "Desktop")
+	selection := gosxstudio.FirstNonEmpty(options.SelectionLabel, "No selection")
 	return gosx.El("div", gosx.Attrs(gosx.Attr("class", className)),
 		gosx.El("span", nil, gosx.Text("Page / "+route)),
 		gosx.El("span", nil,
@@ -285,7 +286,7 @@ func DefaultSelectionCommands() []SelectionCommand {
 }
 
 func DefaultZoomLevels(active string) []ZoomLevel {
-	active = normalizeKey(firstNonEmpty(active, "fit"))
+	active = gosxstudio.NormalizeKey(gosxstudio.FirstNonEmpty(active, "fit"))
 	levels := []ZoomLevel{
 		{Key: "fit", Label: "Fit"},
 		{Key: "75", Label: "75%"},
@@ -301,7 +302,7 @@ func DefaultZoomLevels(active string) []ZoomLevel {
 func canvasToolButton(attr, value, label string, pressed bool) gosx.Node {
 	attrs := []any{
 		gosx.Attr("type", "button"),
-		gosx.Attr("aria-pressed", boolAttr(pressed)),
+		gosx.Attr("aria-pressed", gosxstudio.BoolAttr(pressed)),
 	}
 	if attr != "" {
 		attrs = append(attrs, gosx.Attr(attr, value))
@@ -313,11 +314,11 @@ func normalizeZoomLevels(levels []ZoomLevel, active string) []ZoomLevel {
 	if len(levels) == 0 {
 		return DefaultZoomLevels(active)
 	}
-	active = normalizeKey(active)
+	active = gosxstudio.NormalizeKey(active)
 	out := make([]ZoomLevel, 0, len(levels))
 	hasActive := false
 	for _, level := range levels {
-		level.Key = normalizeKey(level.Key)
+		level.Key = gosxstudio.NormalizeKey(level.Key)
 		level.Label = strings.TrimSpace(level.Label)
 		if level.Key == "" || level.Label == "" {
 			continue
@@ -343,10 +344,10 @@ func normalizeZoomLevels(levels []ZoomLevel, active string) []ZoomLevel {
 func normalizeInsertOptions(options []InsertOption) []InsertOption {
 	out := make([]InsertOption, 0, len(options))
 	for _, option := range options {
-		option.Key = normalizeKey(option.Key)
+		option.Key = gosxstudio.NormalizeKey(option.Key)
 		option.Label = strings.TrimSpace(option.Label)
 		option.Summary = strings.TrimSpace(option.Summary)
-		option.Target = normalizeKey(firstNonEmpty(option.Target, option.Key))
+		option.Target = gosxstudio.NormalizeKey(gosxstudio.FirstNonEmpty(option.Target, option.Key))
 		option.ButtonLabel = strings.TrimSpace(option.ButtonLabel)
 		option.ButtonClass = strings.TrimSpace(option.ButtonClass)
 		option.ButtonBaseClass = strings.TrimSpace(option.ButtonBaseClass)
@@ -364,7 +365,7 @@ func normalizeSelectionCommands(commands []SelectionCommand) []SelectionCommand 
 	}
 	out := make([]SelectionCommand, 0, len(commands))
 	for _, command := range commands {
-		command.Key = normalizeKey(command.Key)
+		command.Key = gosxstudio.NormalizeKey(command.Key)
 		command.Label = strings.TrimSpace(command.Label)
 		if command.Key == "" || command.Label == "" {
 			continue

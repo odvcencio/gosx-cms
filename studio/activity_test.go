@@ -6,13 +6,11 @@ import (
 
 	"m31labs.dev/gosx"
 	studiocollab "m31labs.dev/gosx-cms/studio/collab"
+	gosxstudio "m31labs.dev/gosx-studio"
 )
 
 func TestRenderActivityPanelIncludesReadinessAndProposalShell(t *testing.T) {
-	readiness := NewReadiness(
-		NewReadinessItem("shell", "Shell", ReadinessReady, "Mounted", "Canvas is ready."),
-		NewReadinessItem("collab", "Collaboration", ReadinessWatch, "Proposal review", "Wire rooms."),
-	)
+	readiness := gosxstudio.NewShellReadiness(gosxstudio.NewShellReadinessItem("shell", "Shell", gosxstudio.ShellReadinessReady, "Mounted", "Canvas is ready."), gosxstudio.NewShellReadinessItem("collab", "Collaboration", gosxstudio.ShellReadinessWatch, "Proposal review", "Wire rooms."))
 	html := gosx.RenderHTML(RenderActivityPanel(readiness, emptyProposalSnapshot(), ActivityOptions{}))
 	for _, want := range []string{
 		`data-studio-activity-drawer="true"`,
@@ -31,7 +29,7 @@ func TestRenderActivityPanelIncludesReadinessAndProposalShell(t *testing.T) {
 }
 
 func TestRenderActivityPanelCollapsedAndCustomClass(t *testing.T) {
-	html := gosx.RenderHTML(RenderActivityPanel(Readiness{}, emptyProposalSnapshot(), ActivityOptions{
+	html := gosx.RenderHTML(RenderActivityPanel(gosxstudio.ShellReadiness{}, emptyProposalSnapshot(), ActivityOptions{
 		Class:          "studio-drawer",
 		ReadinessLabel: "Launch",
 		Collapsed:      true,
@@ -50,10 +48,10 @@ func TestRenderActivityPanelCollapsedAndCustomClass(t *testing.T) {
 }
 
 func TestRenderActivityPanelIncludesExtraPanels(t *testing.T) {
-	html := gosx.RenderHTML(RenderActivityPanel(Readiness{}, emptyProposalSnapshot(), ActivityOptions{
+	html := gosx.RenderHTML(RenderActivityPanel(gosxstudio.ShellReadiness{}, emptyProposalSnapshot(), ActivityOptions{
 		ExtraPanels: []gosx.Node{
 			RenderPerformancePanel([]PerformanceSignal{
-				NewPerformanceSignal("frame", "Frame batching", "rAF", "single frame", ReadinessReady, ""),
+				NewPerformanceSignal("frame", "Frame batching", "rAF", "single frame", gosxstudio.ShellReadinessReady, ""),
 			}, PerformancePanelOptions{Class: "studio-performance"}),
 		},
 	}))

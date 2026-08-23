@@ -6,6 +6,7 @@ import (
 	"time"
 
 	cmsflows "m31labs.dev/gosx-cms/flows"
+	gosxstudio "m31labs.dev/gosx-studio"
 )
 
 type FlowDocumentDraftStore interface {
@@ -94,7 +95,7 @@ func SaveConfiguredFlowDraft(store FlowDocumentDraftStore, definition cmsflows.D
 		return cmsflows.Draft{}, err
 	}
 	return cmsflows.SaveConfiguredDraft(store, document, cmsflows.DraftConfig{
-		AuthorID:       firstNonEmpty(options.AuthorID, "studio"),
+		AuthorID:       gosxstudio.FirstNonEmpty(options.AuthorID, "studio"),
 		BaseRevisionID: strings.TrimSpace(options.BaseRevisionID),
 		HandlerRefs:    FlowHandlerRefs(definition, form),
 		StepLabels:     FlowStepLabels(definition, form),
@@ -106,19 +107,19 @@ func PublishConfiguredFlow(store FlowAuthoringStore, definitions []cmsflows.Defi
 	if store == nil {
 		return cmsflows.PublishResult{}, fmt.Errorf("flow store is not available")
 	}
-	flowKey := normalizeKey(options.FlowKey)
+	flowKey := gosxstudio.NormalizeKey(options.FlowKey)
 	definition, ok := cmsflows.Find(definitions, flowKey)
 	if !ok {
 		return cmsflows.PublishResult{}, fmt.Errorf("flow was not found: %s", flowKey)
 	}
 	now := flowAuthoringTime(options.Now)
 	if _, err := SaveConfiguredFlowDraft(store, definition, form, FlowDraftSaveOptions{
-		AuthorID: firstNonEmpty(options.AuthorID, "studio"),
+		AuthorID: gosxstudio.FirstNonEmpty(options.AuthorID, "studio"),
 		Now:      now,
 	}); err != nil {
 		return cmsflows.PublishResult{}, err
 	}
-	return cmsflows.PublishStoredDraft(store, definition.Key, firstNonEmpty(options.AuthorID, "studio"), now)
+	return cmsflows.PublishStoredDraft(store, definition.Key, gosxstudio.FirstNonEmpty(options.AuthorID, "studio"), now)
 }
 
 func FlowHandlerRefs(definition cmsflows.Definition, form map[string]string) map[string]string {
